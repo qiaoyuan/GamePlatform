@@ -1,0 +1,5 @@
+
+      :tree-props="{ children: 'children', hasChildren: '{%pk%}' }"
+      :lazy="true"
+      :load="onLoad"
+      :pagination="false"

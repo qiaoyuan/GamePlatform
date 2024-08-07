@@ -1,0 +1,17 @@
+<?php
+
+namespace {%namespace%};
+
+/**
+ * @property {%comment%}
+ */
+class {%className%} extends Base
+{
+    {%traits%}
+    protected $table = '{%tableName%}';
+    protected $pk = '{%pk%}';{%autoTime%}{%json%}
+    protected $field = [
+        {%field%}
+    ];
+    protected $type = {%type%};
+}

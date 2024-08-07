@@ -1,0 +1,4 @@
+getList() {
+      this.$store.dispatch('cleanColumnOptions', this.module)
+      this.$refs.wTable.getList()
+    },

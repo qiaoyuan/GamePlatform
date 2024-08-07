@@ -1,0 +1,66 @@
+<?php
+
+namespace app\{%module%}\controller;
+
+use app\{%module%}\BaseController;
+use app\common\model\{%className%} as Model;
+use app\common\annotation\Permission;
+{%use%}
+class {%className%} extends BaseController
+{
+    {%traits%}
+    #[Permission(title: '{%title%}', isMenu: 1, parentUrl: 'TODO: 上级路由', isHideSub: 1)]
+    public function index(): void
+    {
+        $lists = $this->tableList(Model::class, ['{%pk%}' => 'DESC'], [{%kField%}])
+            ->selectData();
+        $this->success('', [
+            'list' => $lists,
+        ]);
+    }
+
+    #[Permission(title: '修改{%title%}')]
+    public function edit(): void
+    {
+        $this->mEdit(Model::class);
+    }
+
+    #[Permission(title: '添加{%title%}'{%addRoute%})]
+    public function add(): void
+    {
+        $this->mAdd(Model::class);
+    }
+
+    #[Permission(title: '删除{%title%}')]
+    public function delete(): void
+    {
+        $this->mDelete(Model::class);
+    }
+
+    public function get(): void
+    {
+        $this->success('', [
+            'detail' => Model::find(input('id'))
+        ]);
+    }
+
+    #[Permission(title: '修改{%title%}状态')]
+    public function status(): void
+    {
+        $status = input('status', 0);
+        Model::update(['status' => $status], ['id' => $this->getInputPk()]);
+        $this->success('修改成功', ['status' => $status]);
+    }
+
+    public function select(): void
+    {
+        $this->success('', [
+            'list' => $this->tableList(Model::class)->field('title as label,id as value')->select()
+        ]);
+    }
+{%create%}
+    public function columns(): array
+    {
+        return [{%columns%}];
+    }
+}

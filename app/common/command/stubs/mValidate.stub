@@ -1,0 +1,17 @@
+<?php
+
+namespace app\{%module%}\validate;
+
+class {%className%} extends Base
+{
+    protected $rule = [
+        {%columns%}
+    ];
+
+    protected $message = [];
+
+    protected $scene = [
+        'add' => [{%addField%}],
+        'edit' => [{%editField%}],
+    ];
+}

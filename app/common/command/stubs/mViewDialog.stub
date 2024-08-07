@@ -1,0 +1,45 @@
+<template>
+  <div class="app-container">
+    <w-tabs-table
+      ref="wTable"
+      :operates="operates"
+      :module="module"{%lazyProps%}
+      k
+      @add="onAdd"
+      @edit="onEdit"
+    >
+    </w-tabs-table>
+    <{%module%}AddDialog ref="{%moduleUrl%}AddDialog" @done="getList" />
+  </div>
+</template>
+
+<script>
+import {%module%}AddDialog from './dialog/{%moduleUrl%}AddDialog'
+
+export default {
+  name: '{%module%}Index',
+  components: { {%module%}AddDialog },
+  data() {
+    return {
+      module: '{%moduleUrl%}',
+      operates: {
+        del: true,
+        look: false,
+        add: true,
+        edit: true,
+        multiDel: true,
+        // recycle: { autoLink: true },
+      },{%lazyData%}
+    }
+  },
+  methods: {
+    {%lazyGetList%}
+    onEdit(row) {
+      this.$refs.{%moduleUrl%}AddDialog.open(row)
+    },
+    onAdd() {
+      this.$refs.{%moduleUrl%}AddDialog.open({})
+    }
+  }
+}
+</script>

@@ -1,0 +1,41 @@
+<template>
+  <div class="app-container">
+    <w-tabs-table
+      ref="wTable"
+      :operates="operates"
+      :module="module"{%lazyProps%}
+      k
+      @add="onAdd"
+      @edit="onEdit"
+    >
+    </w-tabs-table>
+  </div>
+</template>
+
+<script>
+export default {
+  name: '{%module%}Index',
+  data() {
+    return {
+      module: '{%moduleUrl%}',
+      operates: {
+        del: true,
+        look: false,
+        add: true,
+        edit: true,
+        multiDel: true,
+        // recycle: { autoLink: true },
+      },{%lazyData%}
+    }
+  },
+  methods: {
+    {%lazyGetList%}
+    onEdit(row) {
+      this.$router.push({ name: '{%module%}Add', query: { {%pk%}: row.{%pk%} } })
+    },
+    onAdd() {
+      this.$router.push({ name: '{%module%}Add' })
+    },
+  }
+}
+</script>

@@ -1,0 +1,22 @@
+getList() {
+      this.$store.dispatch('cleanColumnOptions', this.module)
+      const { tree, resolve } = this.maps[this.nodeId] || {}
+      if (tree) {
+        this.loadNode(this.nodeId, resolve)
+        return
+      }
+      this.$refs.wTable.getList()
+    },
+    onLoad(tree, treeNode, resolve) {
+      const pid = tree.id
+      this.maps[pid] = { tree, treeNode, resolve }
+      this.loadNode(pid, resolve)
+    },
+    loadNode(pid, resolve) {
+      this.$w_fun.post(this.module + '/index', { parent_id: pid }).then(
+        ({
+           data: { list },
+         }) =>
+          resolve(list.map((itm, idx) => ({...itm, tableIndex: `${pid}.${idx + 1}`})))
+      )
+    },

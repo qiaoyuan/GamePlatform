@@ -1,0 +1,75 @@
+<template>
+  <div class="app-container">
+    <w-form
+      ref="wForm"
+      title="添加/编辑"
+      :form="form"
+      :action="formAction"
+      :fullscreen="true"
+      @done="getList"
+      itemWidth="45%"
+      labelWidth="180px"
+    >
+    </w-form>
+    <div class="bottom-operation">
+      <el-button :loading="loading" type="primary" @click="onSubmit()">提交</el-button>
+      <el-button @click="$router.go(-1)">返回</el-button>
+    </div>
+  </div>
+</template>
+
+<script>
+export default {
+  name: '{%module%}Add',
+  data() {
+    return {
+      module: '{%moduleUrl%}',
+      model: { {%pk%}: undefined },
+      formAction: '',
+      form: {},
+      loading: false,
+    }
+  },
+  created() {
+    this.model.{%pk%} = this.$route.query.{%pk%}
+    this.getList()
+  },
+  methods: {
+    getList() {
+      if (this.model.{%pk%}) {
+        this.$w_fun.post(`${this.module}/get`, { {%pk%}: this.model.{%pk%} }).then(res => {
+          this.model = res.data.detail
+          this.formAction = `${this.module}/edit`
+          this.setForm(this.model)
+        })
+      } else {
+        this.formAction = `${this.module}/add`
+        this.setForm({})
+      }
+    },
+    setForm({ {%fields%} }) {
+      this.form = {{%form%}}
+      if ({%pk%}) {
+        this.form.{%pk%} = { show: false, value: {%pk%} }
+      }
+    },
+    async onSubmit() {
+      try {
+        this.loading = true
+        await this.$refs.wForm.submit()
+        this.loading = false
+        if (!this.model.{%pk%}) {
+          this.$router.go(-1)
+        } else {
+          this.getList()
+        }
+      } catch (e) {
+        this.loading = false
+      }
+    },
+    getForm() {
+      return this.$refs.wForm
+    },
+  }
+}
+</script>
