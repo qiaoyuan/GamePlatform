@@ -345,7 +345,7 @@ export default {
     // 批量操作按钮配置
     multiOperate() {
       const multiOperate = {
-        multiDel: { show: false, p: `${this.module}${pList.edit}` },
+        multiDel: { show: false, p: `${this.module}${pList.del}`, url: `${this.module}${pList.del}` },
       }
       return this.makeOperates(multiOperate)
     },
@@ -612,16 +612,20 @@ export default {
       }
     },
     // 设置数据
-    async setList({ list, summary, indexWidth }) {
+    async setList({ list, summary, indexWidth, isPage }) {
       const { list: newData, length } = this.setIndex(this.pagination ? list.data : list)
       this.indexWidth = length > indexWidth - 4 ? length + 4 : indexWidth
-      this.page = this.pagination
-        ? { total: list.total, limit: list.per_page, page: list.current_page }
-        : {}
+      if (!this.asyncSummary) {
+        this.page = this.pagination
+          ? { total: list.total, limit: list.per_page, page: list.current_page }
+          : {}
+      } else {
+        this.page = this.pagination ? (this.page.total ? this.page : { total: list.total, limit: list.per_page, page: list.current_page }) : {}
+      }
       if(summary) {
         this.summary = summary
       } else {
-        if (this.asyncSummary) {
+        if (this.asyncSummary && !isPage) {
           this.makeSummary()
         }
       }
@@ -629,8 +633,8 @@ export default {
       this.setRouteQuery()
     },
     // 更新数据
-    async getList(loading) {
-      this.setList(await this.makeList(loading))
+    async getList(loading, isPage = false) {
+      this.setList({...(await this.makeList(loading)), isPage})
       this.replaceIndex()
       this.$nextTick(
         () => (this.operateWidth = Math.ceil(this.$refs.operateWidth.getOperateWidth()))
@@ -711,7 +715,7 @@ export default {
     // 分页
     onPagination(page) {
       this.$emit('pagination', page)
-      this.getList()
+      this.getList(false, true)
     },
     // 获取表格可占用区域尺寸
     getMaxSize(other = 25) {

@@ -61,7 +61,14 @@ export default {
       this.$emit('confirm')
     },
     handleScroll() {
-      this.$emit('onscroll', this.$refs.dialogContent)
+      const dialogContent = this.$refs.dialogContent
+      this.$emit('onscroll', dialogContent)
+      let scrollTop = dialogContent.scrollTop
+      let scrollHeight = dialogContent.scrollHeight
+      let height = dialogContent.getBoundingClientRect().height
+      if(Math.ceil(scrollTop + height) >= scrollHeight){
+        this.$emit('onReachBottom', dialogContent)
+      }
     },
   },
 }

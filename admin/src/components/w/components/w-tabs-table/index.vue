@@ -175,14 +175,19 @@ export default {
     // 可复制的表头
     columnOptionList: { type: Array },
     changeTab: { type: Function },
+    tabKey: { type: String, default: 'tab' },
   },
   computed: {
     query_() {
-      return { ...this.query, tab: this.currentTab, [this.k_] : this.kValue }
+      return {
+        ...this.query,
+        [this.tabKey]: this.tabKey !== 'tab' && this.currentTab === '-1' ? undefined : this.currentTab,
+        [this.k_]: this.kValue
+      }
     },
     actions_() {
       if (!this.module && !this.baseUrl) return this.actions
-      const actions = { tabs: true, total: false, columns: true, index: true, sort: false }
+      const actions = { tabs: false, total: false, columns: true, index: true, sort: false }
       return Object.keys(actions).reduce((pre, k) => {
         switch (this.actions[k]) {
           case false:
@@ -191,13 +196,8 @@ export default {
           case undefined:
             if (actions[k] === false) break
           case true:
-            if (k === 'tabs') {
-              pre[k] = []
-              pre[`${k}_`] = []
-            } else {
-              pre[k] = `${this.module}/${k}`
-              pre[`${k}_`] = `${this.baseUrl}${this.module}/${k}`
-            }
+            pre[k] = `${this.module}/${k}`
+            pre[`${k}_`] = `${this.baseUrl}${this.module}/${k}`
             break
           default:
             pre[k] =
@@ -327,7 +327,6 @@ export default {
         if (typeOf(v) === 'string' && v) {
           this.k_ = v
         }
-        console.log('a', v, this.k_)
       },
     },
     // 判断当前是不是回收站
@@ -454,13 +453,14 @@ export default {
     async getTabs() {
       let tabs = this.actions_.tabs_ || this.actions_.tabs
       if (this.$w_fun.typeOf(tabs) === 'array') {
-        if(tabs.length === 0)  {
-          tabs = [{ label: '全部', name: '-1' }]
-        }
         const name = this.wradio || this.currentTab
         const tab = tabs.find(f => f.name + '' === name + '')
         const label = tab && tab.label
         this.tabsList = this.isRecycle ? [{ label: (label === '全部' ? '' : (label + '-')) + '回收站', name: name }] : tabs
+        return
+      }
+      if (!tabs) {
+        this.currentTab = '-1'
         return
       }
       const { data } = await post(tabs, this.query, undefined, false)

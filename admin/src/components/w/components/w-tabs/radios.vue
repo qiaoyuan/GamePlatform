@@ -10,7 +10,6 @@
 </template>
 
 <script>
-import { post } from '@/libs/request'
 export default {
   props: {
     tabsList: { type: Array, default: () => [] },
@@ -38,12 +37,12 @@ export default {
     },
   },
   watch: {
-    '$route.query.wradio'(v) {
-      this.setCurrentRadio(v)
+    '$route.path'(v) {
+      this.setCurrentRadio(this.$route.query.wradio)
     },
     tabsList: {
       immediate: true,
-      handler() {
+      handler(v) {
         this.setCurrentRadio(this.$route.query.wradio)
       },
     },
@@ -69,6 +68,7 @@ export default {
         this.$router.push(currentTab.redirect)
         return
       }
+      this.currentTab = v
       this.$router.push({
         query: {
           ...this.$route.query,

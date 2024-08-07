@@ -1,5 +1,5 @@
 <template>
-  <w-dialog v-model="visible" :title="title" @cancel="visible = false" :width="width" :fullscreen="fullscreen">
+  <w-dialog v-dialogDrag v-model="visible" :title="title" @cancel="visible = false" :width="width" :fullscreen="fullscreen">
     <w-form v-bind="{ ...$attrs, ...$props, title: undefined }" v-on="$listeners" ref="form" size="small" class="p20">
       <template #[slotName]="props" v-for="(_slot, slotName) in $scopedSlots">
         <slot :name="slotName" v-bind="props" />
@@ -50,6 +50,7 @@ export default {
     async onSubmit() {
       try {
         this.loading = true
+        // 这里因为解构 submit返回undefined可以终止执行
         const { data } = await this.$refs.form.submit()
         this.loading = false
         this.toggleVisible()

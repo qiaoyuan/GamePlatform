@@ -8,6 +8,7 @@
       :type="getType(item.value)"
       class="w5 m0 p0"
       @click="setIcon(item.value)"
+      style="font-size: 16px"
     >
       <i :class="item.value" />
     </el-button>

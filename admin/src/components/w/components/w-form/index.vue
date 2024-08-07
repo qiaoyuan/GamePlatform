@@ -543,6 +543,10 @@ export default {
       this.$w_fun.post(url, { ...data, [key]: k }).then(res => {
         this.$set(this.options, formItem.prop, res.data.list)
       })
+    },
+    refreshOptions(prop) {
+      this.$store.dispatch('cleanColumnOptions', this.form[prop].options)
+      this.makeOptions([{ prop: [prop], options: this.form[prop].options }])
     }
   },
   watch: {
