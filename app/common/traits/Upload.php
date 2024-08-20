@@ -51,6 +51,9 @@ trait Upload {
                 $this->error($e->getMessage());
             }
             $this->success('', [
+//                'url' => fullDomain($type, '/') . $name,
+//                'path' => fullDomain($type, '/') . $name,
+
                 'url' => fullDomain($type, '/') . $name,
                 'path' => fullDomain($type, '/') . $name,
             ]);

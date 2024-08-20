@@ -4,17 +4,15 @@ namespace app\common\model;
 
 /**
  * @property int $id
- * @property string $nickname 昵称
- * @property string $avatar 头像
- * @property string $phone 电话
+ * @property int $status
  * @property string $password
- * @property int $point 积分
- * @property int $total_point 累计获得积分
- * @property float $amount 余额
- * @property float $frozen_amount 冻结余额
- * @property int $frozen_type 冻结类型（下单，提现）
- * @property int $invite_by_id 邀请人
- * @property int $is_id_card_verify 是否实名认证
+ * @property string $last_login_ip
+ * @property string $last_login_at
+ * @property string $username 账号
+ * @property string $nickname 名称
+ * @property string $phone 电话
+ * @property int $channel_id 渠道id
+ * @property string $open_id 对于微信商家唯一标
  */
 class User extends Base
 {
@@ -23,17 +21,15 @@ class User extends Base
     protected $autoWriteTimestamp = false;
     protected $field = [
         'id',
-        'nickname',
-        'avatar',
-        'phone',
+        'status',
         'password',
-        'point',
-        'total_point',
-        'amount',
-        'frozen_amount',
-        'frozen_type',
-        'invite_by_id',
-        'is_id_card_verify',
+        'last_login_ip',
+        'last_login_at',
+        'username',
+        'nickname',
+        'phone',
+        'channel_id',
+        'open_id',
     ];
     protected $type = [
         'amount' => 'float',

@@ -9,19 +9,19 @@
       @edit="onEdit"
     >
     </w-tabs-table>
-    <UserAddDialog ref="userAddDialog" @done="getList" />
+    <QuestionnairesAddDialog ref="questionnairesAddDialog" @done="getList" />
   </div>
 </template>
 
 <script>
-import UserAddDialog from './dialog/userAddDialog'
+import QuestionnairesAddDialog from './dialog/questionnairesAddDialog'
 
 export default {
-  name: 'UserIndex',
-  components: { UserAddDialog },
+  name: 'QuestionnairesIndex',
+  components: { QuestionnairesAddDialog },
   data() {
     return {
-      module: 'user',
+      module: 'questionnaires',
       operates: {
         del: true,
         look: false,
@@ -38,10 +38,10 @@ export default {
       this.$refs.wTable.getList()
     },
     onEdit(row) {
-      this.$refs.userAddDialog.open(row)
+      this.$refs.questionnairesAddDialog.open(row)
     },
     onAdd() {
-      this.$refs.userAddDialog.open({})
+      this.$refs.questionnairesAddDialog.open({})
     }
   }
 }

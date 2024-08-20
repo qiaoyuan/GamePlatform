@@ -21,22 +21,30 @@ export default {
     }
   },
   methods: {
-    setForm({ id, nickname, avatar, phone, password, point, total_point, amount, frozen_amount, frozen_type, invite_by_id, is_id_card_verify, status }) {
+    setForm({ id, status, password, last_login_ip, last_login_at, username, nickname, phone, channel_id, open_id }) {
       this.form = {
-        nickname: { label: '昵称', value: nickname },
-        avatar: { label: '头像', value: [{ path: avatar, url: avatar }], formType: 'upload' },
-        phone: { label: '电话', value: phone, pattern: 'phone' },
-        password: { label: '密码', value: password, required: false, tooltip: '不修改密码请留空' },
-        status: { label: '状态', value: status, formType: 'status' },
-        is_id_card_verify: { label: '是否实名认证', value: is_id_card_verify, formType: 'boolean' },
+        status: { label: '', value: status, formType: 'status' },
+        last_login_ip: { label: '', value: last_login_ip },
+        last_login_at: { label: '', value: last_login_at },
+        username: { label: '账号', value: username },
+        nickname: { label: '名称', value: nickname },
+        phone: { label: '电话', value: phone },
+        channel_id: {
+          label: '渠道id',
+          value: channel_id,
+        },
+        open_id: {
+          label: '对于微信商家唯一标',
+          value: open_id,
+        },
       }
-      if (id) {
-        this.form.id = { show: false, value: id }
-        this.formAction = `${this.module}/edit`
-      } else {
-        this.formAction = `${this.module}/add`
-      }
-      this.$refs.wDialogForm.visible = true
+      // if (id) {
+      //   this.form.id = { show: false, value: id }
+      //   this.formAction = `${this.module}/edit`
+      // } else {
+      //   this.formAction = `${this.module}/add`
+      // }
+      this.$refs.wDialogForm.visible = false
     },
     open(data, readonly = false) {
       this.setForm(data)
