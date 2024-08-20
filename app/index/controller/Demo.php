@@ -3,7 +3,7 @@ namespace app\index\controller;
 
 use app\index\BaseController;
 
-class Index extends BaseController
+class Demo extends BaseController
 {
 
     public function index()
@@ -11,8 +11,5 @@ class Index extends BaseController
 //        $icp = mData('siteConfig')['icp'] ?? '';
 //        include template('index');
         echo "demo";
-    }
-    public function getList() {
-        echo 'getlist';
     }
 }

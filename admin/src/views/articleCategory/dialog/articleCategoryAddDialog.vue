@@ -21,9 +21,10 @@ export default {
     }
   },
   methods: {
-    setForm({ id, title, module, status, parent_id, sort }) {
+    setForm({ id, title, module, status, parent_id, sort, icon_url }) {
       this.form = {
         module: { show: false, value: module },
+        icon_url: { label: 'icon', value: icon_url, formType: 'upload'},
         title: { label: '分类名称', value: title },
         status: { label: '状态', value: status, formType: 'status' },
         sort: { label: '排序', value: sort, formType: 'number', required: false },
@@ -35,8 +36,7 @@ export default {
         this.formAction = `${this.module}/add`
       }
       this.$refs.wDialogForm.visible = true
-    },
-    open(data, readonly = false) {
+    }, open(data, readonly = false) {
       this.setForm(data)
       this.readonly = readonly
     },

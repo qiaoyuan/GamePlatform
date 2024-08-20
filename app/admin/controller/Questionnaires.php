@@ -64,6 +64,8 @@ class Questionnaires extends BaseController
     {
         return [
             ['v' => 'title', 'label' => '问卷名称'],
+            ['v' => 'img_url', 'label' => '封面', "render"=>"image"],
+            ['v' => 'price', 'label' => '价格', 'searchType' => 'number'],
             [
                 'v' => 'articleCategorys.title',
                 'label' => '问卷类型',
@@ -76,6 +78,7 @@ class Questionnaires extends BaseController
             ['v' => 'easy', 'label' => '题目易懂'],
             ['v' => 'exact', 'label' => '结果准确性'],
             ['v' => 'utility', 'label' => '建议实用性'],
+            ['v' => 'sort', 'label' => '排序', 'searchType' => 'number', 'sort' => 'sort'],
             ['v' => 'created_at', 'label' => '日期', 'search'=>'created_at','searchType' => 'date_range', 'sort' => 'created_at'],
         ];
     }

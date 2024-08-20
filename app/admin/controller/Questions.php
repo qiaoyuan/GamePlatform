@@ -134,7 +134,7 @@ class Questions extends BaseController
     public function select(): void
     {
         $this->success('', [
-            'list' => $this->tableList(Model::class)->field('question_text as label,id as value')->select()
+            'list' => $this->tableList(Model::class)->field('title as label,id as value')->select()
         ]);
     }
 

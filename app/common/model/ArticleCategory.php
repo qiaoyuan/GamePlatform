@@ -12,6 +12,7 @@ namespace app\common\model;
  * @property int $status 状态
  * @property int $parent_id
  * @property int $sort 排序
+ * @property string $icon_url icon图片
  */
 class ArticleCategory extends Base
 {
@@ -27,6 +28,7 @@ class ArticleCategory extends Base
         'status',
         'parent_id',
         'sort',
+        'icon_url',
     ];
     protected $type = [];
 }
