@@ -10,7 +10,7 @@ use app\common\annotation\Permission;
 class QuestionResponse extends BaseController
 {
     
-    #[Permission(title: '问卷反馈配置列表', isMenu: 1, parentUrl: 'questionnaires/index', isHideSub: 1)]
+    #[Permission(title: '问卷反馈配置列表', isMenu: 1, parentUrl: 'article', isHideSub: 1)]
     public function index(): void
     {
         $lists = $this->tableList(Model::class, ['id' => 'DESC'], ['text'])->with(['questionnaire'])
