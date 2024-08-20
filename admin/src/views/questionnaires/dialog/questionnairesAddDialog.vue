@@ -25,7 +25,6 @@ export default {
       this.form = {
         title: { label: '问卷名称', value: title },
         description: { label: '问卷简述', value: description, required: false },
-        status: { label: '', value: status, formType: 'status' },
         img_url: { label: '图片', value: img_url, formType:'upload'},
         article_category_id: {
           label: '类型',
@@ -33,12 +32,12 @@ export default {
           formType: 'select',
           options: '/articleCategory/select'
         },
-        price: { label: '价格', value: price, formType: 'number'},
-        easy: { label: '题目易懂', value: easy },
-        exact: { label: '结果准确性', value: exact },
-        utility: { label: '建议实用性', value: utility },
+        price: { width: '50%', label: '价格', value: price, formType: 'number'},
+        easy: {  width: '50%', label: '题目易懂', value: easy },
+        exact: {   width: '50%', label: '结果准确性', value: exact },
+        utility: {  width: '50%', label: '建议实用性', value: utility },
         sort: { label: '排序', value: sort},
-        content: { label: '内容', value: content, formType: 'textarea'},
+        content: { label: '内容', value: content, formType: 'editor'},
       }
       if (id) {
         this.form.id = { show: false, value: id }

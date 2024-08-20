@@ -13,6 +13,7 @@ use think\model\relation\HasMany;
  * @property string $created_at
  * @property string $updated_at
  * @property int $status 状态
+ * @property int $sort 排序或者题号
 * // */
 class Questions extends Base
 {
@@ -29,6 +30,7 @@ class Questions extends Base
         'created_at',
         'updated_at',
         'status',
+        'sort',
     ];
     protected $type = [];
 

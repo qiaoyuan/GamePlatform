@@ -21,7 +21,7 @@ export default {
     }
   },
   methods: {
-    setForm({ id, questionnaire_id, question_text, question_type, status }) {
+    setForm({ id, questionnaire_id, title, sort,  }) {
       this.form = {
         questionnaire_id: {
           label: '问卷id',
@@ -29,14 +29,9 @@ export default {
           formType: 'select',
           options: '/questionnaires/select'
         },
-        question_text: { label: '问题描述', value: question_text },
-        // question_type: {
-        //   label: '问题类型',
-        //   value: question_type,
-        //   formType: 'select',
-        //   options: { url: '/questions/create', key: 'questionType' }
-        // },
-        // status: { label: '状态', value: status, formType: 'status' },
+        title: { label: '问题名称', value: title },
+        sort: { label: '排序', value: sort },
+
       }
       if (id) {
         this.form.id = { show: false, value: id }

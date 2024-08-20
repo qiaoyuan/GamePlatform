@@ -31,7 +31,7 @@ export default {
           formType: 'select',
           options: '/questionnaires/select'
         },
-        text: { label: '配置内容', value: text, formType: 'textarea' },
+        text: { label: '配置内容', value: text,  formType: 'editor' },
       }
       if (id) {
         this.form.id = { show: false, value: id }
