@@ -16,7 +16,7 @@ class Home extends BaseController
         $home_list = [];
         if($articleCategoryIds) {
             $home_list = ArticleCategory::whereIn('id', $articleCategoryIds)->order(['sort' => 'ASC'])->with(['questionnaires'=>function ($query) {
-                $query->field('id, title, img_url, article_category_id, price')->limit(3); // 只选择指定字段并限制数量
+                $query->field('id, title, img_url, article_category_id, price, description')->limit(3); // 只选择指定字段并限制数量
             }])->select();
         }
         $this->success('', [
