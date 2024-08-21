@@ -5,7 +5,7 @@ import errorCode from '@/utils/errorCode'
 import { toast, showConfirm, tansParams } from '@/utils/common'
 
 let timeout = 10000
-const baseUrl = config.baseUrl + config.baseApi;
+const baseUrl = config.baseUrl ;
 
 const request = config => {
   // 是否需要设置 token
@@ -30,13 +30,14 @@ const request = config => {
         header: config.header,
         dataType: 'json'
       }).then(response => {
-        let [error, res] = response
-        if (error) {
-          toast('后端接口连接异常')
-          reject('后端接口连接异常')
-          return
-        }
-        const code = res.data.code || 200
+        // let [err, res] = response
+        // if (err) {
+        //   toast('后端接口连接异常')
+        //   reject('后端接口连接异常')
+        //   return
+        // }
+		let res = response
+        const code = res.data.statusCode || 200
         const msg = errorCode[code] || res.data.msg || errorCode['default']
         if (code === 401) {
 			//未登录可能是没有刷新令牌，这里刷新一次然后再去请求

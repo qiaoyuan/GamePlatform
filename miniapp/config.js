@@ -2,7 +2,6 @@
 module.exports = {
   baseUrl: 'https://psychology.xuanzeti.top',
   
-  baseApi: '/admin',
   // 应用信息
   appInfo: {
     // 应用名称

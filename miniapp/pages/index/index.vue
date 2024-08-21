@@ -6,7 +6,7 @@
 				<image style="width: 100%; height: 100%;" src="../../static/logo.png" mode=""></image>
 			</view>
 			<view class="report">
-				<view class="icon">
+				<view class="icon" @click="lookReport">
 					<image class="reportImg" src="../../static/report.png" mode=""></image>
 					<view class="text">
 						报告
@@ -19,7 +19,7 @@
 			<view class="swiper-box">
 				<swiper :autoplay="true" circular  :indicator-dots="true">
 					<swiper-item v-for="(item, index) in bannerList" :key="index"
-						@click="goto(item.actionUrl,item.outSide,item.data)"
+						@click="goto(item.id)"
 					>
 						<view class="swiper-item" style="width: 100%;height: 100%;">
 							<image style="width: 100%; height: 100%;" src="../../static/logo.png" mode="scaleToFill"></image>
@@ -31,70 +31,70 @@
 		
 		<!-- 列表 -->
 		<view class="list">
-			<view class="list-item" v-for="(item,index) in listData" :key="index">
-				<image style="width: 60rpx;height: 60rpx;margin-left:calc(50% - 30rpx)" :src="item.url" mode=""></image>
+			<view class="list-item" v-for="(item,index) in listData" :key="index" @click="gotoCategory(item,index)">
+				<image style="width: 60rpx;height: 60rpx;margin-left:calc(50% - 30rpx)" src="../../static/logo.png" mode=""></image>
 				<view class="list-text">
-					{{item.text}}
+					{{item.title}}
 				</view>
 			</view>
 		</view>
 		
 		<!-- 热点测评 -->
 		<view class="hotTest">
-			<view class="content" v-for="(item,i) in 2" :key="i">
+			<view class="content" v-for="(item,i) in hotListData" :key="i">
 				<view class="top">
-					<view class="title">性格类型</view>
+					<view class="title">{{item.title}}</view>
 					<view class="text">性格决定命运？————揭开你隐藏性格秘密</view>
 				</view>
-				<view class="middle">
+				<view class="middle" @click="reviewDetail(item.questionnaires[0].id)">
 					<view class="middle-left">
-						<view class="title">潜意识投射测试</view>
+						<view class="title">{{item.questionnaires[0].title}}</view>
 						<view class="text">14张图片，揭露你的潜意识</view>
 						<view style="width: 120rpx;">
 							<button class="btn" >去测试</button>
 						</view>
 					</view>
 					<view class="middle-right">
-						<image class="middle-img" src="../../static/logo.png" mode=""></image>
-						<view class="num">
+						<image class="middle-img" src="../../static/defaultImg.png" mode=""></image>
+						<!-- <view class="num">
 							1w人已测
-						</view>
+						</view> -->
 					</view>
 					
 				</view>
 				<view class="bottom">
-					<view class="bottom-left">
+					<view class="bottom-left" @click="reviewDetail(item.questionnaires[1].id)">
 						<view class="top">
-							<view class="title">九型人格测试</view>
+							<view class="title">{{item.questionnaires[1].title}}</view>
 							<view class="text">你性格的秘密，都在这</view>
 						</view>
 						<view class="bottom">
 							<view class="btn">去测试</view>
 							<view class="img">
-								<image class="bottom-img" src="../../static/logo.png" mode=""></image>
-								<view class="num">
+								<image class="bottom-img" src="../../static/defaultImg.png" mode=""></image>
+								<!-- <view class="num">
 									1w人已测
-								</view>
+								</view> -->
 							</view>
 						</view>
 					</view>
-					<view class="bottom-right">
+					<view class="bottom-right" @click="reviewDetail(item.questionnaires[2].id)">
 						<view class="top">
-							<view class="title">九型人格测试</view>
+							<view class="title">{{ item.questionnaires[2].title }}</view>
 							<view class="text">你性格的秘密，都在这</view>
 						</view>
 						<view class="bottom">
 							<view class="btn">去测试</view>
 							<view class="img">
-								<image class="bottom-img" src="../../static/logo.png" mode=""></image>
-								<view class="num">
+								<image class="bottom-img" src="../../static/defaultImg.png" mode=""></image>
+								<!-- <view class="num">
 									1w人已测
-								</view>
+								</view> -->
 							</view>
 						</view>
 					</view>
 				</view>
-				<view class="more">
+				<view class="more" @click="lookMore(item.id, i)">
 					<span>查看更多测评</span>
 				</view>
 			</view>
@@ -141,32 +141,57 @@
 						text: '全部测评',
 						url: '../../static/logo.png'
 					}
-				]
+				],
+				hotListData: [],
 			}
 		},
-		onLoad() {
+		beforeCreate() {
 			getHomeInfo().then(res => {
-				console.log(res)
+				this.bannerList = res.data.recommend
+				this.listData = res.data.icon_list
+				this.hotListData = res.data.home_list
 			})
 		},
 		methods: {
 			// 点击轮播链接跳转页面
-			goto(url, outside, data) {
-				if(!url) {
-					return
-				}
-				if(outside) {
-					uni.navigateTo({
-						url,
-						data
-					})
-				}
+			goto(id) {
+				uni.navigateTo({
+					url: `/pages/introduce/index?id=${id}`
+				})
+			},
+			// 跳转分类页面
+			gotoCategory(item,index) {
+				uni.setStorageSync('categoryId', item.id)
+				uni.setStorageSync('categoryIndex', index)
+				uni.switchTab({
+					url: `/pages/category/index`
+				})
+			},
+			// 跳转到详情页
+			reviewDetail(id) {
+				uni.navigateTo({
+					url:`/pages/introduce/index?id=${id}`
+				})
+			},
+			// 查看更多测评
+			lookMore(id, index) {
+				uni.setStorageSync('categoryId',id)
+				uni.setStorageSync('categoryIndex',index)
+				uni.switchTab({
+					url:'/pages/category/index'
+				})
+			},
+			// 查看报告
+			lookReport() {
+				uni.switchTab({
+					url:'/pages/my/index'
+				})
 			}
 		}
 	}
 </script>
 
-<style>
+<style lang="scss" scoped>
 	.home {
 		width: 100%;
 		height: 100%;

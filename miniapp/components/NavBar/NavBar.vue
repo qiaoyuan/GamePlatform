@@ -4,10 +4,7 @@
       <i class="back iconfont icon-back"
         @click="onClickBack" />
     </slot>
-	<view class="progress-box">
-	<progress :percent="20" activeColor="#10AEFF" stroke-width="3" />
-	</view>
-    <text>{{ title }}</text>
+	<text>{{ title }}</text>
     <slot>
       <view class="back"></view>
     </slot>
