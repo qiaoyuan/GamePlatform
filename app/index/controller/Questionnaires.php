@@ -62,8 +62,8 @@ class Questionnaires extends BaseController
         if (empty($param['id'])) {
             $this->error('参数错误');
         }
-        
-        $info = Model::get($param['id']);
+
+        $info = Model::find($param['id']);
         $this->success('', [
             'info' => $info,
         ]);
