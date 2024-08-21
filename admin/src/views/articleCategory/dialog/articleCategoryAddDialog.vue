@@ -21,11 +21,12 @@ export default {
     }
   },
   methods: {
-    setForm({ id, title, module, status, parent_id, sort, icon_url }) {
+    setForm({ id, title, module, status, parent_id, sort, icon_url,description}) {
       this.form = {
         module: { show: false, value: module },
         icon_url: { label: 'icon', value: icon_url, formType: 'upload'},
         title: { label: '分类名称', value: title },
+        description: { label: '简述', value: description },
         status: { label: '状态', value: status, formType: 'status' },
         sort: { label: '排序', value: sort, formType: 'number', required: false },
       }

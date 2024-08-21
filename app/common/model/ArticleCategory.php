@@ -16,6 +16,7 @@ use think\model\relation\HasMany;
  * @property int $parent_id
  * @property int $sort 排序
  * @property string $icon_url icon图片
+ * @property string $description 简述
  */
 class ArticleCategory extends Base
 {
@@ -32,6 +33,7 @@ class ArticleCategory extends Base
         'parent_id',
         'sort',
         'icon_url',
+        'description',
     ];
     protected $type = [];
 
