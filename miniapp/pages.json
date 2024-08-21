@@ -1,0 +1,74 @@
+{
+	"pages": [ //pages数组中第一项表示应用启动页，参考：https://uniapp.dcloud.io/collocation/pages
+		{
+			"path": "pages/index/index",
+			"style": {
+				"navigationBarTitleText": "首页"
+			}
+		},
+		{
+			"path": "pages/category/index",
+			"style": {
+				"navigationBarTitleText": "分类"
+			}
+		},
+		{
+			"path": "pages/my/index",
+			"style": { 
+				"navigationBarTitleText": "我的"
+			}
+		},
+		{
+			"path": "pages/introduce/index",
+			"style": {
+				"navigationBarTitleText": "测试页"
+			}
+		},
+		{
+			"path": "pages/selectSex/index",
+			"style": {
+				"navigationBarTitleText": "完善个人资料"
+			}
+		},
+		{
+			"path": "pages/answer/index",
+			"style": {
+				"enablePullDownRefresh": false,
+				"navigationStyle": "custom",
+				"disableScroll": true
+			}
+		}
+	],
+	"tabBar": {
+	    "color": "#6e6d6b",
+	    "selectedColor": "#1296db",
+	    "borderStyle": "black",
+	    "backgroundColor": "#ffffff",
+	    "list": [{
+	        "pagePath": "pages/index/index",
+	        "text": "首页",
+	        "iconPath": "/static/tab-home.png",
+	        "selectedIconPath": "/static/tab-home-click.png"
+	      },
+		  {
+			 "pagePath": "pages/category/index",
+			  "text": "分类",
+	        "iconPath": "/static/tab-list.png",
+	        "selectedIconPath": "/static/tab-list-click.png"
+		  },
+	      {
+	        "pagePath": "pages/my/index",
+	        "text": "我的",
+	        "iconPath": "/static/tab-my.png",
+	        "selectedIconPath": "/static/tab-my-click.png"
+	      }
+	    ]
+	  },
+	"globalStyle": {
+		"navigationBarTextStyle": "black",
+		"navigationBarTitleText": "uni-app",
+		"navigationBarBackgroundColor": "#F8F8F8",
+		"backgroundColor": "#F8F8F8"
+	},
+	"uniIdRouter": {}
+}

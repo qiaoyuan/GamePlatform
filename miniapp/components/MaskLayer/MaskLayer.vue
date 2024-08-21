@@ -1,0 +1,61 @@
+<template>
+  <view
+    v-if="displayMask"
+    class="mask-container"
+    :style="{ zIndex: zIndex }"
+    :class="{ 'display-mask': displayMask }"
+    @click="onClickMask"></view>
+</template>
+
+<script>
+export default {
+  name: 'MaskLayer',
+  props: {
+    display: {
+      type: Boolean,
+      default: false,
+    },
+    zIndex: {
+      type: Number,
+      default: 1,
+    },
+  },
+
+  watch: {
+    display: {
+      handler(isDisplay) {
+        this.displayMask = isDisplay
+      },
+    },
+  },
+
+  data() {
+    return {
+      displayMask: this.display,
+    }
+  },
+
+  methods: {
+    onClickMask() {
+      this.$emit('clickMask')
+    },
+  },
+}
+</script>
+
+<style lang="scss" scoped>
+.mask-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.6);
+  opacity: 0;
+  transition: all 0.2s;
+}
+
+.display-mask {
+  opacity: 100;
+}
+</style>

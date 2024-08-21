@@ -41,7 +41,11 @@ export default {
       this.$refs.questionsAddDialog.open(row)
     },
     onAdd() {
-      this.$refs.questionsAddDialog.open({})
+      this.$refs.questionsAddDialog.open({
+        questionOptions:[{
+          title: '', score: '',sort: ''
+        }]
+      })
     }
   }
 }

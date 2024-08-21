@@ -1,0 +1,391 @@
+<template>
+  <view class="test-container">
+    <!-- 顶部导航区域 -->
+    <NavBar
+      :title="navTitle"
+      @back="onClickBack" />
+
+    <!-- 主内容区域 -->
+    <view class="content-container">
+      <SwiperLimitLoad
+        ref="swiperRef"
+        :current="initCurrentIndex"
+        :duration="swiperDuration"
+        :total="resultObj.total"
+        @transition="swiperTransitionEvent"
+        @change="swiperChangeEvent">
+        <!-- 使用作用域插槽，并利用 scope 接收插槽传递的数据 -->
+        <template #content="scope">
+          <TopicInfo
+            :topicInfo="scope.item"
+            :answerMode="1"
+            :isAnalysis="false"
+            @selected="postSelectCallBack" />
+        </template>
+      </SwiperLimitLoad>
+    </view>
+
+    <view class="button-container">
+      <!-- 如果当前到达第一题则禁用上一题按钮 -->
+      <button
+        :disabled="initCurrentIndex === 0"
+        @click="onClickPrevious">
+        上一题
+      </button>
+
+      <!-- <button @click="onClickAnswerSheet">答题卡</button> -->
+
+      <!-- 如果当前到达最后一题则禁用下一题按钮 -->
+      <button
+		v-if="initCurrentIndex !== resultObj.total - 1"
+        @click="onClickNext">
+        下一题
+      </button>
+	  <button
+		v-else
+	    class="submit-btn"
+	    type="primary"
+	    @tap="onClickSubmit">
+	    提交答案
+	  </button>
+    </view>
+
+    <!-- 答题卡弹出层区域 -->
+    <!-- <Popup
+      :display="displayPopup"
+      @clickMask="onClickMask">
+      <view class="answer-sheet-container">
+        <text class="answer-sheet-title">答题卡</text>
+
+        <scroll-view
+          class="answer-sheet-scroll-view"
+          scroll-y
+          @touchmove.stop>
+          <view class="scroll-view-container">
+            <text
+              class="scroll-view-item"
+              :class="index | stateStyle(initCurrentIndex, questionList)"
+              v-for="(item, index) in questionList"
+              :key="item.id"
+              :data-t-index="index"
+              @tap="onClickQuestionNumber">
+              {{ index + 1 }}
+              <i
+                v-if="questionList[index].isMark"
+                class="iconfont icon-mark-icon iconfont-item" />
+            </text>
+          </view>
+        </scroll-view>
+
+        <view class="answer-sheet-desc">
+          <view class="answer-sheet-desc-item-container">
+            <view class="answer-sheet-desc-item-mark correct"></view>
+            <text>正确</text>
+          </view>
+
+          <view class="answer-sheet-desc-item-container">
+            <view class="answer-sheet-desc-item-mark wrong"></view>
+            <text>错误</text>
+          </view>
+
+          <view class="answer-sheet-desc-item-container">
+            <view class="answer-sheet-desc-item-mark"></view>
+            <text>未选</text>
+          </view>
+
+          <view class="answer-sheet-desc-item-container">
+            <view class="answer-sheet-desc-item-mark current"></view>
+            <text>当前</text>
+          </view>
+
+          <view class="answer-sheet-desc-item-container">
+            <i class="iconfont icon-mark-icon iconfont-item mark"></i>
+            <text>标记</text>
+          </view>
+        </view>
+
+        <button
+          class="submit-btn"
+          type="primary"
+          @tap="onClickSubmit">
+          提交答案
+        </button>
+      </view>
+    </Popup> -->
+  </view>
+</template>
+
+<script>
+// 导入请求方法
+import { getTrainTopicInitData } from '../../api/train-topic.js'
+
+export default {
+  data() {
+    return {
+      navTitle: '答题栏',
+      displayPopup: false,
+      questionList: [],
+      initCurrentIndex: 0,
+      swiperDuration: 250,
+      resultObj: {
+        score: 0,
+        correct: 0,
+        wrong: 0,
+        time: '00:00:00',
+        notDone: 0,
+        total: 0,
+      },
+    }
+  },
+
+  /**
+   * 初始化生命周期方法
+   * @param {Object} options 路由参数
+   */
+  async onLoad(options) {
+    const topic = await getTrainTopicInitData()
+    this.questionList = topic.data.data
+
+    this.resultObj.total = this.questionList.length
+
+    // 通过 ref 调用 swiper 组件中的 init 方法，进行数据的初始化
+    this.$refs.swiperRef.init(this.questionList, this.initCurrentIndex)
+
+    // 设置导航栏题号信息
+    this.navTitle = `${this.initCurrentIndex + 1}/${this.resultObj.total}`
+  },
+
+  filters: {
+    /**
+     * 答题卡题号状态样式方法
+     * @param {Number} index 传入当前项题号索引
+     * @param {Array} topicIndex 传入题目索引
+     * @param {Array} list 传入题目数组
+     * @return {String} 返回匹配类型样式（当前/正确/错误）
+     */
+    stateStyle: (index, topicIndex, list) => {
+      let state = ''
+      if (topicIndex === index) state = 'current'
+
+      state = `${state} ${list[index].state || ''}`
+
+      return state
+    },
+  },
+
+  methods: {
+    /**
+     * 点击左上角返回图标方法
+     */
+    onClickBack() {
+      uni.showModal({
+        content: '是否确定要退出训练',
+        success: res => {
+          if (res.cancel) return
+          uni.redirectTo({
+            url: '/pages/home/Home',
+          })
+        },
+      })
+    },
+
+    /**
+     * swiper 切换事件
+     * @param {Object} e swiper 切换时产生的事件对象
+     */
+    swiperChangeEvent(e) {
+      this.initCurrentIndex = e.current
+      this.navTitle = `${this.initCurrentIndex + 1}/${this.resultObj.total}`
+    },
+
+    /**
+     * 点击上一题方法
+     */
+    onClickPrevious() {
+      this.initCurrentIndex = this.initCurrentIndex - 1
+    },
+
+    /**
+     * 点击答题卡方法
+     */
+    onClickAnswerSheet() {
+      this.displayPopup = true
+    },
+
+    /**
+     * 点击下一题方法
+     */
+    onClickNext() {
+      this.initCurrentIndex = this.initCurrentIndex + 1
+	  console.log(this.initCurrentIndex)
+    },
+
+    /**
+     * 点击弹出层遮罩方法
+     */
+    onClickMask() {
+      this.displayPopup = false
+    },
+
+    /**
+     * 点击答题卡题号方法
+     * @param {Object} e 点击答题卡题号产生的事件对象
+     */
+    onClickQuestionNumber(e) {
+      // 获取用户点击的指定题目所在索引
+      this.initCurrentIndex = e.currentTarget.dataset.tIndex
+
+      // 点击答题卡卡号跳转至题目时，将过渡时长设置为 0，避免部分差异性导致的体验怪异问题
+      this.swiperDuration = 0
+      this.$refs.swiperRef.init(this.questionList, this.initCurrentIndex)
+      this.displayPopup = false
+
+      // 设置导航栏题号信息
+      this.navTitle = `${this.initCurrentIndex + 1}/${this.resultObj.total}`
+
+      // 在 DOM 更新循环后将 swiperDuration 过渡时长更改会原来的值
+      this.$nextTick(() => (this.swiperDuration = 200))
+    },
+
+    /**
+     * 点击提交答案方法
+     */
+    onClickSubmit() {
+      console.log(this.questionList)
+      console.log(this.resultObj)
+    },
+
+    /**
+     * 题目选项选择后回调函数
+     * @param {Object} state
+     */
+    postSelectCallBack(state) {
+      this.answerSubtotal(state)
+    },
+
+    /**
+     * 答题小计方法
+     * @param {String} state 传入题是否正确状态
+     */
+    answerSubtotal(state) {
+      const resultObj = this.resultObj
+
+      // 计算正确题目与错误题目的数量，正确则对题数量 +1
+      if (state === 'correct') {
+        resultObj.correct++
+        this.onClickNext()
+      } else {
+        resultObj.wrong++
+      }
+
+      // 计算未做题目数量
+      resultObj.notDone = resultObj.total - (resultObj.correct + resultObj.wrong)
+
+      // 暂定：得分与正确题目数量保持一致
+      resultObj.score = resultObj.correct
+    },
+  },
+}
+</script>
+
+<style lang="scss" scoped>
+.test-container {
+  display: flex;
+  flex-direction: column;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+
+  .content-container {
+    height: 100%;
+  }
+
+  .button-container {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    height: 90rpx;
+
+    button {
+      width: 100%;
+    }
+  }
+
+  /* 答题卡面板区域样式 */
+  .answer-sheet-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    font-size: 28rpx;
+    line-height: 28rpx;
+
+    .answer-sheet-title {
+      padding: 40rpx;
+    }
+
+    .scroll-view-container {
+      box-sizing: border-box;
+      display: flex;
+      flex-wrap: wrap;
+      align-content: flex-start;
+      width: 100%;
+      height: 620rpx;
+      padding: 20rpx;
+
+      .scroll-view-item {
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 64rpx;
+        height: 64rpx;
+        border: 1px solid #bdc3c7;
+        margin: 0 11rpx 20rpx 11rpx;
+        border-radius: 100%;
+
+        .iconfont-item {
+          position: absolute;
+          top: -10rpx;
+          right: -4rpx;
+          font-size: 28rpx;
+          color: #f1c40f;
+        }
+      }
+    }
+
+    /* 答题面板底部描述区域样式 */
+    .answer-sheet-desc {
+      display: flex;
+      align-items: center;
+      justify-content: space-around;
+      width: 100%;
+      height: 80rpx;
+
+      .answer-sheet-desc-item-container {
+        display: flex;
+        align-items: center;
+        font-size: 28rpx;
+        line-height: 28rpx;
+
+        .answer-sheet-desc-item-mark {
+          width: 28rpx;
+          height: 28rpx;
+          border: 1px solid #bdc3c7;
+          margin-right: 10rpx;
+          border-radius: 100%;
+        }
+      }
+    }
+
+    /* 提交答案区域样式 */
+    .submit-btn {
+      width: 90%;
+      padding: 20rpx 0;
+      margin-bottom: 20rpx;
+      font-size: 32rpx;
+      line-height: 32rpx;
+    }
+  }
+}
+</style>
