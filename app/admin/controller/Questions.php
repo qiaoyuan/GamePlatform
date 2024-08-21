@@ -151,6 +151,11 @@ class Questions extends BaseController
             ['v' => '1', 'label' => '普通'],
         ];
     }
+    public function getOptions()
+    {
+        $param = $this->request->param();
+//        QuestionsOptions::where("qu_id")
+    }
 
     public function columns(): array
     {

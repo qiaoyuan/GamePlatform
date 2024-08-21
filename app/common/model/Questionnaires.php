@@ -49,4 +49,16 @@ class Questionnaires extends Base
     {
         return $this->belongsTo(ArticleCategory::class, 'article_category_id', 'id');
     }
+
+
+    public static function getList($where, $field="*", $order, $page=0, $limit=50)
+    {
+
+        return self::where($where)
+            ->field($field)
+            ->order($order)
+            ->page($page, $limit)
+            ->select();
+    }
+
 }

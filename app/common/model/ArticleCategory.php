@@ -2,6 +2,9 @@
 
 namespace app\common\model;
 
+use think\model\relation\BelongsTo;
+use think\model\relation\HasMany;
+
 /**
  * @property int $id
  * @property string $title 分类名称
@@ -31,4 +34,19 @@ class ArticleCategory extends Base
         'icon_url',
     ];
     protected $type = [];
+
+    public function getList($where, $field="*", $order, $page=0, $limit=50)
+    {
+        return self::where($where)
+            ->field($field)
+            ->order($order)
+            ->page($page, $limit)
+            ->select();
+    }
+
+    public function questionnaires(): HasMany
+    {
+        return $this->hasMany(Questionnaires::class, 'article_category_id', 'id');
+    }
+
 }
