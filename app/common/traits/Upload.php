@@ -13,6 +13,7 @@ trait Upload {
         trace($files);
         trace($this->request->param());
         $config = config('upload.' . $scene);
+
         if ($files) {
             $validate = validate(['file' => 'filesize:' . $config['img']['size']]);
             if (!$validate->check($files)) {
@@ -51,9 +52,6 @@ trait Upload {
                 $this->error($e->getMessage());
             }
             $this->success('', [
-//                'url' => fullDomain($type, '/') . $name,
-//                'path' => fullDomain($type, '/') . $name,
-
                 'url' => fullDomain($type, '/') . $name,
                 'path' => fullDomain($type, '/') . $name,
             ]);

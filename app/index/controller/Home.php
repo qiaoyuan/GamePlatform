@@ -10,7 +10,7 @@ class Home extends BaseController
     {
 //        $icp = mData('siteConfig')['icp'] ?? '';
 //        include template('index');
-        echo "demo";
+        echo  app()->getRootPath()."public";
     }
     public function getList() {
         echo 'getlist';
