@@ -13,7 +13,7 @@ return [
             // 磁盘类型
             'type'       => 'local',
             // 磁盘路径
-            'root'       => env('upload.path',  app()->getRootPath().'public'),
+            'root'       => env('upload.path',  app()->getRootPath().'public/'),
             // 磁盘路径对应的外部URL路径
             'url'        => '',
             // 可见性
