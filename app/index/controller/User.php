@@ -160,7 +160,7 @@ class User extends BaseController
             $where[] = ['response_id', '>', 0];
         }
 
-        $questionAnswer = QuestionAnswer::where('uid', uid)->with(['questionnaire' => function ($query) {
+        $questionAnswer = QuestionAnswer::where($where)->with(['questionnaire' => function ($query) {
             $query->with(['articleCategorys']);
         }])->select();
         $this->success("", ['list' => $questionAnswer]);
