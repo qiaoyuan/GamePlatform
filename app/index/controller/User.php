@@ -83,13 +83,12 @@ class User extends BaseController
         $where = [
             ['start', '<=', $scoreSum],
             ['lt', '>=', $scoreSum],
-            ['questionnaire_id', '=', 13],
+            ['questionnaire_id', '=', $param['questionnaire_id']],
         ];
         $questionResponse = QuestionResponse::where($where)->find();
         if (empty($questionResponse)) {
-            $this->error("生成报告异常");
+            $this->error("联系管理员,生成报告异常");
         }
-
 
         //去重判断
         $where = [
