@@ -1,4 +1,5 @@
 <?php
+
 namespace app\index\controller;
 
 use app\common\model\QuestionAnswer;
@@ -16,7 +17,8 @@ class User extends BaseController
     }
 
     //用户数据
-    public  function info() {
+    public function info()
+    {
 
         $this->success('', []);
     }
@@ -24,35 +26,95 @@ class User extends BaseController
     //创建报告
     public function createRes()
     {
+        $uid = $this->getUid();
+
         $param = $this->request->param();
-        if(empty($param['options']) || $param['questionnaire_id']) {
+
+        //['options'=>[
+        // 'so'
+        //]]
+
+        $param['options'] = [
+            [
+                'score' => 1,
+                'question_id' => 2,
+            ],
+
+            [
+                'score' => 3,
+                'question_id' => 2,
+            ],
+
+            [
+                'score' => 5,
+                'question_id' => 6,
+            ],
+
+            [
+                'score' => 2,
+                'question_id' => 7,
+            ],
+
+            [
+                'score' => 4,
+                'question_id' => 8,
+            ],
+
+            [
+                'score' => 5,
+                'question_id' => 9,
+            ],
+
+            [
+                'score' => 3,
+                'question_id' => 18,
+            ],
+
+            [
+                'score' => 2,
+                'question_id' => 20,
+            ],
+        ];
+        if (empty($param['options']) || empty($param['questionnaire_id'])) {
             $this->error("参数缺少");
         }
-        $score = array_sum($param['options']);
+        $scoreSum = array_sum(array_column($param['options'], 'score'));
 
         $where = [
-            ['start', '>=', $score],
-            ['lt', '<=', $score],
+            ['start', '<=', $scoreSum],
+            ['lt', '>=', $scoreSum],
+            ['questionnaire_id', '=', 13],
         ];
-        $questionResponse = QuestionResponse::where($where)->limit(1)->find();
-        if($questionResponse->isEmpty()) {
+        $questionResponse = QuestionResponse::where($where)->find();
+        if (empty($questionResponse)) {
             $this->error("生成报告异常");
         }
 
+        //去重判断
+        $where = [
+            'uid' => $uid,
+            'questionnaire_id' => $param['questionnaire_id'],
+            'response_id' => $questionResponse->id,
+        ];
+        $isData = QuestionAnswer::where($where)->find();
+        if ($isData) {
+            $this->success("请勿重复生成问卷报!", ['res' => $questionResponse]);
+        }
+
         $questionAnswer = [
-            'json'=>json_encode($param['options']),
-            'created_at'=>time(),
-            'uid'=>999,
-            'questionnaire_id'=>$param['questionnaire_id'],
-            'score'=>$param['score'],
+            'json' => json_encode($param['options']),
+            'created_at' => time(),
+            'uid' => $this->getUid(),
+            'questionnaire_id' => $param['questionnaire_id'],
+            'score' => $scoreSum,
             'response_id' => $questionResponse->id
         ];
         $questionAnswer = QuestionAnswer::create($questionAnswer);
-        if($questionAnswer->isEmpty()) {
+        if ($questionAnswer->isEmpty()) {
             $this->error("生成报告失败");
         }
 
-        $this->success("生成报告成功", ['res'=>$questionResponse]);
+        $this->success("生成报告成功", ['res' => $questionResponse]);
     }
 
     /**
@@ -62,14 +124,16 @@ class User extends BaseController
      * @throws \think\db\exception\DbException
      * @throws \think\db\exception\ModelNotFoundException
      */
-    public function reportList()
+    public function selfReportList()
     {
         $param = $this->request->param();
+        $uid = $this->getUid();
 
-        $uid = 999;
 
-        $questionAnswer = QuestionAnswer::where('uid', $uid)->with('questionnaire')->select();
-        $this->success("", ['list'=>$questionAnswer]);
+        $questionAnswer = QuestionAnswer::where('uid', $uid)->with(['questionnaire' => function ($query) {
+            $query->with(['articleCategorys']);
+        }])->select();
+        $this->success("", ['list' => $questionAnswer]);
     }
 
 }

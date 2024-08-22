@@ -12,10 +12,12 @@ use think\model\relation\BelongsTo;
  * @property int $uid 用户id
  * @property int $questionnaire_id 问卷ID
  * @property float $score 得分
+ * @property int $response_id 报告id
  */
 class QuestionAnswer extends Base
 {
-    
+    protected $autoWriteTimestamp = true;
+
     protected $table = 'question_answer';
     protected $pk = 'id';
     protected $field = [
@@ -26,6 +28,7 @@ class QuestionAnswer extends Base
         'uid',
         'questionnaire_id',
         'score',
+        'response_id',
     ];
     protected $type = [];
 
