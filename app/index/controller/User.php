@@ -152,13 +152,14 @@ class User extends BaseController
         $where[] = ['uid', '=', $this->getUid()];
 
         //未完成报告
-        if($param['is_ok'] === 0) {
-           $where[] = ['response_id', '=', 0];
+        if(!empty($param['is_ok']) ) {
+            if($param['is_ok'] === 0) {
+                $where[] = ['response_id', '=', 0];
+            } else if($param['is_ok'] === 1) {
+                $where[] = ['response_id', '>', 0];
+            }
         }
 
-        if($param['is_ok'] === 1) {
-            $where[] = ['response_id', '>', 0];
-        }
 
         $questionAnswer = QuestionAnswer::where($where)->with(['questionnaire' => function ($query) {
             $query->with(['articleCategorys']);
