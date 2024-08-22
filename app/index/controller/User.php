@@ -90,31 +90,52 @@ class User extends BaseController
             $this->error("生成报告异常");
         }
 
+
         //去重判断
         $where = [
             'uid' => $uid,
             'questionnaire_id' => $param['questionnaire_id'],
-            'response_id' => $questionResponse->id,
         ];
-        $isData = QuestionAnswer::where($where)->find();
-        if ($isData) {
-            $this->success("请勿重复生成问卷报!", ['res' => $questionResponse]);
-        }
+        $questionAnswer = QuestionAnswer::where($where)->find();
+        //判断1、存在未完成报告 2、已完成报告 3、用户没有该问卷报告
+        if (!empty($questionAnswer) ) {
 
-        $questionAnswer = [
-            'json' => json_encode($param['options']),
-            'created_at' => time(),
-            'uid' => $this->getUid(),
-            'questionnaire_id' => $param['questionnaire_id'],
-            'score' => $scoreSum,
-            'response_id' => $questionResponse->id
-        ];
-        $questionAnswer = QuestionAnswer::create($questionAnswer);
-        if ($questionAnswer->isEmpty()) {
-            $this->error("生成报告失败");
+            //2、已完成报告
+            if($questionAnswer->response_id = $questionResponse->id) {
+                $this->success("请勿重复生成问卷报!", ['res' => $questionResponse]);
+            }
+
+            //1、存在未完成报告
+            $questionAnswer = [
+                'json' => json_encode($param['options']),
+                'created_at' => time(),
+                'uid' => $this->getUid(),
+                'questionnaire_id' => $param['questionnaire_id'],
+                'score' => $scoreSum,
+                'response_id' => $questionResponse->id
+            ];
+
+            QuestionAnswer::update(['response_id' => $questionResponse->id], ['id' => $questionAnswer->id]);
+
+        } else { //3 用户没有该问卷报告
+
+            $questionAnswer = [
+                'json' => json_encode($param['options']),
+                'created_at' => time(),
+                'uid' => $this->getUid(),
+                'questionnaire_id' => $param['questionnaire_id'],
+                'score' => $scoreSum,
+                'response_id' => $questionResponse->id
+            ];
+            $questionAnswer = QuestionAnswer::create($questionAnswer);
+            if ($questionAnswer->isEmpty()) {
+                $this->error("生成报告失败");
+            }
+
         }
 
         $this->success("生成报告成功", ['res' => $questionResponse]);
+
     }
 
     /**
@@ -124,13 +145,22 @@ class User extends BaseController
      * @throws \think\db\exception\DbException
      * @throws \think\db\exception\ModelNotFoundException
      */
-    public function selfReportList()
+    public function reportList()
     {
         $param = $this->request->param();
-        $uid = $this->getUid();
 
+        $where[] = ['uid', '=', $this->getUid()];
 
-        $questionAnswer = QuestionAnswer::where('uid', $uid)->with(['questionnaire' => function ($query) {
+        //未完成报告
+        if($param['is_ok'] === 0) {
+           $where[] = ['response_id', '=', 0];
+        }
+
+        if($param['is_ok'] === 1) {
+            $where[] = ['response_id', '>', 0];
+        }
+
+        $questionAnswer = QuestionAnswer::where('uid', uid)->with(['questionnaire' => function ($query) {
             $query->with(['articleCategorys']);
         }])->select();
         $this->success("", ['list' => $questionAnswer]);
