@@ -41,7 +41,7 @@
 	}
 </script>
 
-<style>
+<style lang="scss" scoped>
 	.selectSex{
 		width: 100%;
 		height: 100%;

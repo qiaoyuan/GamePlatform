@@ -8,16 +8,16 @@
 
 			<!-- 标题、价格 -->
 			<view class="title-price">
-				<view class="title">真爱识别器</view>
-				<view class="text">你是喜欢ta还是ta？</view>
-				<view class="price"> ￥19.9 </view>
-				<view class="list">
+				<view class="title">{{introduceInfo.title}}</view>
+				<view class="text">{{introduceInfo.description}}？</view>
+				<view class="price"> ￥{{introduceInfo.price}} </view>
+				<!-- <view class="list">
 					<ul style="display: flex;justify-content: space-around;align-items: center;color: gray;">
 						<li>15道精选题</li>
 						<li>7页专业报告</li>
 						<li>1125人已测试</li>
 					</ul>
-				</view>
+				</view> -->
 			</view>
 
 			<!-- 详情介绍 -->
@@ -28,7 +28,8 @@
 					</view>
 					<view class="index"></view>
 				</view>
-					<image style="width: calc(100% - 40rpx); height: 7200px;padding: 0 20rpx;;" src="../../static/coverImg.png" mode=""></image>
+					<!-- <image style="width: calc(100% - 40rpx); height: 7200px;padding: 0 20rpx;;" src="../../static/coverImg.png" mode=""></image> -->
+					<rich-text :nodes="introduceInfo.content"></rich-text>
 			</view>
 
 			<!-- 用户评分 -->
@@ -73,26 +74,16 @@
 </template>
 
 <script>
+	import { getQuestionDetail } from '@/api/index.js'
 	export default {
 		onLoad: function(option) {
-			console.log(option.id, option)
+			getQuestionDetail(option.id).then(res => {
+				this.introduceInfo = res.data.info
+			})
 		},
 		data() {
 			return {
-				options: [{
-					icon: 'chat',
-					text: '客服'
-				}, {
-					icon: 'shop',
-					text: '店铺',
-					info: 2,
-					infoBackgroundColor: '#007aff',
-					infoColor: "#f5f5f5"
-				}, {
-					icon: 'cart',
-					text: '购物车',
-					info: 2
-				}],
+				introduceInfo: {}
 			}
 		},
 		methods: {
@@ -117,7 +108,7 @@
 	}
 </script>
 
-<style>
+<style lang="scss" scoped>
 	.introduce {
 		width: 100%;
 		height: 100%;

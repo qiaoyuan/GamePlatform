@@ -78,7 +78,7 @@
 	}
 </script>
 
-<style>
+<style lang="scss" scoped>
 	.my {
 		width: 100%;
 		height: 100%;
