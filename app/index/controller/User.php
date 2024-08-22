@@ -12,6 +12,8 @@ class User extends BaseController
 
     public function register()
     {
+        $param = $this->request->param();
+
 
         $this->success('注册成功', []);
     }
@@ -101,7 +103,7 @@ class User extends BaseController
 
             //2、已完成报告
             if($questionAnswer->response_id = $questionResponse->id) {
-                $this->success("请勿重复生成问卷报!", ['res' => $questionResponse]);
+                $this->success("请勿重复生成问卷报!", ['info' => $questionAnswer]);
             }
 
             //1、存在未完成报告
@@ -133,7 +135,7 @@ class User extends BaseController
 
         }
 
-        $this->success("生成报告成功", ['res' => $questionResponse]);
+        $this->success("生成报告成功", ['info' => $questionAnswer]);
 
     }
 
@@ -164,6 +166,21 @@ class User extends BaseController
             $query->with(['articleCategorys']);
         }])->select();
         $this->success("", ['list' => $questionAnswer]);
+    }
+
+    public function report() {
+        $param = $this->request->param();
+
+        if(empty($param['id'])) {
+            $this->error("参数异常!");
+        }
+        $id = QuestionAnswer::where('id', $param['id'])->value('response_id');
+        if(empty($id)) {
+            $this->error("报告不存在");
+        }
+        $res = QuestionResponse::where('id', $id)->find();
+        $this->success("", ['info' => $res]);
+
     }
 
 }
