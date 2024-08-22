@@ -17,7 +17,7 @@
           <!-- 定义作用域插槽，给使用插槽的组件进行数据传递 -->
           <slot
             name="content"
-            :item="item"></slot>
+            :listData="item"></slot>
         </scroll-view>
       </swiper-item>
     </swiper>

@@ -22,7 +22,7 @@
 						@click="goto(item.id)"
 					>
 						<view class="swiper-item" style="width: 100%;height: 100%;">
-							<image style="width: 100%; height: 100%;" src="../../static/logo.png" mode="scaleToFill"></image>
+							<image style="width: 100%; height: 100%;" :src="item.img_url" mode="scaleToFill"></image>
 						</view>
 					</swiper-item>
 				</swiper>
@@ -32,7 +32,7 @@
 		<!-- 列表 -->
 		<view class="list">
 			<view class="list-item" v-for="(item,index) in listData" :key="index" @click="gotoCategory(item,index)">
-				<image style="width: 60rpx;height: 60rpx;margin-left:calc(50% - 30rpx)" src="../../static/logo.png" mode=""></image>
+				<image style="width: 60rpx;height: 60rpx;margin-left:calc(50% - 30rpx)" :src="item.icon_url" mode=""></image>
 				<view class="list-text">
 					{{item.title}}
 				</view>
@@ -44,18 +44,18 @@
 			<view class="content" v-for="(item,i) in hotListData" :key="i">
 				<view class="top">
 					<view class="title">{{item.title}}</view>
-					<view class="text">性格决定命运？————揭开你隐藏性格秘密</view>
+					<view class="text">{{item.description}}</view>
 				</view>
 				<view class="middle" @click="reviewDetail(item.questionnaires[0].id)">
 					<view class="middle-left">
 						<view class="title">{{item.questionnaires[0].title}}</view>
-						<view class="text">14张图片，揭露你的潜意识</view>
+						<view class="text">{{item.questionnaires[0].description}}</view>
 						<view style="width: 120rpx;">
 							<button class="btn" >去测试</button>
 						</view>
 					</view>
 					<view class="middle-right">
-						<image class="middle-img" src="../../static/defaultImg.png" mode=""></image>
+						<image class="middle-img" :src="item.questionnaires[0].img_url" mode=""></image>
 						<!-- <view class="num">
 							1w人已测
 						</view> -->
@@ -71,7 +71,7 @@
 						<view class="bottom">
 							<view class="btn">去测试</view>
 							<view class="img">
-								<image class="bottom-img" src="../../static/defaultImg.png" mode=""></image>
+								<image class="bottom-img" :src="item.questionnaires[1].img_url" mode=""></image>
 								<!-- <view class="num">
 									1w人已测
 								</view> -->
@@ -86,7 +86,7 @@
 						<view class="bottom">
 							<view class="btn">去测试</view>
 							<view class="img">
-								<image class="bottom-img" src="../../static/defaultImg.png" mode=""></image>
+								<image class="bottom-img" :src="item.questionnaires[2].img_url" mode=""></image>
 								<!-- <view class="num">
 									1w人已测
 								</view> -->
@@ -108,40 +108,8 @@
 	export default {
 		data() {
 			return {
-				bannerList: [
-					{
-						id: '1'
-					},
-					{
-						id: '2'
-					},
-					{
-						id: '3'
-					}
-				],
-				listData: [
-					{
-						id: '1',
-						text: '性格类型',
-						url: '../../static/logo.png'
-					},{
-						id: '2',
-						text: '爱情检测',
-						url: '../../static/logo.png'
-					},{
-						id: '3',
-						text: '心理健康',
-						url: '../../static/logo.png'
-					},{
-						id: '4',
-						text: '职场能力',
-						url: '../../static/logo.png'
-					},{
-						id: '5',
-						text: '全部测评',
-						url: '../../static/logo.png'
-					}
-				],
+				bannerList: [],
+				listData: [],
 				hotListData: [],
 			}
 		},
@@ -194,9 +162,7 @@
 <style lang="scss" scoped>
 	.home {
 		width: 100%;
-		height: 100%;
-		flex: auto;
-		overflow: auto;
+		height: auto;
 		.swiper{
 			padding: 20rpx;
 			border-radius: 60rpx;
@@ -286,7 +252,7 @@
 						font-size: 0.75rem;
 						color: #ffffff;
 						background-color: #7c91fd;
-						width: 120rpx;
+						width: 140rpx;
 						border-radius: 40rpx;
 						
 					}
@@ -384,7 +350,8 @@
 		}
 	}
 	.more{
-		width: 180rpx;
+		width: 200rpx;
+		font-size: 0.75rem;
 		height: 8%;
 		text-align: center;
 		color: #7c91fd;

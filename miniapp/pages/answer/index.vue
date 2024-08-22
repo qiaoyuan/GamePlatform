@@ -1,7 +1,7 @@
 <template>
   <view class="test-container">
     <!-- 顶部导航区域 -->
-    <NavBar
+   <NavBar
       :title="navTitle"
       @back="onClickBack" />
 
@@ -14,10 +14,9 @@
         :total="resultObj.total"
         @transition="swiperTransitionEvent"
         @change="swiperChangeEvent">
-        <!-- 使用作用域插槽，并利用 scope 接收插槽传递的数据 -->
-        <template #content="scope">
+        <template v-slot:content="{ listData }">
           <TopicInfo
-            :topicInfo="scope.item"
+            :topicInfo="listData"
             :answerMode="1"
             :isAnalysis="false"
             @selected="postSelectCallBack" />
@@ -118,13 +117,14 @@
 <script>
 // 导入请求方法
 import { getTrainTopicInitData } from '../../api/train-topic.js'
-
+	import { getQusetionList, submitAnswer } from '@/api/index.js'
 export default {
   data() {
     return {
       navTitle: '答题栏',
       displayPopup: false,
       questionList: [],
+	  surveryId: '', // 问卷调查ID
       initCurrentIndex: 0,
       swiperDuration: 250,
       resultObj: {
@@ -143,8 +143,11 @@ export default {
    * @param {Object} options 路由参数
    */
   async onLoad(options) {
-    const topic = await getTrainTopicInitData()
-    this.questionList = topic.data.data
+    // const topic = await getTrainTopicInitData()
+	this.surveryId = options.id
+	const questionList = await getQusetionList(options.id)
+    // this.questionList = topic.data.data
+	this.questionList = questionList.data.list
 
     this.resultObj.total = this.questionList.length
 
@@ -182,9 +185,9 @@ export default {
         content: '是否确定要退出训练',
         success: res => {
           if (res.cancel) return
-          uni.redirectTo({
-            url: '/pages/home/Home',
-          })
+          uni.switchTab({
+			  url:'/pages/index/index'
+		  })
         },
       })
     },
@@ -217,7 +220,7 @@ export default {
      */
     onClickNext() {
       this.initCurrentIndex = this.initCurrentIndex + 1
-	  console.log(this.initCurrentIndex)
+	  
     },
 
     /**
@@ -251,8 +254,32 @@ export default {
      * 点击提交答案方法
      */
     onClickSubmit() {
-      console.log(this.questionList)
-      console.log(this.resultObj)
+		var options = []
+		for(let i = 0; i < this.questionList.length; i++) {
+			options.push({
+				question_id: this.questionList[i].questionId,
+				score: this.questionList[i].currentScore,
+				option_id: this.questionList[i].selectId
+			})
+		}
+		var params = {
+			questionnaire_id: this.surveryId,
+			options,
+		}
+	  uni.showModal({
+	  	content: '是否确定提交答案？',
+	  	success: res => {
+	  	  if (res.cancel) return
+			//调取接口
+			submitAnswer(params).then(res => {
+				uni.setStorageSync("reportContent", res.data.info)
+				uni.redirectTo({
+					url: `/pages/result/index`
+				})
+			})
+			
+	  	},
+	  })
     },
 
     /**

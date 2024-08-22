@@ -21,14 +21,66 @@
 					@clickItem="onClickItem" />
 			</view>
 			<view class="content">
-				<view v-if="current === 0"><text class="content-text">
-					<view v-if="false" class="">
-						测试数据
+				<view v-if="current === 0" style="width: 100%;">
+					<view v-if="inFinishTest.length>0" style="width: 100%;height: 100%;">
+						<view class="item" v-for="(item,index) in inFinishTest" :key="index">
+							<view class="main">
+								{{item.questionnaire.title}}
+							</view>
+							<view class="text">
+								{{item.questionnaire.description}}
+							</view>
+							<view class="price">
+								￥{{item.questionnaire.price}}
+							</view>
+							<!-- <view class="total">
+								{{item.total}}人已测
+							</view> -->
+							<view class="img">
+								<img style="width: 100%; height: 100%;" :src="item.questionnaire.img_url" alt="" />
+							</view>
+						</view>
 					</view>
 					<text v-else style="height: 80px;">暂无数据</text>
-				</text></view>
-				<view v-if="current === 1"><text class="content-text">选项卡2的内容</text></view>
-				<view v-if="current === 2"><text class="content-text">选项卡3的内容</text></view>
+				</view>
+				<view v-if="current === 1" style="width: 100%; height: 100%;">
+					<view v-if="finishTest.length>0" style="width: 100%;height: 100%;">
+					<view class="item" v-for="(fin,j) in finishTest" :key="j"  @click="lookReport(fin)">
+							<view class="main">
+								{{fin.questionnaire.title}}
+							</view>
+							<view class="text">
+								{{fin.questionnaire.description}}
+							</view>
+							<view class="price">
+								￥{{fin.questionnaire.price}}
+							</view>
+							<view class="img">
+								<img style="width: 100%; height: 100%;" :src="fin.questionnaire.img_url" alt="" />
+							</view>
+						</view>
+					</view>
+					<text v-else style="height: 80px;">暂无数据</text>
+				</view>
+				<view v-else-if="current === 2" style="width: 100%;height: 100%;">
+					<view v-if="allTest.length>0" style="width: 100%;height: 100%;">
+					<view class="item" v-for="(all,k) in allTest" :key="k" @click="lookReport(all)">
+							<view class="main">
+								{{all.questionnaire.title}}
+							</view>
+							<view class="text">
+								{{all.questionnaire.description}}
+							</view>
+							<view class="price">
+								￥{{all.questionnaire.price}}
+							</view>
+							<view class="img">
+								<img style="width: 100%; height: 100%;" :src="all.questionnaire.img_url" alt="" />
+							</view>
+						</view>
+					</view>
+					<text v-else style="height: 80px;">暂无数据</text>
+				</view>
 			</view>
 		</view>
 
@@ -42,6 +94,7 @@
 </template>
 
 <script>
+	import { reportInfo,  reportList } from '@/api/index.js'
 	export default {
 		data() {
 			return {
@@ -59,19 +112,48 @@
 						id: '3',
 						text: '全部测评'
 					}
-				]
+				],
+				inFinishTest: [],
+				finishTest: [],
+				allTest: [],
 			}
+		},
+		onLoad() {
+			this.getTestData(this.current)
 		},
 		methods: {
 			onClickItem(e) {
 				if (this.current !== e.currentIndex) {
 					this.current = e.currentIndex
 				}
+				this.getTestData(this.current)
 			},
 			// 跳转到测评页
 			goHome() {
 				uni.switchTab({
 					url: '/pages/index/index'
+				})
+			},
+			getTestData(type) {
+				if(type == 0){
+					reportList(type).then(res => {
+						this.inFinishTest = res.data.list
+					})
+				}else if(type == 1) {
+					reportList(type).then(res => {
+						this.finishTest = res.data.list
+					})
+				}else {
+					reportList().then(res => {
+						this.allTest = res.data.list
+					})
+				}
+			},
+			// 查看报告
+			lookReport(data) {
+				uni.setStorageSync('reportContent', data.questionnaire.content)
+				uni.navigateTo({
+					url: '/pages/result/index'
 				})
 			}
 		}
@@ -91,6 +173,8 @@
 			align-items: center;
 
 			.avatar {
+				width: 80rpx;
+				height: 80rpx;
 				margin-left: 50rpx;
 				margin-right: 50rpx;
 
@@ -165,8 +249,12 @@
 				/* #endif */
 				justify-content: center;
 				align-items: center;
-				height: 150px;
+				min-height: 120rpx;
+				height: auto;
+				width: calc(100% - 40rpx);
 				text-align: center;
+				margin-top: 20rpx;
+				padding: 20rpx;
 			}
 		.content-text {
 				font-size: 14px;
@@ -179,4 +267,43 @@
 			margin-left: 10%;
 		}
 	}
+	.item{
+		position: relative;
+		width: 100%;
+		height: 140rpx;
+		border-bottom: 1px solid #C0C0C0;
+		.main{
+			font-size: 0.75rem;
+			font-weight: 600;
+			text-align: left;
+			
+		}
+		.text{
+			font-size: 16rpx;
+			color: gray;
+			margin: 12rpx 0;
+			text-align: left;
+		}
+		.price{
+			color: #f4ea2a;
+			position: absolute;
+			bottom: 20rpx;
+			left: 0rpx;
+		}
+		.total{
+			font-size: 16rpx;
+			position: absolute;
+			bottom: 20rpx;
+			right: 180rpx;
+			color: gray;
+		}
+		.img{
+			width: 3rem;
+			height: 3rem;
+			position: absolute;
+			right: 100rpx;
+			bottom: 10rpx;
+		}
+	}
+	
 </style>

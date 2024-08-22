@@ -3,7 +3,7 @@
 		<view class="introduce-detail">
 			<!-- 封面图片 -->
 			<view class="cover">
-			<image style="width: 100%;height: 100%;" src="../../static/logo.png" mode=""></image>
+			<image style="width: 100%;height: 100%;" :src="introduceInfo.img_url" mode=""></image>
 			</view>
 
 			<!-- 标题、价格 -->
@@ -33,7 +33,7 @@
 			</view>
 
 			<!-- 用户评分 -->
-			<view class="score">
+			<!-- <view class="score">
 				<view class="detail-name">
 					<view class="name">
 						用户评价
@@ -51,7 +51,7 @@
 						
 					</view>
 				</view>
-			</view>
+			</view> -->
 
 			<!-- 相关推荐 -->
 			<view class="share">
@@ -62,7 +62,6 @@
 				<view class="bottom">
 					<view class="goHome" @click="goHome">
 						<button> 测试大厅 </button>
-						
 					</view>
 					<view class="test" @click="goSelectSex">
 						<button>立即测试</button>
@@ -77,13 +76,15 @@
 	import { getQuestionDetail } from '@/api/index.js'
 	export default {
 		onLoad: function(option) {
+			this.currentId = option.id
 			getQuestionDetail(option.id).then(res => {
 				this.introduceInfo = res.data.info
 			})
 		},
 		data() {
 			return {
-				introduceInfo: {}
+				introduceInfo: {},
+				currentId: ''
 			}
 		},
 		methods: {
@@ -93,9 +94,9 @@
 					url:"/pages/index/index"
 				})
 			},
-			goSelectSex() {
+			goSelectSex(currentId) {
 				uni.navigateTo({
-					url: `/pages/selectSex/index?id=${123}`
+					url: `/pages/selectSex/index?id=${this.currentId}`
 				})
 			},
 			onClick(e) {
@@ -110,11 +111,12 @@
 
 <style lang="scss" scoped>
 	.introduce {
-		width: 100%;
+		width: calc(100% - 40rpx);
 		height: 100%;
 		flex: auto;
 		overflow: auto;
 		background-color: #f6f6f6;
+		padding: 20rpx;
 	}
 	.cover{
 		width: 100%;
@@ -151,6 +153,7 @@
 		min-height: 800px;
 		margin-top: 20rpx;
 		background-color: #ffffff;
+		margin-bottom: 120rpx;
 		.detail-name{
 			width: 100%;
 			height: 140rpx;
@@ -234,6 +237,7 @@
 				position: relative;
 				>button {
 					height: 100rpx;
+					font-size: 20rpx;
 					border: none;
 					background: #ffffff;
 					line-height: 100rpx;

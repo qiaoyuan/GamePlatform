@@ -29,14 +29,21 @@
 <script>
 	export default{
 		onLoad(option) {
-			console.log(option)
+			this.currentId = option.id
+			
+		},
+		data() {
+			return {
+				currentId: ''
+			}
 		},
 		methods: {
 			goAnswer(sex) {
+				let id = this.currentId
 				uni.navigateTo({
-					url: `/pages/answer/index?id=${123}&sex=${sex}`
+					url: `/pages/answer/index?id=${id}&sex=${sex}`
 				})
-			}
+			},
 		}
 	}
 </script>

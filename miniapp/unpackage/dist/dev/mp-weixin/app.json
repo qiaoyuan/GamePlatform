@@ -2,7 +2,11 @@
   "pages": [
     "pages/index/index",
     "pages/category/index",
-    "pages/my/index"
+    "pages/my/index",
+    "pages/introduce/index",
+    "pages/selectSex/index",
+    "pages/answer/index",
+    "pages/result/index"
   ],
   "subPackages": [],
   "window": {

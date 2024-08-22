@@ -4,7 +4,7 @@
       <i class="back iconfont icon-back"
         @click="onClickBack" />
     </slot>
-	<text>{{ title }}</text>
+	<text>{{ title }}答题中。。。</text>
     <slot>
       <view class="back"></view>
     </slot>
@@ -41,7 +41,8 @@ export default {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  height: 90rpx;
+  height: 180rpx;
+  vertical-align: bottom;
 
   .back {
     display: flex;

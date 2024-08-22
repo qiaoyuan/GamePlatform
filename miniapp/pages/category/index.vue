@@ -28,7 +28,7 @@
 						{{item.total}}人已测
 					</view> -->
 					<view class="img">
-						<img src="../../static/logo.png" alt="" />
+						<img style="width: 100%; height: 100%;" :src="item.img_url" alt="" />
 					</view>
 				</view>
 			</template>
@@ -47,84 +47,12 @@
 		data() {
 			return {
 				actives: '0',
-				cates: [
-					{
-						id: '0',
-						classifyName: '全部',
-						children: [
-							{
-								id: '1',
-								// img_url: require('../../statiic/logo.png'),
-								title: '潜意识投射测试',
-								text: '你的魅力值有多高？',
-								price: '19.9',
-								total: '23.5w'
-							},
-							{
-								id: '2',
-								// img_url: require('../../statiic/logo.png'),
-								title: '潜意识投射测试',
-								text: '你的魅力值有多高？',
-								price: '19.9',
-								total: '23.5w'
-							}
-						]
-					},
-					{
-						id: '1',
-						classifyName: '性格',
-						children: []
-					},
-					{
-						id: '2',
-						classifyName: '情感',
-						children: []
-					},
-					{
-						id: '3',
-						classifyName: '职场',
-						children: []
-					},
-					{
-						id: '4',
-						classifyName: '健康',
-						children: []
-					},
-					{
-						id: '5',
-						classifyName: '人际',
-						children: []
-					},
-					{
-						id: '6',
-						classifyName: '亲子',
-						children: []
-					},
-					{
-						id: '7',
-						classifyName: '能力',
-						children: []
-					}
-				],
-				secondData: [
-					{
-						id: '1',
-						// img_url: require('../../statiic/logo.png'),
-						title: '潜意识投射测试',
-						text: '你的魅力值有多高？',
-						price: '19.9',
-						total: '23.5w'
-					},
-					{
-						id: '2',
-						// img_url: require('../../statiic/logo.png'),
-						title: '潜意识投射测试',
-						text: '你的魅力值有多高？',
-						price: '19.9',
-						total: '23.5w'
-					}
-				],
-				catagoryList: []
+				secondData: [],
+				catagoryList: [],
+				page: {
+					pageSize:1,
+					limit: 10
+				}
 			
 			}
 		},
@@ -137,6 +65,7 @@
 		onLoad() {
 			getCategory().then(res => {
 				this.catagoryList = res.data.list
+				this.leftClickHandle(this.catagoryList[0].id, 0)
 			})
 		},
 		methods: {
@@ -148,7 +77,9 @@
 			getList(id) {
 				// 获取当前选项的列表页
 				let params = {
-					article_category_id: id
+					article_category_id: id,
+					page: this.page.pageSize,
+					limit: this.page.limit
 				}
 				getCategoryList(params).then(res => {
 					this.secondData = res.data.list.data
@@ -182,7 +113,6 @@
 				border-top: 1px solid #eee;
 			}
 			.active {
-				/* background: $shop-color; */
 				color: deepskyblue;
 			}
 		}
@@ -219,7 +149,7 @@
 					color: gray;
 				}
 				.img{
-					width: 2rem;
+					width: 4rem;
 					height: 4rem;
 					position: absolute;
 					right: 100rpx;

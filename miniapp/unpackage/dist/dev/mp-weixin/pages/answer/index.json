@@ -1,0 +1,11 @@
+{
+  "enablePullDownRefresh": false,
+  "navigationStyle": "custom",
+  "disableScroll": true,
+  "usingComponents": {
+    "index-swiper-limit-load-content": "/pages/answer/index-swiper-limit-load-content",
+    "nav-bar": "/components/NavBar/NavBar",
+    "swiper-limit-load": "/components/SwiperLimitLoad/SwiperLimitLoad",
+    "topic-info": "/components/TopicInfo/TopicInfo"
+  }
+}
