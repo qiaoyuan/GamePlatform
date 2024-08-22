@@ -34,47 +34,47 @@ class User extends BaseController
         // 'so'
         //]]
 
-        $param['options'] = [
-            [
-                'score' => 1,
-                'question_id' => 2,
-            ],
-
-            [
-                'score' => 3,
-                'question_id' => 2,
-            ],
-
-            [
-                'score' => 5,
-                'question_id' => 6,
-            ],
-
-            [
-                'score' => 2,
-                'question_id' => 7,
-            ],
-
-            [
-                'score' => 4,
-                'question_id' => 8,
-            ],
-
-            [
-                'score' => 5,
-                'question_id' => 9,
-            ],
-
-            [
-                'score' => 3,
-                'question_id' => 18,
-            ],
-
-            [
-                'score' => 2,
-                'question_id' => 20,
-            ],
-        ];
+//        $param['options'] = [
+//            [
+//                'score' => 1,
+//                'question_id' => 2,
+//            ],
+//
+//            [
+//                'score' => 3,
+//                'question_id' => 2,
+//            ],
+//
+//            [
+//                'score' => 5,
+//                'question_id' => 6,
+//            ],
+//
+//            [
+//                'score' => 2,
+//                'question_id' => 7,
+//            ],
+//
+//            [
+//                'score' => 4,
+//                'question_id' => 8,
+//            ],
+//
+//            [
+//                'score' => 5,
+//                'question_id' => 9,
+//            ],
+//
+//            [
+//                'score' => 3,
+//                'question_id' => 18,
+//            ],
+//
+//            [
+//                'score' => 2,
+//                'question_id' => 20,
+//            ],
+//        ];
         if (empty($param['options']) || empty($param['questionnaire_id'])) {
             $this->error("参数缺少");
         }
