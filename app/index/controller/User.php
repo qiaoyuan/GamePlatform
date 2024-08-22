@@ -1,4 +1,5 @@
 <?php
+
 namespace app\index\controller;
 
 use app\common\model\QuestionAnswer;
@@ -11,12 +12,15 @@ class User extends BaseController
 
     public function register()
     {
+        $param = $this->request->param();
+
 
         $this->success('注册成功', []);
     }
 
     //用户数据
-    public  function info() {
+    public function info()
+    {
 
         $this->success('', []);
     }
@@ -24,35 +28,115 @@ class User extends BaseController
     //创建报告
     public function createRes()
     {
+        $uid = $this->getUid();
+
         $param = $this->request->param();
-        if(empty($param['options']) || $param['questionnaire_id']) {
+
+        //['options'=>[
+        // 'so'
+        //]]
+
+//        $param['options'] = [
+//            [
+//                'score' => 1,
+//                'question_id' => 2,
+//            ],
+//
+//            [
+//                'score' => 3,
+//                'question_id' => 2,
+//            ],
+//
+//            [
+//                'score' => 5,
+//                'question_id' => 6,
+//            ],
+//
+//            [
+//                'score' => 2,
+//                'question_id' => 7,
+//            ],
+//
+//            [
+//                'score' => 4,
+//                'question_id' => 8,
+//            ],
+//
+//            [
+//                'score' => 5,
+//                'question_id' => 9,
+//            ],
+//
+//            [
+//                'score' => 3,
+//                'question_id' => 18,
+//            ],
+//
+//            [
+//                'score' => 2,
+//                'question_id' => 20,
+//            ],
+//        ];
+        if (empty($param['options']) || empty($param['questionnaire_id'])) {
             $this->error("参数缺少");
         }
-        $score = array_sum($param['options']);
+        $scoreSum = array_sum(array_column($param['options'], 'score'));
 
         $where = [
-            ['start', '>=', $score],
-            ['lt', '<=', $score],
+            ['start', '<=', $scoreSum],
+            ['lt', '>=', $scoreSum],
+            ['questionnaire_id', '=', $param['questionnaire_id']],
         ];
-        $questionResponse = QuestionResponse::where($where)->limit(1)->find();
-        if($questionResponse->isEmpty()) {
-            $this->error("生成报告异常");
+        $questionResponse = QuestionResponse::where($where)->find();
+        if (empty($questionResponse)) {
+            $this->error("联系管理员,生成报告异常");
         }
 
-        $questionAnswer = [
-            'json'=>json_encode($param['options']),
-            'created_at'=>time(),
-            'uid'=>999,
-            'questionnaire_id'=>$param['questionnaire_id'],
-            'score'=>$param['score'],
-            'response_id' => $questionResponse->id
+        //去重判断
+        $where = [
+            'uid' => $uid,
+            'questionnaire_id' => $param['questionnaire_id'],
         ];
-        $questionAnswer = QuestionAnswer::create($questionAnswer);
-        if($questionAnswer->isEmpty()) {
-            $this->error("生成报告失败");
+        $questionAnswer = QuestionAnswer::where($where)->find();
+        //判断1、存在未完成报告 2、已完成报告 3、用户没有该问卷报告
+        if (!empty($questionAnswer) ) {
+
+            //2、已完成报告
+            if($questionAnswer->response_id = $questionResponse->id) {
+                $this->success("请勿重复生成问卷报!", ['info' => $questionAnswer]);
+            }
+
+            //1、存在未完成报告
+            $questionAnswer = [
+                'json' => json_encode($param['options']),
+                'created_at' => time(),
+                'uid' => $this->getUid(),
+                'questionnaire_id' => $param['questionnaire_id'],
+                'score' => $scoreSum,
+                'response_id' => $questionResponse->id
+            ];
+
+            QuestionAnswer::update(['response_id' => $questionResponse->id], ['id' => $questionAnswer->id]);
+
+        } else { //3 用户没有该问卷报告
+
+            $questionAnswer = [
+                'json' => json_encode($param['options']),
+                'created_at' => time(),
+                'uid' => $this->getUid(),
+                'questionnaire_id' => $param['questionnaire_id'],
+                'score' => $scoreSum,
+                'response_id' => $questionResponse->id
+            ];
+            $questionAnswer = QuestionAnswer::create($questionAnswer);
+            if ($questionAnswer->isEmpty()) {
+                $this->error("生成报告失败");
+            }
+
         }
 
-        $this->success("生成报告成功", ['res'=>$questionResponse]);
+        $this->success("生成报告成功", ['info' => $questionAnswer]);
+
     }
 
     /**
@@ -66,10 +150,37 @@ class User extends BaseController
     {
         $param = $this->request->param();
 
-        $uid = 999;
+        $where[] = ['uid', '=', $this->getUid()];
 
-        $questionAnswer = QuestionAnswer::where('uid', $uid)->with('questionnaire')->select();
-        $this->success("", ['list'=>$questionAnswer]);
+        //未完成报告
+        if(!empty($param['is_ok']) ) {
+            if($param['is_ok'] === 0) {
+                $where[] = ['response_id', '=', 0];
+            } else if($param['is_ok'] === 1) {
+                $where[] = ['response_id', '>', 0];
+            }
+        }
+
+
+        $questionAnswer = QuestionAnswer::where($where)->with(['questionnaire' => function ($query) {
+            $query->with(['articleCategorys']);
+        }])->select();
+        $this->success("", ['list' => $questionAnswer]);
+    }
+
+    public function report() {
+        $param = $this->request->param();
+
+        if(empty($param['id'])) {
+            $this->error("参数异常!");
+        }
+        $id = QuestionAnswer::where('id', $param['id'])->value('response_id');
+        if(empty($id)) {
+            $this->error("报告不存在");
+        }
+        $res = QuestionResponse::where('id', $id)->find();
+        $this->success("", ['info' => $res]);
+
     }
 
 }
