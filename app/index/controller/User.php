@@ -10,12 +10,35 @@ use app\index\BaseController;
 class User extends BaseController
 {
 
-    public function register()
+    public function login()
     {
+
         $param = $this->request->param();
+        $content = json_encode($param);
 
+        //判断是否是老用户
+        $userObj = \app\common\model\User::where('open_id', $param['code'])->find();
 
-        $this->success('注册成功', []);
+        $token = \app\common\model\User::getToken($param['code']);
+        //新用户注册
+        if(empty($userObj)) {
+
+            $data = [
+                'username' => '',
+//                'created_at' => time(),
+                'nickname' => '',
+                'token' => $token,
+                'open_id' => $param['code'],
+                'content' => $content,
+            ];
+            \app\common\model\User::create($data);
+
+        } else {
+            \app\common\model\User::where('open_id', $param['code'])->update(['token'=>$token]);
+        }
+
+        //然后直接返回token
+        $this->success('登录成功', ['token' => $token, 'open_id' => $param['code']]);
     }
 
     //用户数据

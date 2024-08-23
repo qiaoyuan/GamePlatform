@@ -2,6 +2,12 @@
 
 namespace app\common\model;
 
+use Lcobucci\JWT\Encoding\ChainedFormatter;
+use Lcobucci\JWT\Encoding\JoseEncoder;
+use Lcobucci\JWT\Signer\Hmac\Sha256;
+use Lcobucci\JWT\Signer\Key\InMemory;
+use Lcobucci\JWT\Token\Builder;
+
 /**
  * @property int $id
  * @property int $status
@@ -13,12 +19,17 @@ namespace app\common\model;
  * @property string $phone 电话
  * @property int $channel_id 渠道id
  * @property string $open_id 对于微信商家唯一标
+ * @property string $avatar_url 头像
+ * @property string $content 注册请求数据
+ * @property string $token token
+ * @property string $created_at
  */
 class User extends Base
 {
+    protected $autoWriteTimestamp = true;
+
     protected $table = 'user';
     protected $pk = 'id';
-    protected $autoWriteTimestamp = false;
     protected $field = [
         'id',
         'status',
@@ -30,6 +41,10 @@ class User extends Base
         'phone',
         'channel_id',
         'open_id',
+        'avatar_url',
+        'content',
+        'token',
+        'created_at',
     ];
     protected $type = [
         'amount' => 'float',
@@ -49,5 +64,33 @@ class User extends Base
     public function userDevices()
     {
         return $this->hasMany(UserDevice::class, 'user_id', 'id');
+    }
+
+    /**
+     * 获取JWT Token
+     *
+     * @param int $adminId
+     * @param string $name
+     * @return string $token
+     */
+    public static function getToken($code) :string
+    {
+        $tokenBuilder = (new Builder(new JoseEncoder(), ChainedFormatter::default()));
+        $algorithm    = new Sha256();
+        $signingKey   = InMemory::plainText(config('jwt.key'));
+        $now   = new \DateTimeImmutable();
+        $token = $tokenBuilder
+            // Configures the subject of the token (sub claim)
+            ->relatedTo('index')
+            // Configures the time that the token was issue (iat claim)
+            ->issuedAt($now)
+            ->canOnlyBeUsedAfter($now)
+            // Configures the expiration time of the token (exp claim)
+            ->expiresAt($now->modify(config('jwt.expire')))
+            // Configures a new claim, called "uid"
+            ->withClaim('code', $code)
+            // Builds a new token
+            ->getToken($algorithm, $signingKey);
+        return $token->toString();
     }
 }
