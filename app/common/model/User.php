@@ -23,6 +23,7 @@ use Lcobucci\JWT\Token\Builder;
  * @property string $content 注册请求数据
  * @property string $token token
  * @property string $created_at
+ * @property string $updated_at
  */
 class User extends Base
 {
@@ -45,6 +46,7 @@ class User extends Base
         'content',
         'token',
         'created_at',
+        'updated_at',
     ];
     protected $type = [
         'amount' => 'float',
