@@ -9,9 +9,9 @@ class BaseController extends \app\common\BaseController
 {
     public function getUid()
     {
-//        return $this->request->uid;
-        $uid = 999;
-        return $uid;
+        return $this->request->uid;
+//        $uid = 999;
+//        return $uid;
     }
     protected function getResponseType(): string
     {
