@@ -106,9 +106,9 @@ class User extends BaseController
         }
 
         $scoreSum = array_sum(array_column($param['options'], 'score'));
-//        if($scoreSum == 0) {
-//            $this->error("数据提异常");
-//        }
+        if($scoreSum == 0) {
+            $this->error("数据提异常");
+        }
 
         $where = [
             ['start', '<=', $scoreSum],
