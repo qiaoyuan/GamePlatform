@@ -104,7 +104,11 @@ class User extends BaseController
         if (empty($param['options']) || empty($param['questionnaire_id'])) {
             $this->error("参数缺少");
         }
+
         $scoreSum = array_sum(array_column($param['options'], 'score'));
+//        if($scoreSum == 0) {
+//            $this->error("数据提异常");
+//        }
 
         $where = [
             ['start', '<=', $scoreSum],
@@ -152,7 +156,10 @@ class User extends BaseController
                 'score' => $scoreSum,
                 'response_id' => $questionResponse->id
             ];
+
+
             $questionAnswer = QuestionAnswer::create($questionAnswer);
+
             if ($questionAnswer->isEmpty()) {
                 $this->error("生成报告失败");
             }
@@ -206,5 +213,6 @@ class User extends BaseController
         $this->success("", ['info' => $res]);
 
     }
+
 
 }

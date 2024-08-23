@@ -9,7 +9,7 @@ class BaseController extends \app\common\BaseController
 {
     public function getUid()
     {
-        return $this->request->uid;
+        return intval($this->request->uid);
 //        $uid = 999;
 //        return $uid;
     }
