@@ -1,71 +1,155 @@
-
-.my{
-	width: 100%;
-	height: 100%;
-.topRole{
-		width: 100%;
-		height: 8rem;
-		display: flex;
-		justify-content: flex-start;
-		align-items: center;
-.avatar{
-			margin-left: 50rpx;
-			margin-right: 50rpx;
-.img{
-				width: 100%;
-				height: 100%;
-				border-radius: 50%;
+@charset "UTF-8";
+/**
+ * 这里是uni-app内置的常用样式变量
+ *
+ * uni-app 官方扩展插件及插件市场（https://ext.dcloud.net.cn）上很多三方插件均使用了这些样式变量
+ * 如果你是插件开发者，建议你使用scss预处理，并在插件代码中直接使用这些变量（无需 import 这个文件），方便用户通过搭积木的方式开发整体风格一致的App
+ *
+ */
+/**
+ * 如果你是App开发者（插件使用者），你可以通过修改这些变量来定制自己的插件主题，实现自定义主题功能
+ *
+ * 如果你的项目同样使用了scss预处理，你也可以直接在你的 scss 代码中使用如下变量，同时无需 import 这个文件
+ */
+/* 颜色变量 */
+/* 行为相关颜色 */
+/* 文字基本颜色 */
+/* 背景颜色 */
+/* 边框颜色 */
+/* 尺寸变量 */
+/* 文字尺寸 */
+/* 图片尺寸 */
+/* Border Radius */
+/* 水平间距 */
+/* 垂直间距 */
+/* 透明度 */
+/* 文章场景相关 */
+.my.data-v-4dcceeb0 {
+  width: 100%;
+  height: 100%;
 }
+.my .topRole.data-v-4dcceeb0 {
+  width: 100%;
+  height: 8rem;
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
 }
+.my .topRole .avatar.data-v-4dcceeb0 {
+  width: 80rpx;
+  height: 80rpx;
+  margin-left: 50rpx;
+  margin-right: 50rpx;
 }
-.testLog{
-		width: 100%;
-		height: auto;
-.tab-scroll{
-			flex: 1;
-			overflow: hidden;
-			box-sizing: border-box;
-			padding-left: 30rpx;
-			padding-right: 30rpx;
-.tab-scroll_box{
-				display: flex;
-				align-items: center;
-				flex-wrap: nowrap;
-				box-sizing: border-box;
-.tab_scroll-item{
-					line-height: 60rpx;
-					margin-right: 35rpx;
-					flex-shrink: 0;
-					padding-bottom:10px;
-					display: flex;
-					justify-content: center;
-					font-size: 16px;
-					padding-top: 10px;
+.my .topRole .avatar .img.data-v-4dcceeb0 {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
 }
+.my .testLog.data-v-4dcceeb0 {
+  width: 100%;
+  height: auto;
 }
+.my .testLog .tab-scroll.data-v-4dcceeb0 {
+  flex: 1;
+  overflow: hidden;
+  box-sizing: border-box;
+  padding-left: 30rpx;
+  padding-right: 30rpx;
 }
-.active {
-				position: relative;
-				color: #ff0000;
-				font-weight: 600;
+.my .testLog .tab-scroll .tab-scroll_box.data-v-4dcceeb0 {
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  box-sizing: border-box;
 }
-.active::after {
-			content: "";
-			position: absolute;
-			width: 130rpx;
-			height: 4rpx;
-			background-color: #ff0000;
-			left: 0px;
-			right: 0px;
-			bottom: 0px;
-			margin: auto;
+.my .testLog .tab-scroll .tab-scroll_box .tab_scroll-item.data-v-4dcceeb0 {
+  line-height: 60rpx;
+  margin-right: 35rpx;
+  flex-shrink: 0;
+  padding-bottom: 10px;
+  display: flex;
+  justify-content: center;
+  font-size: 16px;
+  padding-top: 10px;
 }
+.my .testLog .active.data-v-4dcceeb0 {
+  position: relative;
+  color: #ff0000;
+  font-weight: 600;
 }
-.more{
-		width: 80%;
-		height: 4rem;
-		margin-left: 10%;
+.my .testLog .active.data-v-4dcceeb0::after {
+  content: "";
+  position: absolute;
+  width: 130rpx;
+  height: 4rpx;
+  background-color: #ff0000;
+  left: 0px;
+  right: 0px;
+  bottom: 0px;
+  margin: auto;
 }
+.my .uni-common-mt.data-v-4dcceeb0 {
+  margin-top: 30px;
 }
-
+.my .uni-padding-wrap.data-v-4dcceeb0 {
+  padding: 0px 30px;
+}
+.my .content.data-v-4dcceeb0 {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 120rpx;
+  height: auto;
+  width: calc(100% - 40rpx);
+  text-align: center;
+  margin-top: 20rpx;
+  padding: 20rpx;
+}
+.my .content-text.data-v-4dcceeb0 {
+  font-size: 14px;
+  color: #666;
+}
+.my .more.data-v-4dcceeb0 {
+  width: 80%;
+  height: 4rem;
+  margin-left: 10%;
+}
+.item.data-v-4dcceeb0 {
+  position: relative;
+  width: 100%;
+  height: 140rpx;
+  border-bottom: 1px solid #C0C0C0;
+}
+.item .main.data-v-4dcceeb0 {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-align: left;
+}
+.item .text.data-v-4dcceeb0 {
+  font-size: 16rpx;
+  color: gray;
+  margin: 12rpx 0;
+  text-align: left;
+}
+.item .price.data-v-4dcceeb0 {
+  color: #f4ea2a;
+  position: absolute;
+  bottom: 20rpx;
+  left: 0rpx;
+}
+.item .total.data-v-4dcceeb0 {
+  font-size: 16rpx;
+  position: absolute;
+  bottom: 20rpx;
+  right: 180rpx;
+  color: gray;
+}
+.item .img.data-v-4dcceeb0 {
+  width: 3rem;
+  height: 3rem;
+  position: absolute;
+  right: 100rpx;
+  bottom: 10rpx;
+}
 

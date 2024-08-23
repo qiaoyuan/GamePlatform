@@ -7,7 +7,7 @@ import request from '@/utils/request'
 export function getHomeInfo() {
   return request({
     url: '/index/home/index',
-    method: 'GET',
+    method: 'POST',
   })
 }
 
@@ -17,18 +17,18 @@ export function getHomeInfo() {
 export function getCategory() {
 	return request({
 		url: '/index/questionnaires/catList',
-		method: 'GET'
+		method: 'POST'
 	})
 }
 
 /**
  * 问卷列表页面
  */
-export function getCategoryList(params) {
+export function getCategoryList(data) {
 	return request({
 		url: '/index/questionnaires/list',
-		method: 'GET',
-		params
+		method: 'POST',
+		data
 	})
 }
 
@@ -38,6 +38,47 @@ export function getCategoryList(params) {
 export function getQuestionDetail(id) {
 	return request({
 		url: `/index/questionnaires/get?id=${id}`,
-		method: 'GET'
+		method: 'POST'
+	})
+}
+
+/**
+ * 很具id获取问题列表
+ */
+export function getQusetionList(id) {
+	return request({
+		url: `/index/questions/list?questionnaire_id=${id}`,
+		method: 'POST'
+	})
+}
+
+/**
+ * 提交答案
+ */
+export function submitAnswer(data) {
+	return request({
+		url: '/index/user/createRes',
+		method: 'POST',
+		data
+	})
+}
+
+/**
+ * 报告页
+ */
+export function reportInfo(){
+	return request({
+		url: '/index/user/info',
+		method: 'POST'
+	})
+}
+
+/**
+ * 历史报告is_ok'=1：完成的报告  is_ok=0: 未完成报告
+ */
+export function reportList(type) {
+	return request({
+		url: `/index/user/reportList?is_ok=${type}`,
+		method: 'POST'
 	})
 }

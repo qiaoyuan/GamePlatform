@@ -37,6 +37,12 @@
 				"navigationStyle": "custom",
 				"disableScroll": true
 			}
+		},
+		{
+			"path": "pages/result/index",
+			"style": {
+				"navigationBarTitleText": "报告内容"
+			}
 		}
 	],
 	"tabBar": {

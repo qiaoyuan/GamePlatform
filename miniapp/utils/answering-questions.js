@@ -10,29 +10,16 @@ class AnsweringQuestions {
    */
   optionHandle({ topicInfoObj, topicCategory, optionsList, currentOptionIndex, optionsMarkList }) {
     // 断开选项列表原型影响，用于后面返回选项列表，达到改变题对象属性方式，从而重新渲染页面
-	console.log(topicInfoObj, topicCategory, optionsList, currentOptionIndex, optionsMarkList)
     optionsList = this.deepCopy(optionsList)
-
     // 设置我的答案和正确答案初始值为 Set 集合，阻止元素重复记录
     topicInfoObj.myAnswer = topicInfoObj?.myAnswer || new Set()
     topicInfoObj.correctAnswer = topicInfoObj?.correctAnswer || new Set()
-
-    if (topicCategory === 1) {
-      // 多选题选项点击设置 checked 点击样式，再次自身点击取消 checked 点击样式
-      if (topicInfoObj.myAnswer.has(optionsMarkList[currentOptionIndex])) {
-        optionsList[currentOptionIndex].style = ''
-        topicInfoObj.myAnswer.delete(optionsMarkList[currentOptionIndex])
-      } else {
-        optionsList[currentOptionIndex].style = 'checked'
-        topicInfoObj.myAnswer.add(optionsMarkList[currentOptionIndex])
-      }
-
-      // 当选项都未选择则清除题状态样式，反之则设置选中样式
-      topicInfoObj.myAnswer.size ? (topicInfoObj.state = 'checked') : (topicInfoObj.state = '')
-
-      return optionsList
-    }
-
+	topicInfoObj.currentScore = optionsList[currentOptionIndex].score
+	topicInfoObj.questionId = topicInfoObj.id
+	topicInfoObj.selectId = optionsList[currentOptionIndex].id
+	topicInfoObj.currentOptionIndex = currentOptionIndex
+	
+	
     // 单题选项点击设置 checked 点击样式，点击其他选项并取消上一个选项的 checked 点击样式，点击自身不做操作
     if (topicInfoObj.myAnswer.size) {
       const oldIndex = optionsMarkList.indexOf([...topicInfoObj.myAnswer][0])
@@ -43,7 +30,6 @@ class AnsweringQuestions {
     optionsList[currentOptionIndex].style = 'checked'
     topicInfoObj.myAnswer.add(optionsMarkList[currentOptionIndex])
     topicInfoObj.state = 'checked'
-
     return optionsList
   }
 
