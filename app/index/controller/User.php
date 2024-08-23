@@ -17,25 +17,25 @@ class User extends BaseController
         $content = json_encode($param);
 
         //判断是否是老用户
-        $userObj = \app\common\model\User::where('open_id', $param['code'])->find();
+        $usrObj = \app\common\model\User::where('open_id', $param['code'])->find();
 
-        $token = \app\common\model\User::getToken($param['code']);
         //新用户注册
-        if(empty($userObj)) {
+        if(empty($usrObj)) {
 
             $data = [
                 'username' => '',
 //                'created_at' => time(),
                 'nickname' => '',
-                'token' => $token,
                 'open_id' => $param['code'],
                 'content' => $content,
             ];
-            \app\common\model\User::create($data);
+            $usrObj = \app\common\model\User::create($data);
 
-        } else {
-            \app\common\model\User::where('open_id', $param['code'])->update(['token'=>$token]);
         }
+
+        $token = \app\common\model\User::getToken($param['code'], $usrObj->id);
+
+        \app\common\model\User::where('open_id', $param['code'])->update(['token'=>$token]);
 
         //然后直接返回token
         $this->success('登录成功', ['token' => $token, 'open_id' => $param['code']]);
@@ -44,8 +44,9 @@ class User extends BaseController
     //用户数据
     public function info()
     {
+        $uid = $this->request->uid;
+        $this->success('', ['info'=>\app\common\model\User::find($uid)]);
 
-        $this->success('', []);
     }
 
     //创建报告

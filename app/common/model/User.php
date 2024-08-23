@@ -2,11 +2,15 @@
 
 namespace app\common\model;
 
+use Lcobucci\Clock\SystemClock;
 use Lcobucci\JWT\Encoding\ChainedFormatter;
 use Lcobucci\JWT\Encoding\JoseEncoder;
+use Lcobucci\JWT\JwtFacade;
 use Lcobucci\JWT\Signer\Hmac\Sha256;
 use Lcobucci\JWT\Signer\Key\InMemory;
 use Lcobucci\JWT\Token\Builder;
+use Lcobucci\JWT\Validation\Constraint\SignedWith;
+use Lcobucci\JWT\Validation\Constraint\StrictValidAt;
 
 /**
  * @property int $id
@@ -75,7 +79,7 @@ class User extends Base
      * @param string $name
      * @return string $token
      */
-    public static function getToken($code) :string
+    public static function getToken($code, $uid) :string
     {
         $tokenBuilder = (new Builder(new JoseEncoder(), ChainedFormatter::default()));
         $algorithm    = new Sha256();
@@ -83,7 +87,7 @@ class User extends Base
         $now   = new \DateTimeImmutable();
         $token = $tokenBuilder
             // Configures the subject of the token (sub claim)
-            ->relatedTo('index')
+            ->relatedTo('admin')
             // Configures the time that the token was issue (iat claim)
             ->issuedAt($now)
             ->canOnlyBeUsedAfter($now)
@@ -91,8 +95,27 @@ class User extends Base
             ->expiresAt($now->modify(config('jwt.expire')))
             // Configures a new claim, called "uid"
             ->withClaim('code', $code)
+            ->withClaim('uid', $uid)
             // Builds a new token
             ->getToken($algorithm, $signingKey);
         return $token->toString();
+    }
+    /**
+     * @param string $token
+     * @return array
+     */
+    public static function verifyToken(string $token) :array
+    {
+        $signingKey   = InMemory::plainText(config('jwt.key'));
+
+        try {
+            $token = (new JwtFacade())->parse($token, new SignedWith(new Sha256(), $signingKey), new StrictValidAt(SystemClock::fromSystemTimezone()));
+            return [
+                'code' => $token->claims()->get('code'),
+                'uid' => $token->claims()->get('uid'),
+            ];
+        } catch (\Exception $e) {
+            return [];
+        }
     }
 }
