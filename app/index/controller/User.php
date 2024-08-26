@@ -2,10 +2,12 @@
 
 namespace app\index\controller;
 
+use app\admin\controller\Config;
 use app\common\model\QuestionAnswer;
 use app\common\model\QuestionAnswers;
 use app\common\model\QuestionResponse;
 use app\index\BaseController;
+use EasyWeChat\Factory;
 
 class User extends BaseController
 {
@@ -17,35 +19,61 @@ class User extends BaseController
         $content = json_encode($param);
 
         //判断是否是老用户
-        $usrObj = \app\common\model\User::where('open_id', $param['code'])->find();
+
+        $config = [
+            'app_id' => config('wechat.app_id'),
+            'secret' => config('wechat.secret'),
+
+            // 下面为可选项
+            // 指定 API 调用返回结果的类型：array(default)/collection/object/raw/自定义类名
+            'response_type' => 'array',
+
+            'log' => [
+                'level' => 'debug',
+                'file' => __DIR__ . '/wechat.log',
+            ],
+        ];
+
+        try {
+
+            $app = Factory::miniProgram($config);
+
+            $res = $app->auth->session($param['code']);
+
+        } catch (\Exception $e) {
+            $this->error($e->getMessage());
+        }
+
+        //判断是否是老用户
+        $openId = $res['openid'];
+        $usrObj = \app\common\model\User::where('open_id', $openId)->find();
 
         //新用户注册
-        if(empty($usrObj)) {
+        if (empty($usrObj)) {
 
             $data = [
                 'username' => '',
-//                'created_at' => time(),
                 'nickname' => '',
-                'open_id' => $param['code'],
+                'open_id' => $openId,
                 'content' => $content,
             ];
             $usrObj = \app\common\model\User::create($data);
 
         }
 
-        $token = \app\common\model\User::getToken($param['code'], $usrObj->id);
+        $token = \app\common\model\User::getToken($openId, $usrObj->id);
 
-        \app\common\model\User::where('open_id', $param['code'])->update(['token'=>$token]);
+        \app\common\model\User::where('open_id', $openId)->update(['token' => $token]);
 
         //然后直接返回token
-        $this->success('登录成功', ['token' => $token, 'open_id' => $param['code']]);
+        $this->success('登录成功', ['token' => $token, 'open_id' => $openId] );
     }
 
     //用户数据
     public function info()
     {
         $uid = $this->request->uid;
-        $this->success('', ['info'=>\app\common\model\User::find($uid)]);
+        $this->success('', ['info' => \app\common\model\User::find($uid)]);
 
     }
 
@@ -106,7 +134,7 @@ class User extends BaseController
         }
 
         $scoreSum = array_sum(array_column($param['options'], 'score'));
-        if($scoreSum == 0) {
+        if ($scoreSum == 0) {
             $this->error("提交数据异常");
         }
 
@@ -127,10 +155,10 @@ class User extends BaseController
         ];
         $questionAnswer = QuestionAnswer::where($where)->find();
         //判断1、存在未完成报告 2、已完成报告 3、用户没有该问卷报告
-        if (!empty($questionAnswer) ) {
+        if (!empty($questionAnswer)) {
 
             //2、已完成报告
-            if($questionAnswer->response_id = $questionResponse->id) {
+            if ($questionAnswer->response_id = $questionResponse->id) {
                 $this->success("请勿重复生成问卷报!", ['info' => $questionAnswer]);
             }
 
@@ -184,10 +212,10 @@ class User extends BaseController
         $where[] = ['uid', '=', $this->getUid()];
 
         //未完成报告
-        if(!empty($param['is_ok']) ) {
-            if($param['is_ok'] === 0) {
+        if (!empty($param['is_ok'])) {
+            if ($param['is_ok'] === 0) {
                 $where[] = ['response_id', '=', 0];
-            } else if($param['is_ok'] === 1) {
+            } else if ($param['is_ok'] === 1) {
                 $where[] = ['response_id', '>', 0];
             }
         }
@@ -199,14 +227,15 @@ class User extends BaseController
         $this->success("", ['list' => $questionAnswer]);
     }
 
-    public function report() {
+    public function report()
+    {
         $param = $this->request->param();
 
-        if(empty($param['id'])) {
+        if (empty($param['id'])) {
             $this->error("参数异常!");
         }
         $id = QuestionAnswer::where('id', $param['id'])->value('response_id');
-        if(empty($id)) {
+        if (empty($id)) {
             $this->error("报告不存在");
         }
         $res = QuestionResponse::where('id', $id)->find();

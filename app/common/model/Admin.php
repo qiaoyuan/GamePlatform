@@ -64,16 +64,16 @@ class Admin extends Base
      */
     public function login($username, $password)
     {
-        $tryIp = cache('admin_login_try_ip_' . request()->ip());
-        if ($tryIp && $tryIp >= 10) {
-            $this->error = '尝试次数过多，请稍后再试';
-            return false;
-        }
-        $try = cache('admin_login_try_' . $username);
-        if ($try && $try >= 5) {
-            $this->error = '尝试次数过多，请稍后再试';
-            return false;
-        }
+//        $tryIp = cache('admin_login_try_ip_' . request()->ip());
+//        if ($tryIp && $tryIp >= 10) {
+//            $this->error = '尝试次数过多，请稍后再试';
+//            return false;
+//        }
+//        $try = cache('admin_login_try_' . $username);
+//        if ($try && $try >= 5) {
+//            $this->error = '尝试次数过多，请稍后再试';
+//            return false;
+//        }
         $admin = $this->where('username|phone|nickname', $username)->find();
         if ($admin) {
             if ($admin['status'] === 0) {
