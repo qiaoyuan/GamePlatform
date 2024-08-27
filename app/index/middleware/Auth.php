@@ -27,8 +27,6 @@ class Auth
 
             if ($user) {
                 $request->uid = $user['uid'];
-                var_dump($user);
-                die;
                 $request->open_id = $user['open_id'];
             } else {
                 $this->error('登录失效', '', 401);

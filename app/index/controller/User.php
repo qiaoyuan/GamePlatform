@@ -19,7 +19,6 @@ class User extends BaseController
         $content = json_encode($param);
 
         //判断是否是老用户
-
         $config = [
             'app_id' => config('wechat.app_id'),
             'secret' => config('wechat.secret'),
@@ -43,6 +42,7 @@ class User extends BaseController
         } catch (\Exception $e) {
             $this->error($e->getMessage());
         }
+//        $res = ['openid'=>'oJ6ds7ZAo-Lgjc8987HC7QcWuNEI'];
 
         //判断是否是老用户
         $openId = $res['openid'];
@@ -62,6 +62,9 @@ class User extends BaseController
         }
 
         $token = \app\common\model\User::getToken($openId, $usrObj->id);
+//        $user = \app\common\model\User::verifyToken($this->request->header(config('jwt.field'), ''));
+//        var_dump($user);
+
 
         \app\common\model\User::where('open_id', $openId)->update(['token' => $token]);
 

@@ -111,7 +111,7 @@ class User extends Base
         try {
             $token = (new JwtFacade())->parse($token, new SignedWith(new Sha256(), $signingKey), new StrictValidAt(SystemClock::fromSystemTimezone()));
             return [
-                'code' => $token->claims()->get('code'),
+                'open_id' => $token->claims()->get('open_id'),
                 'uid' => $token->claims()->get('uid'),
             ];
         } catch (\Exception $e) {
