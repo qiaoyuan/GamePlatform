@@ -1,4 +1,4 @@
-const AccessTokenKey = 'ACCESS_TOKEN'
+const AccessTokenKey = 'token'
 const RefreshTokenKey = 'REFRESH_TOKEN'
 
 // ========== Token 相关 ==========

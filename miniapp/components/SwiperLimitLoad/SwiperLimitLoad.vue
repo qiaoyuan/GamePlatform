@@ -10,6 +10,7 @@
       @touchmove.stop>
       <swiper-item
         v-for="(item, index) in renderList"
+		catchtouchmove="catchTouchMove"
         :key="index">
         <scroll-view
           style="height: 100%"
@@ -88,6 +89,10 @@ export default {
   },
 
   methods: {
+	// 禁止用户滑动
+	catchTouchMove() {
+	  return false;
+	},
     /**
      * 初始化 swiper 方法
      * @param {Array} allDataList 传入全部数据列表

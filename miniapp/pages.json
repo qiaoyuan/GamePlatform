@@ -43,8 +43,15 @@
 			"style": {
 				"navigationBarTitleText": "报告内容"
 			}
+		},
+		{
+			"path": "pages/report/index",
+			"style": {
+				"navigationBarTitleText": "报告内容"
+			}
 		}
-	],
+	
+],
 	"tabBar": {
 	    "color": "#6e6d6b",
 	    "selectedColor": "#1296db",

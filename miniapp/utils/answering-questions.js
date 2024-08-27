@@ -12,21 +12,24 @@ class AnsweringQuestions {
     // 断开选项列表原型影响，用于后面返回选项列表，达到改变题对象属性方式，从而重新渲染页面
     optionsList = this.deepCopy(optionsList)
     // 设置我的答案和正确答案初始值为 Set 集合，阻止元素重复记录
-    topicInfoObj.myAnswer = topicInfoObj?.myAnswer || new Set()
-    topicInfoObj.correctAnswer = topicInfoObj?.correctAnswer || new Set()
+    topicInfoObj.myAnswer =  new Set()
+	topicInfoObj.correctAnswer = new Set ()
+	 topicInfoObj.myAnswer = topicInfoObj?.myAnswer || new Set()
+    // topicInfoObj.correctAnswer = topicInfoObj?.correctAnswer || new Set()
+	topicInfoObj.correctAnswer = topicInfoObj?.myAnswer || new Set()
 	topicInfoObj.currentScore = optionsList[currentOptionIndex].score
 	topicInfoObj.questionId = topicInfoObj.id
 	topicInfoObj.selectId = optionsList[currentOptionIndex].id
 	topicInfoObj.currentOptionIndex = currentOptionIndex
-	
-	
     // 单题选项点击设置 checked 点击样式，点击其他选项并取消上一个选项的 checked 点击样式，点击自身不做操作
     if (topicInfoObj.myAnswer.size) {
       const oldIndex = optionsMarkList.indexOf([...topicInfoObj.myAnswer][0])
       optionsList[oldIndex].style = ''
       topicInfoObj.myAnswer.clear()
     }
-
+	for(let i =0; i < optionsList.length; i++) {
+		optionsList[i].style = ''
+	}
     optionsList[currentOptionIndex].style = 'checked'
     topicInfoObj.myAnswer.add(optionsMarkList[currentOptionIndex])
     topicInfoObj.state = 'checked'

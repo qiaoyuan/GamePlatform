@@ -7,11 +7,19 @@
 <script>
 	export default {
 		onShow() {
-			this.ReportObj = uni.getStorageSync('reportContent') 
+			uni.showToast({
+				title: '加载中',
+				mask:true,
+				icon: 'loading'
+			})
+			this.ReportObj = uni.getStorageSync('reportContent')
+			if(this.ReportObj) {
+				uni.hideToast()
+			}
 		},
 		data() {
 			return {
-				ReportObj: {}
+				ReportObj: null
 			}
 		}
 	}

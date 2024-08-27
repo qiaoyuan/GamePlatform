@@ -65,7 +65,7 @@
 }
 .list-text.data-v-57280228 {
   text-align: center;
-  font-size: 1rem;
+  font-size: 0.8rem;
 }
 .hotTest.data-v-57280228 {
   width: 100%;
@@ -88,8 +88,15 @@
 }
 .hotTest .content .top .text.data-v-57280228 {
   font-size: 0.75rem;
-  color: #d8d8d8;
+  color: #4b4a4a;
   margin-top: 10rpx;
+  width: calc(80% - 20rpx);
+  white-space: nowrap;
+  /* 强制不换行 */
+  text-overflow: ellipsis;
+  /* 超过部分省略号代替 */
+  overflow: hidden;
+  /* 必须同时设置overflow:hidden才能生效 */
 }
 .hotTest .content .middle.data-v-57280228 {
   width: 100%;
@@ -105,12 +112,19 @@
 }
 .hotTest .content .middle .middle-left .title.data-v-57280228 {
   font-size: 1rem;
-  font-weight: 600;
+  font-weight: 400;
 }
 .hotTest .content .middle .middle-left .text.data-v-57280228 {
   font-size: 0.75rem;
-  color: #d8d8d8;
+  color: #4b4a4a;
   margin: 10rpx 0;
+  width: calc(80% - 20rpx);
+  white-space: nowrap;
+  /* 强制不换行 */
+  text-overflow: ellipsis;
+  /* 超过部分省略号代替 */
+  overflow: hidden;
+  /* 必须同时设置overflow:hidden才能生效 */
 }
 .hotTest .content .middle .middle-left .btn.data-v-57280228 {
   font-size: 0.75rem;
@@ -129,6 +143,7 @@
 .hotTest .content .middle .middle-right .middle-img.data-v-57280228 {
   width: 100%;
   height: 90%;
+  border-radius: 20rpx;
 }
 .hotTest .content .middle .middle-right .num.data-v-57280228 {
   background-color: #524379;
@@ -147,45 +162,61 @@
   justify-content: space-between;
   align-items: center;
 }
-.hotTest .content .bottom .bottom-left.data-v-57280228, .hotTest .content .bottom .bottom-right.data-v-57280228 {
+.hotTest .content .bottom .bottom-left.data-v-57280228,
+.hotTest .content .bottom .bottom-right.data-v-57280228 {
   width: calc(48% - 20rpx);
   height: 90%;
   background-color: #ffffff;
   border-radius: 20rpx;
   padding-left: 20rpx;
 }
-.hotTest .content .bottom .bottom-left .top.data-v-57280228, .hotTest .content .bottom .bottom-right .top.data-v-57280228 {
+.hotTest .content .bottom .bottom-left .top.data-v-57280228,
+.hotTest .content .bottom .bottom-right .top.data-v-57280228 {
   width: 100%;
   height: calc(40% - 10rpx);
 }
-.hotTest .content .bottom .bottom-left .top .title.data-v-57280228, .hotTest .content .bottom .bottom-right .top .title.data-v-57280228 {
+.hotTest .content .bottom .bottom-left .top .title.data-v-57280228,
+.hotTest .content .bottom .bottom-right .top .title.data-v-57280228 {
   font-size: 1rem;
-  font-weight: 600;
+  font-weight: 400;
   margin-top: 10rpx;
 }
-.hotTest .content .bottom .bottom-left .top .text.data-v-57280228, .hotTest .content .bottom .bottom-right .top .text.data-v-57280228 {
+.hotTest .content .bottom .bottom-left .top .text.data-v-57280228,
+.hotTest .content .bottom .bottom-right .top .text.data-v-57280228 {
   font-size: 0.75rem;
-  color: #d8d8d8;
+  color: #4b4a4a;
   margin: 10rpx 0;
+  width: calc(80% - 20rpx);
+  white-space: nowrap;
+  /* 强制不换行 */
+  text-overflow: ellipsis;
+  /* 超过部分省略号代替 */
+  overflow: hidden;
+  /* 必须同时设置overflow:hidden才能生效 */
 }
-.hotTest .content .bottom .bottom-left .bottom.data-v-57280228, .hotTest .content .bottom .bottom-right .bottom.data-v-57280228 {
+.hotTest .content .bottom .bottom-left .bottom.data-v-57280228,
+.hotTest .content .bottom .bottom-right .bottom.data-v-57280228 {
   height: 60%;
   display: flex;
-  justify-content: space-around;
+  justify-content: space-between;
   align-items: center;
 }
-.hotTest .content .bottom .bottom-left .bottom .img.data-v-57280228, .hotTest .content .bottom .bottom-right .bottom .img.data-v-57280228 {
+.hotTest .content .bottom .bottom-left .bottom .img.data-v-57280228,
+.hotTest .content .bottom .bottom-right .bottom .img.data-v-57280228 {
   width: 50%;
   height: 90%;
   position: relative;
   margin-bottom: 10rpx;
+  margin-right: 10rpx;
 }
-.hotTest .content .bottom .bottom-left .bottom .img .bottom-img.data-v-57280228, .hotTest .content .bottom .bottom-right .bottom .img .bottom-img.data-v-57280228 {
-  width: 90%;
+.hotTest .content .bottom .bottom-left .bottom .img .bottom-img.data-v-57280228,
+.hotTest .content .bottom .bottom-right .bottom .img .bottom-img.data-v-57280228 {
+  width: 100%;
   height: 100%;
-  margin-right: 20rpx;
+  border-radius: 20rpx;
 }
-.hotTest .content .bottom .bottom-left .bottom .img .num.data-v-57280228, .hotTest .content .bottom .bottom-right .bottom .img .num.data-v-57280228 {
+.hotTest .content .bottom .bottom-left .bottom .img .num.data-v-57280228,
+.hotTest .content .bottom .bottom-right .bottom .img .num.data-v-57280228 {
   background-color: #524379;
   color: #ffffff;
   font-size: 0.5rem;
@@ -195,7 +226,8 @@
   bottom: 16rpx;
   left: 16rpx;
 }
-.hotTest .content .bottom .bottom-left .bottom .btn.data-v-57280228, .hotTest .content .bottom .bottom-right .bottom .btn.data-v-57280228 {
+.hotTest .content .bottom .bottom-left .bottom .btn.data-v-57280228,
+.hotTest .content .bottom .bottom-right .bottom .btn.data-v-57280228 {
   height: 48rpx;
   font-size: 0.75rem;
   color: #ffffff;

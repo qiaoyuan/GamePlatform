@@ -12,7 +12,7 @@ const request = config => {
   const isToken = (config.headers || {}).isToken === false
   config.header = config.header || {}
   if (getAccessToken() && !isToken) {
-    config.header['Authorization'] = 'Bearer ' + getAccessToken()
+    config.header['Authorization'] = getAccessToken()
   }
   // get请求映射params参数
   if (config.params) {
@@ -38,29 +38,29 @@ const request = config => {
         // }
 		let res = response
         const code = res.data.code || 0
+		console.log(code)
         const msg = errorCode[code] || res.data.msg || errorCode['default']
         if (code === 401) {
 			//未登录可能是没有刷新令牌，这里刷新一次然后再去请求
 			let refreshToken =  getRefreshToken()
 			if(refreshToken){
 				//没有刷新令牌
-				logOut()
+				// logOut()
 			}else {
 				//刷新令牌
 			}
-
           reject('无效的会话，或者会话已过期，请重新登录。')
         } else if (code === 500) {
           toast(msg)
           reject('500')
         } else if (code !== 0) {
-          toast(msg)
+          toast(res.data.message)
           reject(code)
         }
         resolve(res.data)
       })
       .catch(error => {
-		  console.log(error)
+		console.log(error)
         let { message } = error
         if (message === 'Network Error') {
           message = '后端接口连接异常'

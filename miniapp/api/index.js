@@ -1,5 +1,15 @@
 
 import request from '@/utils/request'
+/**
+ * 登录
+ */
+export function login(data) {
+	return request({
+		url: 'index/user/login',
+		data,
+		method: 'POST'
+	})
+}
 
 /**
  * 获取首页信息
@@ -66,12 +76,13 @@ export function submitAnswer(data) {
 /**
  * 报告页
  */
-export function reportInfo(){
+export function reportInfo(id){
 	return request({
-		url: '/index/user/info',
+		url: `/index/user/report?id=${id}`,
 		method: 'POST'
 	})
 }
+
 
 /**
  * 历史报告is_ok'=1：完成的报告  is_ok=0: 未完成报告
