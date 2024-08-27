@@ -21,14 +21,15 @@ class Auth
      */
     public function handle(Request $request, \Closure $next) :Response
     {
-        if (!Str::contains($request->pathinfo(), ['user/login', 'home/'])) {
+        if (!Str::contains($request->pathinfo(), ['user/login', 'home/', 'order/callback'])) {
 
             $user = User::verifyToken($request->header(config('jwt.field'), ''));
+
             if ($user) {
-                $request->uid = $user['uid'];
-                $request->code = $user['code'];
+                $request->uid = $user->id;
+                $request->open_id = $user->open_id;
             } else {
-//                $this->error('登录失效', '', 401);
+                $this->error('登录失效', '', 401);
                 $request->uid = 999;
             }
 

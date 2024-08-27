@@ -67,6 +67,7 @@ class User extends BaseController
 
         //然后直接返回token
         $this->success('登录成功', ['token' => $token, 'open_id' => $openId] );
+
     }
 
     //用户数据
@@ -84,51 +85,6 @@ class User extends BaseController
 
         $param = $this->request->param();
 
-        //['options'=>[
-        // 'so'
-        //]]
-
-//        $param['options'] = [
-//            [
-//                'score' => 1,
-//                'question_id' => 2,
-//            ],
-//
-//            [
-//                'score' => 3,
-//                'question_id' => 2,
-//            ],
-//
-//            [
-//                'score' => 5,
-//                'question_id' => 6,
-//            ],
-//
-//            [
-//                'score' => 2,
-//                'question_id' => 7,
-//            ],
-//
-//            [
-//                'score' => 4,
-//                'question_id' => 8,
-//            ],
-//
-//            [
-//                'score' => 5,
-//                'question_id' => 9,
-//            ],
-//
-//            [
-//                'score' => 3,
-//                'question_id' => 18,
-//            ],
-//
-//            [
-//                'score' => 2,
-//                'question_id' => 20,
-//            ],
-//        ];
         if (empty($param['options']) || empty($param['questionnaire_id'])) {
             $this->error("参数缺少");
         }
