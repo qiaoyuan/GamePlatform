@@ -6,9 +6,9 @@
 return [
     'app_id' => 'wxc7f97127d4db121a',
     'secret' => '9f7053126c953845f5c418255e1641b7',
-    'mch_id' => 'xx',
+    'mch_id' => '1684115005',
     'cert_path' => 'xx',
     'key_path' => 'xx',
     'key' => 'xx',
-    'notify_url' => 'https://psychology.xuanzeti.top/order/'
+    'notify_url' => 'https://psychology.xuanzeti.top/order/user/callback'
 ];
