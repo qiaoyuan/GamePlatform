@@ -6,7 +6,7 @@ use app\common\model\QuestionAnswer;
 use app\common\model\QuestionnairesOrder;
 use app\common\model\Snowflake;
 use app\index\BaseController;
-use Pay\Factory;
+use EasyWeChat\Factory;
 use think\App;
 
 class Order extends BaseController
@@ -69,17 +69,20 @@ class Order extends BaseController
 //        var_dump($config);
 //        die;
         $app = Factory::payment($config);
+//        var_dump($app);
+//        die;
         $payData = [
             'body' => '问卷支付',
             'out_trade_no' => $order->order_id.'',
             'total_fee' => $questionnairesObj->price * 100,
             'notify_url' => config('wechat.notify_url'),
             'trade_type' => 'JSAPI',
-            'openid' => $this->getUid(),
+            'openid' => $this->getOpenId(),
         ];
+//        var_dump($payData);
         $res = $app->order->unify($payData);
 
-        $this->success('创建订单成功', ['info' => $res]);
+        $this->success('创建订单成功', ['info' => $res, 'pay_data'=>$payData]);
 
     }
 

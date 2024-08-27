@@ -16,7 +16,7 @@ class BaseController extends \app\common\BaseController
 
     public function getOpenId()
     {
-        return intval($this->request->open_id);
+        return $this->request->open_id;
 //        $uid = 999;
 //        return $uid;
     }
