@@ -34,7 +34,8 @@
         "cache/redis-adapter": "^1.2",
         "topthink/think-queue": "^3.0",
         "lcobucci/clock": "^3.2",
-        "yansongda/pay": "^3.7"
+        "yansongda/pay": "^3.7",
+        "overtrue/wechat": "~5.0"
     },
     "require-dev": {
         "symfony/var-dumper": "^4.2"

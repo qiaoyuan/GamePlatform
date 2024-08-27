@@ -8,11 +8,7 @@ class Index extends BaseController
 
     public function index()
     {
-//        $icp = mData('siteConfig')['icp'] ?? '';
-//        include template('index');
-        echo "demo";
-    }
-    public function getList() {
-        echo 'getlist';
+        $icp = mData('siteConfig')['icp'] ?? '';
+        include template('index');
     }
 }

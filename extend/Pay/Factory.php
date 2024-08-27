@@ -19,4 +19,8 @@ class Factory
     {
         return Pay::wechat(config('pay.wechat'));
     }
+
+    public static function payment(array $config)
+    {
+    }
 }
