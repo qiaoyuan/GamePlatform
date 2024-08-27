@@ -9641,436 +9641,6 @@ uni.addInterceptor({
 /* 38 */,
 /* 39 */,
 /* 40 */
-/*!***********************************************!*\
-  !*** D:/work/psychology/miniapp/api/index.js ***!
-  \***********************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-var _interopRequireDefault = __webpack_require__(/*! @babel/runtime/helpers/interopRequireDefault */ 4);
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-exports.getCategory = getCategory;
-exports.getCategoryList = getCategoryList;
-exports.getHomeInfo = getHomeInfo;
-exports.getQuestionDetail = getQuestionDetail;
-exports.getQusetionList = getQusetionList;
-exports.reportInfo = reportInfo;
-exports.reportList = reportList;
-exports.submitAnswer = submitAnswer;
-var _request = _interopRequireDefault(__webpack_require__(/*! @/utils/request */ 41));
-/**
- * 获取首页信息
- */
-function getHomeInfo() {
-  return (0, _request.default)({
-    url: '/index/home/index',
-    method: 'POST'
-  });
-}
-
-/**
- * 分类左侧列表页
- */
-function getCategory() {
-  return (0, _request.default)({
-    url: '/index/questionnaires/catList',
-    method: 'POST'
-  });
-}
-
-/**
- * 问卷列表页面
- */
-function getCategoryList(data) {
-  return (0, _request.default)({
-    url: '/index/questionnaires/list',
-    method: 'POST',
-    data: data
-  });
-}
-
-/**
- * 获取文件详情
- */
-function getQuestionDetail(id) {
-  return (0, _request.default)({
-    url: "/index/questionnaires/get?id=".concat(id),
-    method: 'POST'
-  });
-}
-
-/**
- * 很具id获取问题列表
- */
-function getQusetionList(id) {
-  return (0, _request.default)({
-    url: "/index/questions/list?questionnaire_id=".concat(id),
-    method: 'POST'
-  });
-}
-
-/**
- * 提交答案
- */
-function submitAnswer(data) {
-  return (0, _request.default)({
-    url: '/index/user/createRes',
-    method: 'POST',
-    data: data
-  });
-}
-
-/**
- * 报告页
- */
-function reportInfo() {
-  return (0, _request.default)({
-    url: '/index/user/info',
-    method: 'POST'
-  });
-}
-
-/**
- * 历史报告is_ok'=1：完成的报告  is_ok=0: 未完成报告
- */
-function reportList(type) {
-  return (0, _request.default)({
-    url: "/index/user/reportList?is_ok=".concat(type),
-    method: 'POST'
-  });
-}
-
-/***/ }),
-/* 41 */
-/*!***************************************************!*\
-  !*** D:/work/psychology/miniapp/utils/request.js ***!
-  \***************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-/* WEBPACK VAR INJECTION */(function(uni) {
-
-var _interopRequireDefault = __webpack_require__(/*! @babel/runtime/helpers/interopRequireDefault */ 4);
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-exports.default = void 0;
-var _config = _interopRequireDefault(__webpack_require__(/*! @/config */ 42));
-var _auth = __webpack_require__(/*! @/utils/auth */ 43);
-var _errorCode = _interopRequireDefault(__webpack_require__(/*! @/utils/errorCode */ 44));
-var _common = __webpack_require__(/*! @/utils/common */ 45);
-// import store from '@/store'
-
-var timeout = 10000;
-var baseUrl = _config.default.baseUrl;
-var request = function request(config) {
-  // 是否需要设置 token
-  var isToken = (config.headers || {}).isToken === false;
-  config.header = config.header || {};
-  if ((0, _auth.getAccessToken)() && !isToken) {
-    config.header['Authorization'] = 'Bearer ' + (0, _auth.getAccessToken)();
-  }
-  // get请求映射params参数
-  if (config.params) {
-    var url = config.url + '?' + (0, _common.tansParams)(config.params);
-    url = url.slice(0, -1);
-    config.url = url;
-  }
-  return new Promise(function (resolve, reject) {
-    uni.request({
-      method: config.method || 'get',
-      timeout: config.timeout || timeout,
-      url: baseUrl + config.url,
-      data: config.data,
-      // header: config.header,
-      header: config.header,
-      dataType: 'json'
-    }).then(function (response) {
-      // let [err, res] = response
-      // if (err) {
-      //   toast('后端接口连接异常')
-      //   reject('后端接口连接异常')
-      //   return
-      // }
-      var res = response;
-      var code = res.data.code || 0;
-      var msg = _errorCode.default[code] || res.data.msg || _errorCode.default['default'];
-      if (code === 401) {
-        //未登录可能是没有刷新令牌，这里刷新一次然后再去请求
-        var refreshToken = (0, _auth.getRefreshToken)();
-        if (refreshToken) {
-          //没有刷新令牌
-          logOut();
-        } else {
-          //刷新令牌
-        }
-        reject('无效的会话，或者会话已过期，请重新登录。');
-      } else if (code === 500) {
-        (0, _common.toast)(msg);
-        reject('500');
-      } else if (code !== 0) {
-        (0, _common.toast)(msg);
-        reject(code);
-      }
-      resolve(res.data);
-    }).catch(function (error) {
-      console.log(error);
-      var message = error.message;
-      if (message === 'Network Error') {
-        message = '后端接口连接异常';
-      } else if (message.includes('timeout')) {
-        message = '系统接口请求超时';
-      } else if (message.includes('Request failed with status code')) {
-        message = '系统接口' + message.substr(message.length - 3) + '异常';
-      }
-      (0, _common.toast)(message);
-      reject(error);
-    });
-  });
-};
-// function logOut(){
-// 	showConfirm('登录状态已过期，您可以继续留在该页面，或者重新登录?').then(res => {
-// 	  if (res.confirm) {
-// 	    store.dispatch('LogOut').then(res => {
-// 	      uni.reLaunch({ url: '/pages/login' })
-// 	    })
-// 	  }
-// 	})
-// }
-var _default = request;
-exports.default = _default;
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./node_modules/@dcloudio/uni-mp-weixin/dist/index.js */ 2)["default"]))
-
-/***/ }),
-/* 42 */
-/*!********************************************!*\
-  !*** D:/work/psychology/miniapp/config.js ***!
-  \********************************************/
-/*! no static exports found */
-/***/ (function(module, exports) {
-
-// 应用全局配置
-module.exports = {
-  baseUrl: 'https://psychology.xuanzeti.top',
-  // 应用信息
-  appInfo: {
-    // 应用名称
-    name: "app",
-    // 应用版本
-    version: "1.0.0",
-    // 应用logo
-    logo: "",
-    // 官方网站
-    site_url: "",
-    // 政策协议
-    agreements: [{
-      title: "隐私政策",
-      url: ""
-    }, {
-      title: "用户服务协议",
-      url: ""
-    }]
-  }
-};
-
-/***/ }),
-/* 43 */
-/*!************************************************!*\
-  !*** D:/work/psychology/miniapp/utils/auth.js ***!
-  \************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-/* WEBPACK VAR INJECTION */(function(uni) {
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-exports.getAccessToken = getAccessToken;
-exports.getRefreshToken = getRefreshToken;
-exports.removeToken = removeToken;
-exports.setToken = setToken;
-var AccessTokenKey = 'ACCESS_TOKEN';
-var RefreshTokenKey = 'REFRESH_TOKEN';
-
-// ========== Token 相关 ==========
-
-function getAccessToken() {
-  return uni.getStorageSync(AccessTokenKey);
-}
-function getRefreshToken() {
-  return uni.getStorageSync(RefreshTokenKey);
-}
-function setToken(token) {
-  uni.setStorageSync(AccessTokenKey, token.accessToken);
-  uni.setStorageSync(RefreshTokenKey, token.refreshToken);
-}
-function removeToken() {
-  uni.removeStorageSync(AccessTokenKey);
-  uni.removeStorageSync(RefreshTokenKey);
-}
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./node_modules/@dcloudio/uni-mp-weixin/dist/index.js */ 2)["default"]))
-
-/***/ }),
-/* 44 */
-/*!*****************************************************!*\
-  !*** D:/work/psychology/miniapp/utils/errorCode.js ***!
-  \*****************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-exports.default = void 0;
-var _default = {
-  '401': '认证失败，无法访问系统资源',
-  '403': '当前操作没有权限',
-  '404': '访问资源不存在',
-  'default': '系统未知错误，请反馈给管理员'
-};
-exports.default = _default;
-
-/***/ }),
-/* 45 */
-/*!**************************************************!*\
-  !*** D:/work/psychology/miniapp/utils/common.js ***!
-  \**************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-/* WEBPACK VAR INJECTION */(function(uni) {
-
-var _interopRequireDefault = __webpack_require__(/*! @babel/runtime/helpers/interopRequireDefault */ 4);
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-exports.showConfirm = showConfirm;
-exports.tansParams = tansParams;
-exports.toast = toast;
-var _typeof2 = _interopRequireDefault(__webpack_require__(/*! @babel/runtime/helpers/typeof */ 13));
-/**
-* 显示消息提示框
-* @param content 提示的标题
-*/
-function toast(content) {
-  uni.showToast({
-    icon: 'none',
-    title: content
-  });
-}
-
-/**
-* 显示模态弹窗
-* @param content 提示的标题
-*/
-function showConfirm(content) {
-  return new Promise(function (resolve, reject) {
-    uni.showModal({
-      title: '提示',
-      content: content,
-      cancelText: '取消',
-      confirmText: '确定',
-      confirmColor: '#c10311',
-      success: function success(res) {
-        resolve(res);
-      }
-    });
-  });
-}
-
-/**
-* 参数处理
-* @param params 参数
-*/
-function tansParams(params) {
-  var result = '';
-  for (var _i = 0, _Object$keys = Object.keys(params); _i < _Object$keys.length; _i++) {
-    var propName = _Object$keys[_i];
-    var value = params[propName];
-    var part = encodeURIComponent(propName) + "=";
-    if (value !== null && value !== "" && typeof value !== "undefined") {
-      if ((0, _typeof2.default)(value) === 'object') {
-        for (var _i2 = 0, _Object$keys2 = Object.keys(value); _i2 < _Object$keys2.length; _i2++) {
-          var key = _Object$keys2[_i2];
-          if (value[key] !== null && value[key] !== "" && typeof value[key] !== 'undefined') {
-            var _params = propName + '[' + key + ']';
-            var subPart = encodeURIComponent(_params) + "=";
-            result += subPart + encodeURIComponent(value[key]) + "&";
-          }
-        }
-      } else {
-        result += part + encodeURIComponent(value) + "&";
-      }
-    }
-  }
-  return result;
-}
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./node_modules/@dcloudio/uni-mp-weixin/dist/index.js */ 2)["default"]))
-
-/***/ }),
-/* 46 */,
-/* 47 */,
-/* 48 */,
-/* 49 */,
-/* 50 */,
-/* 51 */,
-/* 52 */
-/*!**************************************************!*\
-  !*** D:/work/psychology/miniapp/static/logo.png ***!
-  \**************************************************/
-/*! no static exports found */
-/***/ (function(module, exports) {
-
-module.exports = "data:image/png;base64,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UmVhZHlxyWU8AAADKmlUWHRYTUw6Y29tLmFkb2JlLnhtcAAAAAAAPD94cGFja2V0IGJlZ2luPSLvu78iIGlkPSJXNU0wTXBDZWhpSHpyZVN6TlRjemtjOWQiPz4gPHg6eG1wbWV0YSB4bWxuczp4PSJhZG9iZTpuczptZXRhLyIgeDp4bXB0az0iQWRvYmUgWE1QIENvcmUgNS42LWMxMzIgNzkuMTU5Mjg0LCAyMDE2LzA0LzE5LTEzOjEzOjQwICAgICAgICAiPiA8cmRmOlJERiB4bWxuczpyZGY9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkvMDIvMjItcmRmLXN5bnRheC1ucyMiPiA8cmRmOkRlc2NyaXB0aW9uIHJkZjphYm91dD0iIiB4bWxuczp4bXBNTT0iaHR0cDovL25zLmFkb2JlLmNvbS94YXAvMS4wL21tLyIgeG1sbnM6c3RSZWY9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9zVHlwZS9SZXNvdXJjZVJlZiMiIHhtbG5zOnhtcD0iaHR0cDovL25zLmFkb2JlLmNvbS94YXAvMS4wLyIgeG1wTU06RG9jdW1lbnRJRD0ieG1wLmRpZDpGRkE0MjcxNTdEQzYxMUU4QkZBOERDOEVCQ0U0NTBGMSIgeG1wTU06SW5zdGFuY2VJRD0ieG1wLmlpZDpGRkE0MjcxNDdEQzYxMUU4QkZBOERDOEVCQ0U0NTBGMSIgeG1wOkNyZWF0b3JUb29sPSJBZG9iZSBQaG90b3Nob3AgQ0MgMjAxNS41IChNYWNpbnRvc2gpIj4gPHhtcE1NOkRlcml2ZWRGcm9tIHN0UmVmOmluc3RhbmNlSUQ9InhtcC5paWQ6QkE4RkFCN0M3REM1MTFFOEJGQThEQzhFQkNFNDUwRjEiIHN0UmVmOmRvY3VtZW50SUQ9InhtcC5kaWQ6QkE4RkFCN0Q3REM1MTFFOEJGQThEQzhFQkNFNDUwRjEiLz4gPC9yZGY6RGVzY3JpcHRpb24+IDwvcmRmOlJERj4gPC94OnhtcG1ldGE+IDw/eHBhY2tldCBlbmQ9InIiPz5BZZ+3AAAB1ElEQVR42mJkAALtmZb/GfAAJkIKwIoYiAA4FV1JO0Ylk0hWxILLHTgV6cyywqoIIIAYiQinb8S4iYs036E7esgEJq6ABAGAACImMBmo5m6yDcLlR5gcNnnaumhADWIhJoOTbRC+9ILPa9+o4TWAAAIlyDVAOphCc1SYqGAICNwZxumIidi8NILz2qhBdCyPaOcicgq1wRnYAAFErRKSgZo+GzSOoWpQD1sHsRCjCDnzkpp90DM+If2jUTbqoFEHjZZDpJYroyFESeNmNFHTykEqg8g9bwACCNRiVAYyLgEx1wA7Zu3V9OMhVBt1opajBlsaCh7NZaMOGnXQgFeupHZjKO1CjUbZqINGHTTqoFEHjTpo1EGjDhqMgw342kejUTaahggpoOdg1WiUjTpoODoIvL7tzSBykB5AgPbtGIdBGIYCaBR16swROEQvzT06cxjm1lRFDC0LcpXC+xJzpIdJhOW8e4z359MVWSde1C32xRYasC0mCmascDZzrQz+7NgABAgQINnRY/iUrb5D9v9l9toqCBAgQIAAAQIESAABAgQIEKCD5ZK9QPaMigoCdIJP7NdjOyoIECBAgGQBGjB8zVDjam153T0OqInJbBAWfdg8AExKZVcA71uIAAAAAElFTkSuQmCC"
-
-/***/ }),
-/* 53 */,
-/* 54 */,
-/* 55 */,
-/* 56 */,
-/* 57 */,
-/* 58 */,
-/* 59 */,
-/* 60 */,
-/* 61 */,
-/* 62 */,
-/* 63 */,
-/* 64 */,
-/* 65 */,
-/* 66 */,
-/* 67 */,
-/* 68 */,
-/* 69 */,
-/* 70 */,
-/* 71 */,
-/* 72 */,
-/* 73 */,
-/* 74 */,
-/* 75 */,
-/* 76 */,
-/* 77 */,
-/* 78 */,
-/* 79 */,
-/* 80 */,
-/* 81 */,
-/* 82 */,
-/* 83 */,
-/* 84 */,
-/* 85 */,
-/* 86 */,
-/* 87 */
 /*!************************************************************************************************!*\
   !*** ./node_modules/@dcloudio/vue-cli-plugin-uni/packages/@babel/runtime/regenerator/index.js ***!
   \************************************************************************************************/
@@ -10079,11 +9649,11 @@ module.exports = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEgAAABICAYAAAEi
 
 // TODO(Babel 8): Remove this file.
 
-var runtime = __webpack_require__(/*! @babel/runtime/helpers/regeneratorRuntime */ 88)();
+var runtime = __webpack_require__(/*! @babel/runtime/helpers/regeneratorRuntime */ 41)();
 module.exports = runtime;
 
 /***/ }),
-/* 88 */
+/* 41 */
 /*!*******************************************************************!*\
   !*** ./node_modules/@babel/runtime/helpers/regeneratorRuntime.js ***!
   \*******************************************************************/
@@ -10404,7 +9974,7 @@ function _regeneratorRuntime() {
 module.exports = _regeneratorRuntime, module.exports.__esModule = true, module.exports["default"] = module.exports;
 
 /***/ }),
-/* 89 */
+/* 42 */
 /*!*****************************************************************!*\
   !*** ./node_modules/@babel/runtime/helpers/asyncToGenerator.js ***!
   \*****************************************************************/
@@ -10444,6 +10014,449 @@ function _asyncToGenerator(fn) {
 module.exports = _asyncToGenerator, module.exports.__esModule = true, module.exports["default"] = module.exports;
 
 /***/ }),
+/* 43 */
+/*!***********************************************!*\
+  !*** D:/work/psychology/miniapp/api/index.js ***!
+  \***********************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+var _interopRequireDefault = __webpack_require__(/*! @babel/runtime/helpers/interopRequireDefault */ 4);
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.getCategory = getCategory;
+exports.getCategoryList = getCategoryList;
+exports.getHomeInfo = getHomeInfo;
+exports.getQuestionDetail = getQuestionDetail;
+exports.getQusetionList = getQusetionList;
+exports.login = login;
+exports.reportInfo = reportInfo;
+exports.reportList = reportList;
+exports.submitAnswer = submitAnswer;
+var _request = _interopRequireDefault(__webpack_require__(/*! @/utils/request */ 44));
+/**
+ * 登录
+ */
+function login(data) {
+  return (0, _request.default)({
+    url: 'index/user/login',
+    data: data,
+    method: 'POST'
+  });
+}
+
+/**
+ * 获取首页信息
+ */
+function getHomeInfo() {
+  return (0, _request.default)({
+    url: '/index/home/index',
+    method: 'POST'
+  });
+}
+
+/**
+ * 分类左侧列表页
+ */
+function getCategory() {
+  return (0, _request.default)({
+    url: '/index/questionnaires/catList',
+    method: 'POST'
+  });
+}
+
+/**
+ * 问卷列表页面
+ */
+function getCategoryList(data) {
+  return (0, _request.default)({
+    url: '/index/questionnaires/list',
+    method: 'POST',
+    data: data
+  });
+}
+
+/**
+ * 获取文件详情
+ */
+function getQuestionDetail(id) {
+  return (0, _request.default)({
+    url: "/index/questionnaires/get?id=".concat(id),
+    method: 'POST'
+  });
+}
+
+/**
+ * 很具id获取问题列表
+ */
+function getQusetionList(id) {
+  return (0, _request.default)({
+    url: "/index/questions/list?questionnaire_id=".concat(id),
+    method: 'POST'
+  });
+}
+
+/**
+ * 提交答案
+ */
+function submitAnswer(data) {
+  return (0, _request.default)({
+    url: '/index/user/createRes',
+    method: 'POST',
+    data: data
+  });
+}
+
+/**
+ * 报告页
+ */
+function reportInfo(id) {
+  return (0, _request.default)({
+    url: "/index/user/report?id=".concat(id),
+    method: 'POST'
+  });
+}
+
+/**
+ * 历史报告is_ok'=1：完成的报告  is_ok=0: 未完成报告
+ */
+function reportList(type) {
+  return (0, _request.default)({
+    url: "/index/user/reportList?is_ok=".concat(type),
+    method: 'POST'
+  });
+}
+
+/***/ }),
+/* 44 */
+/*!***************************************************!*\
+  !*** D:/work/psychology/miniapp/utils/request.js ***!
+  \***************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+/* WEBPACK VAR INJECTION */(function(uni) {
+
+var _interopRequireDefault = __webpack_require__(/*! @babel/runtime/helpers/interopRequireDefault */ 4);
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.default = void 0;
+var _config = _interopRequireDefault(__webpack_require__(/*! @/config */ 45));
+var _auth = __webpack_require__(/*! @/utils/auth */ 46);
+var _errorCode = _interopRequireDefault(__webpack_require__(/*! @/utils/errorCode */ 47));
+var _common = __webpack_require__(/*! @/utils/common */ 48);
+// import store from '@/store'
+
+var timeout = 10000;
+var baseUrl = _config.default.baseUrl;
+var request = function request(config) {
+  // 是否需要设置 token
+  var isToken = (config.headers || {}).isToken === false;
+  config.header = config.header || {};
+  if ((0, _auth.getAccessToken)() && !isToken) {
+    config.header['Authorization'] = (0, _auth.getAccessToken)();
+  }
+  // get请求映射params参数
+  if (config.params) {
+    var url = config.url + '?' + (0, _common.tansParams)(config.params);
+    url = url.slice(0, -1);
+    config.url = url;
+  }
+  return new Promise(function (resolve, reject) {
+    uni.request({
+      method: config.method || 'get',
+      timeout: config.timeout || timeout,
+      url: baseUrl + config.url,
+      data: config.data,
+      // header: config.header,
+      header: config.header,
+      dataType: 'json'
+    }).then(function (response) {
+      // let [err, res] = response
+      // if (err) {
+      //   toast('后端接口连接异常')
+      //   reject('后端接口连接异常')
+      //   return
+      // }
+      var res = response;
+      var code = res.data.code || 0;
+      console.log(code);
+      var msg = _errorCode.default[code] || res.data.msg || _errorCode.default['default'];
+      if (code === 401) {
+        //未登录可能是没有刷新令牌，这里刷新一次然后再去请求
+        var refreshToken = (0, _auth.getRefreshToken)();
+        if (refreshToken) {
+          //没有刷新令牌
+          // logOut()
+        } else {
+          //刷新令牌
+        }
+        reject('无效的会话，或者会话已过期，请重新登录。');
+      } else if (code === 500) {
+        (0, _common.toast)(msg);
+        reject('500');
+      } else if (code !== 0) {
+        (0, _common.toast)(res.data.message);
+        reject(code);
+      }
+      resolve(res.data);
+    }).catch(function (error) {
+      console.log(error);
+      var message = error.message;
+      if (message === 'Network Error') {
+        message = '后端接口连接异常';
+      } else if (message.includes('timeout')) {
+        message = '系统接口请求超时';
+      } else if (message.includes('Request failed with status code')) {
+        message = '系统接口' + message.substr(message.length - 3) + '异常';
+      }
+      (0, _common.toast)(message);
+      reject(error);
+    });
+  });
+};
+// function logOut(){
+// 	showConfirm('登录状态已过期，您可以继续留在该页面，或者重新登录?').then(res => {
+// 	  if (res.confirm) {
+// 	    store.dispatch('LogOut').then(res => {
+// 	      uni.reLaunch({ url: '/pages/login' })
+// 	    })
+// 	  }
+// 	})
+// }
+var _default = request;
+exports.default = _default;
+/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./node_modules/@dcloudio/uni-mp-weixin/dist/index.js */ 2)["default"]))
+
+/***/ }),
+/* 45 */
+/*!********************************************!*\
+  !*** D:/work/psychology/miniapp/config.js ***!
+  \********************************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+// 应用全局配置
+module.exports = {
+  baseUrl: 'https://psychology.xuanzeti.top',
+  // 应用信息
+  appInfo: {
+    // 应用名称
+    name: "app",
+    // 应用版本
+    version: "1.0.0",
+    // 应用logo
+    logo: "",
+    // 官方网站
+    site_url: "",
+    // 政策协议
+    agreements: [{
+      title: "隐私政策",
+      url: ""
+    }, {
+      title: "用户服务协议",
+      url: ""
+    }]
+  }
+};
+
+/***/ }),
+/* 46 */
+/*!************************************************!*\
+  !*** D:/work/psychology/miniapp/utils/auth.js ***!
+  \************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+/* WEBPACK VAR INJECTION */(function(uni) {
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.getAccessToken = getAccessToken;
+exports.getRefreshToken = getRefreshToken;
+exports.removeToken = removeToken;
+exports.setToken = setToken;
+var AccessTokenKey = 'token';
+var RefreshTokenKey = 'REFRESH_TOKEN';
+
+// ========== Token 相关 ==========
+
+function getAccessToken() {
+  return uni.getStorageSync(AccessTokenKey);
+}
+function getRefreshToken() {
+  return uni.getStorageSync(RefreshTokenKey);
+}
+function setToken(token) {
+  uni.setStorageSync(AccessTokenKey, token.accessToken);
+  uni.setStorageSync(RefreshTokenKey, token.refreshToken);
+}
+function removeToken() {
+  uni.removeStorageSync(AccessTokenKey);
+  uni.removeStorageSync(RefreshTokenKey);
+}
+/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./node_modules/@dcloudio/uni-mp-weixin/dist/index.js */ 2)["default"]))
+
+/***/ }),
+/* 47 */
+/*!*****************************************************!*\
+  !*** D:/work/psychology/miniapp/utils/errorCode.js ***!
+  \*****************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.default = void 0;
+var _default = {
+  '401': '认证失败，无法访问系统资源',
+  '403': '当前操作没有权限',
+  '404': '访问资源不存在',
+  'default': '系统未知错误，请反馈给管理员'
+};
+exports.default = _default;
+
+/***/ }),
+/* 48 */
+/*!**************************************************!*\
+  !*** D:/work/psychology/miniapp/utils/common.js ***!
+  \**************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+/* WEBPACK VAR INJECTION */(function(uni) {
+
+var _interopRequireDefault = __webpack_require__(/*! @babel/runtime/helpers/interopRequireDefault */ 4);
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.showConfirm = showConfirm;
+exports.tansParams = tansParams;
+exports.toast = toast;
+var _typeof2 = _interopRequireDefault(__webpack_require__(/*! @babel/runtime/helpers/typeof */ 13));
+/**
+* 显示消息提示框
+* @param content 提示的标题
+*/
+function toast(content) {
+  uni.showToast({
+    icon: 'none',
+    title: content
+  });
+}
+
+/**
+* 显示模态弹窗
+* @param content 提示的标题
+*/
+function showConfirm(content) {
+  return new Promise(function (resolve, reject) {
+    uni.showModal({
+      title: '提示',
+      content: content,
+      cancelText: '取消',
+      confirmText: '确定',
+      confirmColor: '#c10311',
+      success: function success(res) {
+        resolve(res);
+      }
+    });
+  });
+}
+
+/**
+* 参数处理
+* @param params 参数
+*/
+function tansParams(params) {
+  var result = '';
+  for (var _i = 0, _Object$keys = Object.keys(params); _i < _Object$keys.length; _i++) {
+    var propName = _Object$keys[_i];
+    var value = params[propName];
+    var part = encodeURIComponent(propName) + "=";
+    if (value !== null && value !== "" && typeof value !== "undefined") {
+      if ((0, _typeof2.default)(value) === 'object') {
+        for (var _i2 = 0, _Object$keys2 = Object.keys(value); _i2 < _Object$keys2.length; _i2++) {
+          var key = _Object$keys2[_i2];
+          if (value[key] !== null && value[key] !== "" && typeof value[key] !== 'undefined') {
+            var _params = propName + '[' + key + ']';
+            var subPart = encodeURIComponent(_params) + "=";
+            result += subPart + encodeURIComponent(value[key]) + "&";
+          }
+        }
+      } else {
+        result += part + encodeURIComponent(value) + "&";
+      }
+    }
+  }
+  return result;
+}
+/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./node_modules/@dcloudio/uni-mp-weixin/dist/index.js */ 2)["default"]))
+
+/***/ }),
+/* 49 */,
+/* 50 */,
+/* 51 */,
+/* 52 */,
+/* 53 */,
+/* 54 */,
+/* 55 */,
+/* 56 */,
+/* 57 */,
+/* 58 */,
+/* 59 */,
+/* 60 */,
+/* 61 */,
+/* 62 */,
+/* 63 */
+/*!*************************************************!*\
+  !*** D:/work/psychology/miniapp/static/boy.png ***!
+  \*************************************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+module.exports = "data:image/png;base64,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"
+
+/***/ }),
+/* 64 */,
+/* 65 */,
+/* 66 */,
+/* 67 */,
+/* 68 */,
+/* 69 */,
+/* 70 */,
+/* 71 */,
+/* 72 */,
+/* 73 */,
+/* 74 */,
+/* 75 */,
+/* 76 */,
+/* 77 */,
+/* 78 */,
+/* 79 */,
+/* 80 */,
+/* 81 */,
+/* 82 */,
+/* 83 */,
+/* 84 */,
+/* 85 */,
+/* 86 */,
+/* 87 */,
+/* 88 */,
+/* 89 */,
 /* 90 */
 /*!*****************************************************!*\
   !*** D:/work/psychology/miniapp/api/train-topic.js ***!
@@ -10454,7 +10467,7 @@ module.exports = _asyncToGenerator, module.exports.__esModule = true, module.exp
 "use strict";
 
 
-var _config = __webpack_require__(/*! @/config.js */ 42);
+var _config = __webpack_require__(/*! @/config.js */ 45);
 // /**
 //  * 获取训练题目初始数据方法
 //  */
@@ -10549,970 +10562,1241 @@ var questionBank = [{
     "state": false
   }],
   "analysis": "指令周期是执行一条指令所需要的时间，一般由若干个机器周期组成，是从取指令、分析指令到执行完所需的全部时间。CPU执行指令的过程中，根据时序部件发出的时钟信号按部就班进行操作。在取指令阶段读取到的是指令，在分析指令和执行指令时，需要操作数时再去读操作数。"
-}, {
-  "tid": "5",
-  "questionCategory": 0,
-  "content": "5、某Python程序中定义了X=[1, 2]，那么X*2的值为(  )。",
-  "isCollect": true,
-  "isMark": true,
-  "options": [{
-    "title": "[1, 2, 1, 2]",
-    "state": true
-  }, {
-    "title": "[1, 1, 2, 2]",
-    "state": false
-  }, {
-    "title": "[2, 4]",
-    "state": false
-  }, {
-    "title": "出错",
-    "state": false
-  }],
-  "analysis": "X=[1,2]表示List结构，*2表示重复2次，运算结果为[1,2,1,2]。"
-}, {
-  "tid": "6",
-  "questionCategory": 0,
-  "content": "6、以下信息交换情形中，采用异步传输方式的是()。",
-  "isCollect": true,
-  "isMark": true,
-  "options": [{
-    "title": "CPU与内存储器之间交换信息",
-    "state": false
-  }, {
-    "title": "CPU与PCI总线交换信息",
-    "state": false
-  }, {
-    "title": "CPU与l/O接口交换信息",
-    "state": true
-  }, {
-    "title": "I/O接口与打印设备间交换",
-    "state": false
-  }],
-  "analysis": "同步传输方式中发送方和接收方的时钟是统一的、字符与字符间的传输是同步无间隔的。异步传输方式并不要求发送方和接收方的时钟完全一样，字符与字符间的传输是异步的。"
-}, {
-  "tid": "7",
-  "questionCategory": 1,
-  "content": "7、请注意用电安全",
-  "isCollect": false,
-  "isMark": false,
-  "options": [{
-    "title": "好的",
-    "state": true
-  }, {
-    "title": "遵守",
-    "state": true
-  }, {
-    "title": "不管不问",
-    "state": false
-  }, {
-    "title": "不受",
-    "state": false
-  }],
-  "analysis": ""
-}, {
-  "tid": "8",
-  "questionCategory": 2,
-  "content": "8、永恒之蓝属于计算机病毒的是计算机病毒吗？",
-  "isCollect": false,
-  "isMark": false,
-  "options": [{
-    "title": "是的",
-    "state": true
-  }, {
-    "title": "不是",
-    "state": false
-  }],
-  "analysis": "永恒之蓝是指2017年4月14日晚，黑客团体Shadow Brokers公布一大批网络攻击工具，其中包含“永恒之蓝”工具，“永恒之蓝”利用Windows系统的SMB漏洞可以获取系统最高权限并扫描开放445文件共享端口的Windows机器，无需用户任何操作，只要开机上网，不法分子就能在电脑和服务器中植入勒索软件、远程控制木马、虚拟货币挖矿机等恶意程序。"
-}, {
-  "tid": "9",
-  "questionCategory": 0,
-  "content": "9、下列协议中，可以用于文件安全传输的是（）。",
-  "isCollect": false,
-  "isMark": false,
-  "options": [{
-    "title": "FTP",
-    "state": false
-  }, {
-    "title": "SFTP",
-    "state": true
-  }, {
-    "title": "TFTP",
-    "state": false
-  }, {
-    "title": "ICMP",
-    "state": false
-  }],
-  "analysis": "SFTP (SSH File Transfer Protocol,安全文件传送协议)，是一种基于 SSH (安全外壳)的安全的文件传输协议，在文件传输过程中提供一种安全的加密算法,从而保证数据的安全传输。"
-}, {
-  "tid": "10",
-  "questionCategory": 0,
-  "content": "10、SQL注入是常见的Web攻击，以下不能够有效防御SQL注入的手段是( )。",
-  "isCollect": false,
-  "isMark": true,
-  "options": [{
-    "title": "对用户输入做关键字过滤",
-    "state": false
-  }, {
-    "title": "部署Web应用防火墙进行防护",
-    "state": false
-  }, {
-    "title": "部署入侵检测系统阻断攻击",
-    "state": true
-  }, {
-    "title": "定期扫描系统漏洞并及时修复",
-    "state": false
-  }],
-  "analysis": "部署入侵检测系统可以发现攻击并进行告警，但无法阻断攻击"
-}, {
-  "tid": "11",
-  "questionCategory": 0,
-  "content": "11、以下关于杀毒软件的描述中，错误的是( )。",
-  "isCollect": true,
-  "isMark": false,
-  "options": [{
-    "title": "应当为计算机安装杀毒软件并及时更新病毒库",
-    "state": false
-  }, {
-    "title": "安装杀毒软件可以有效防止蠕虫病毒",
-    "state": false
-  }, {
-    "title": "安装杀毒软件可以有效防止网站信息被篡改",
-    "state": true
-  }, {
-    "title": "服务器操作系统也需要安装杀毒软件",
-    "state": false
-  }],
-  "analysis": ""
-}, {
-  "tid": "12",
-  "questionCategory": 0,
-  "content": "12、通过在出口防火墙上配置( )功能，可以阻止外部未授权用户访问内部网络。",
-  "isCollect": false,
-  "isMark": false,
-  "options": [{
-    "title": "ACL",
-    "state": true
-  }, {
-    "title": "SNAT",
-    "state": false
-  }, {
-    "title": "入侵检测",
-    "state": false
-  }, {
-    "title": "防病毒",
-    "state": false
-  }],
-  "analysis": "指令周期是执行一条指令所需要的时间，一般由若干个机器周期组成，是从取指令、分析指令到执行完所需的全部时间。CPU执行指令的过程中，根据时序部件发出的时钟信号按部就班进行操作。在取指令阶段读取到的是指令，在分析指令和执行指令时，需要操作数时再去读操作数。"
-}, {
-  "tid": "13",
-  "questionCategory": 0,
-  "content": "13、甲乙丙三人分别就相同内容的计算机程序的发明创造，先后向国务院专利行政部门]提出申请，( )可以获得专利申请权。",
-  "isCollect": true,
-  "isMark": true,
-  "options": [{
-    "title": "甲乙丙均",
-    "state": false
-  }, {
-    "title": "先申请者",
-    "state": true
-  }, {
-    "title": "先使用者",
-    "state": false
-  }, {
-    "title": "先发明者",
-    "state": false
-  }],
-  "analysis": "一份专利申请文件只能就一项发明创造提出专利申请。一项发明只授予一项专利，同样的发明申请专利，则按照申请时间的先后决定授予给谁。两个以上的申请人在同一日分别就同样的发明创造申请专利的，应当在收到国务院专利行政部门的通知后自行协商确定申请人。"
-}, {
-  "tid": "14",
-  "questionCategory": 0,
-  "content": "14、( )的保护期限是可以延长的。",
-  "isCollect": true,
-  "isMark": true,
-  "options": [{
-    "title": "著作权",
-    "state": false
-  }, {
-    "title": "专利权",
-    "state": false
-  }, {
-    "title": "商标权",
-    "state": true
-  }, {
-    "title": "商业秘密权",
-    "state": false
-  }],
-  "analysis": "注册商标的有效期限为10年，自核准注册之日起计算。1、注册商标有效期满，需要继续使用的，应当在期满前6个月内申请续展注册；2、在此期间未能提出申请的，可以给予6个月的宽展期；3、宽展期满仍未提出申请的，注销其注册商标；4、每次续展注册的有效期为10年。"
-}, {
-  "tid": "15",
-  "questionCategory": 0,
-  "content": "15、针对月收入小于等于3500元免征个人所得税的需求，现分别输入3499、3500和3501进行测试，则采用的测试方法( )。",
-  "isCollect": false,
-  "isMark": false,
-  "options": [{
-    "title": "判定覆盖",
-    "state": false
-  }, {
-    "title": "边界值分析",
-    "state": true
-  }, {
-    "title": "路径覆盖",
-    "state": false
-  }, {
-    "title": "因果图",
-    "state": false
-  }],
-  "analysis": "3499、3500、3501 都是条件 x <= 3500 的临界值"
-}, {
-  "tid": "16",
-  "questionCategory": 2,
-  "content": "16、以下关于软件维护的叙述中，正确的是( )。",
-  "isCollect": false,
-  "isMark": false,
-  "options": [{
-    "title": "工作量相对于软件开发而言要小很多",
-    "state": false
-  }, {
-    "title": "成本相对于软件开发而言要更低",
-    "state": false
-  }, {
-    "title": "时间相对于软件开发而言通常更长",
-    "state": true
-  }, {
-    "title": "只对软件代码进行修改的行为",
-    "state": false
-  }],
-  "analysis": "软件开发一般是定长的，软件维护是在程序使用一直到程序消亡的整个过程，是整个软件生命周期中用时最长，工作量和成本最大的过程。如果维护期很长那么成本也相对较高。软件维护不仅仅是对于代码层面的，还有配套的文档，比如测试文档、测试用例。"
-}, {
-  "tid": "17",
-  "questionCategory": 0,
-  "content": "17、在运行时将函数调用和响应调用所需执行的代码加以结合的机制是( )。",
-  "isCollect": false,
-  "isMark": false,
-  "options": [{
-    "title": "强类型",
-    "state": false
-  }, {
-    "title": "弱类型",
-    "state": false
-  }, {
-    "title": "静态绑定",
-    "state": false
-  }, {
-    "title": "动态绑定",
-    "state": true
-  }],
-  "analysis": "动态绑定在运行时将函数调用和响应调用所需执行的代码加以结合，静态绑定在编译时将函数调用和响应调用所需执行的代码加以结合。"
-}, {
-  "tid": "18",
-  "questionCategory": 0,
-  "content": "18、进行面向对象系统设计时，在包的依赖关系图中不允许存在环，这属于( )原则。",
-  "isCollect": false,
-  "isMark": true,
-  "options": [{
-    "title": "单一责任",
-    "state": false
-  }, {
-    "title": "无环依赖",
-    "state": true
-  }, {
-    "title": "依赖倒置",
-    "state": false
-  }, {
-    "title": "里氏替换",
-    "state": false
-  }],
-  "analysis": ""
-}, {
-  "tid": "19",
-  "questionCategory": 0,
-  "content": "19、面向对象分析的第一项活动是( );面向对象程序设计语言为面向对象( )。",
-  "isCollect": true,
-  "isMark": false,
-  "options": [{
-    "title": "组织对象、用例设计",
-    "state": false
-  }, {
-    "title": "描述对象间的相互作用、分析",
-    "state": false
-  }, {
-    "title": "认定对象、实现",
-    "state": true
-  }, {
-    "title": "确定对象的操作、需求分析",
-    "state": false
-  }],
-  "analysis": "面向对象分析包含5个活动:认定对象、组织对象、描述对象间的相互作用、确定对象的操作、定义对象的内部信息。面向对象（OO）分为三部分：1、OOA 面向对象分析；2、OOD 面向对象设计；3、OOP 面向对象编程（实现）"
-}, {
-  "tid": "20",
-  "questionCategory": 0,
-  "content": "20、用 pip 安装 Numpy 模块的命令为( )。",
-  "isCollect": false,
-  "isMark": false,
-  "options": [{
-    "title": "pip numpy",
-    "state": false
-  }, {
-    "title": "pip install numpy",
-    "state": true
-  }, {
-    "title": "install numpy",
-    "state": false
-  }, {
-    "title": "import num",
-    "state": false
-  }],
-  "analysis": "pip安装模块方法：方法一：使用 pip install + 要安装的模块名称(pip install numpy)、方法二：提前下载相应模块，手动安装"
-}, {
-  "tid": "21",
-  "questionCategory": 0,
-  "content": "21、22.在Python语言中，( )是一种不可变的、有序的序列结构，其中元素可以重复。",
-  "isCollect": true,
-  "isMark": true,
-  "options": [{
-    "title": "tuple(元组)",
-    "state": true
-  }, {
-    "title": "dict(字典)",
-    "state": false
-  }, {
-    "title": "List(列表)",
-    "state": false
-  }, {
-    "title": "set(集合)",
-    "state": false
-  }],
-  "analysis": "不可变数据(3个): Number(数字)、String(字符串)、Tuple(元组)。可变数据(3个): List(列表)、Dictionary(字典)、Set(集合)；1、tuple(元组)， 类似于 List 列表，元组用 () 标识。内部元素用逗号隔开。但是元组不能二次赋值，相当于只读列表；2、list(列表)， 可以完成大多数集合类的数据结构实现。它支持字符、数字、字符串甚至可以包含列表(即嵌套或叫多维列表，用来表示多维数组)。列表用 [] 标识，是 Python 最通用的复合数据类型；3、dict(字典)， 是除列表以外 python 之 中最灵活的内置数据结构类型，列表是有序的对象集合，字典是无序的对象集合，字典用 {} 标识，字典由索引 key 和它对应的值 value 组成；4、set(集合)，集合中的元素是无序和唯一 的，它主要用于进行关系测试和消除重复元素,可以使用大括号 {} 或者 set() 函数创建集合。"
-}, {
-  "tid": "22",
-  "questionCategory": 0,
-  "content": "22、数据库中的视图是一个虚拟表，若设计师为user表创建一个use1视图，那么数据字典中保存的是( )。",
-  "isCollect": true,
-  "isMark": true,
-  "options": [{
-    "title": "user1 查询语句",
-    "state": false
-  }, {
-    "title": "user1 视图定义",
-    "state": true
-  }, {
-    "title": "user1 查询结果",
-    "state": false
-  }, {
-    "title": "所引用的基本表",
-    "state": false
-  }],
-  "analysis": "他是一个虚拟表，并不是一个物理存储表，他是在引用视图的时候生成的，那么数据字典中保存的就是视图的定义"
-}, {
-  "tid": "23",
-  "questionCategory": 0,
-  "content": "23、以下关于散列表(哈希表)及其查找特点的叙述中，正确的是( )。",
-  "isCollect": false,
-  "isMark": false,
-  "options": [{
-    "title": "在散列表中进行查找时，只需要与待查找关键字及其同义词进行比较",
-    "state": false
-  }, {
-    "title": "只要散列表的装填因子不大于1/2，就能避免冲突",
-    "state": false
-  }, {
-    "title": "用线性探测法解决冲突容易产生聚集问题",
-    "state": true
-  }, {
-    "title": "用链地址法解决冲突可确保平均查找长度为1",
-    "state": false
-  }],
-  "analysis": ""
-}, {
-  "tid": "24",
-  "questionCategory": 0,
-  "content": "24、对长度为n的有序顺序表进行折半查找(即二分查找)的过程，可用一棵判定树表示，该判定树的形态符合( )的特点。",
-  "isCollect": false,
-  "isMark": false,
-  "options": [{
-    "title": "最优二叉树(即哈夫曼树)",
-    "state": false
-  }, {
-    "title": "平衡二叉树",
-    "state": true
-  }, {
-    "title": "完全二叉树",
-    "state": false
-  }, {
-    "title": "最小生成数",
-    "state": false
-  }],
-  "analysis": ""
-}, {
-  "tid": "25",
-  "questionCategory": 0,
-  "content": "25、已知树T的度为4，且度为4的结点数为7个、度为3的结点数5个、度为2的结点数为8个、度为1的结点数为10个，那么T的叶子结点个数为( )。(注: 树中节点个数称为结点的度，结点的度中的最大值称为树的度)",
-  "isCollect": false,
-  "isMark": false,
-  "options": [{
-    "title": "30",
-    "state": false
-  }, {
-    "title": "35,但可靠性很差",
-    "state": false
-  }, {
-    "title": "40",
-    "state": true
-  }, {
-    "title": "49",
-    "state": false
-  }],
-  "analysis": ""
-}, {
-  "tid": "26",
-  "questionCategory": 0,
-  "content": "26、排序算法的稳定性是指将待排序列排序后，能确保排序码中的相对位置保持不变。( )是稳定的排序算法。",
-  "isCollect": false,
-  "isMark": true,
-  "options": [{
-    "title": "冒泡排序",
-    "state": true
-  }, {
-    "title": "快速排序",
-    "state": false
-  }, {
-    "title": "堆排序",
-    "state": false
-  }, {
-    "title": "简单选择排序",
-    "state": false
-  }],
-  "analysis": "直接插入、冒泡排序、归并排序、基数排序是稳定的"
-}, {
-  "tid": "27",
-  "questionCategory": 0,
-  "content": "27、某图G的邻接表中共有奇数个表示边的表结点，则图G( )。",
-  "isCollect": true,
-  "isMark": false,
-  "options": [{
-    "title": "有奇数个顶点",
-    "state": false
-  }, {
-    "title": "有偶数个顶点",
-    "state": false
-  }, {
-    "title": "是无向图",
-    "state": false
-  }, {
-    "title": "是有向图",
-    "state": true
-  }],
-  "analysis": ""
-}, {
-  "tid": "28",
-  "questionCategory": 0,
-  "content": "28、在OSI参考模型中，( )在物理线路上提供可靠的数据传输服务。",
-  "isCollect": false,
-  "isMark": false,
-  "options": [{
-    "title": "物理层",
-    "state": false
-  }, {
-    "title": "数据链路层",
-    "state": false
-  }, {
-    "title": "网络层",
-    "state": false
-  }, {
-    "title": "传输层",
-    "state": true
-  }],
-  "analysis": ""
-}, {
-  "tid": "29",
-  "questionCategory": 0,
-  "content": "29、在TCP/IP协议栈中，远程登录采用的协议为( )。",
-  "isCollect": true,
-  "isMark": true,
-  "options": [{
-    "title": "HTTP",
-    "state": false
-  }, {
-    "title": "TELNET",
-    "state": true
-  }, {
-    "title": "SMTP",
-    "state": false
-  }, {
-    "title": "FTP",
-    "state": false
-  }],
-  "analysis": ""
-}, {
-  "tid": "30",
-  "questionCategory": 0,
-  "content": "30、浏览器开启无痕浏览模式时，( )仍然会被保存到。",
-  "isCollect": true,
-  "isMark": true,
-  "options": [{
-    "title": "浏览历史",
-    "state": false
-  }, {
-    "title": "搜索历史",
-    "state": false
-  }, {
-    "title": "下载的文件",
-    "state": true
-  }, {
-    "title": "临时文件",
-    "state": false
-  }],
-  "analysis": "无痕浏览指的是不保存：浏览历史、搜索历史、表单历史、Cookie 历史、internal 临时文件"
-}, {
-  "tid": "31",
-  "questionCategory": 0,
-  "content": "31、.下列不属于电子邮件收发协议的是( )。",
-  "isCollect": false,
-  "isMark": false,
-  "options": [{
-    "title": "SMTP",
-    "state": false
-  }, {
-    "title": "POP3",
-    "state": false
-  }, {
-    "title": "IMAP",
-    "state": false
-  }, {
-    "title": "FTP",
-    "state": true
-  }],
-  "analysis": "SMTP：发邮件协议，端口 25，POP3：收邮件协议，端口 110，IMAP：收邮件协议，端口 143。POP3 在客户端对邮件的操作不会返回到服务器上，IMAP 在客户端对邮件的操作会返回到服务器上。"
-}, {
-  "tid": "32",
-  "questionCategory": 0,
-  "content": "32、在程序执行过程中，高速缓存(Cache) 与主存间的地址映射由（  ）。",
-  "isCollect": false,
-  "isMark": true,
-  "options": [{
-    "title": "操作系统进行管理",
-    "state": false
-  }, {
-    "title": "程序员自行安排",
-    "state": false
-  }, {
-    "title": "硬件自动完成",
-    "state": true
-  }, {
-    "title": "用户软件",
-    "state": false
-  }],
-  "answer": {
-    "1": "B"
-  },
-  "analysis": "cache是辅助cpu的，不是操作系统层面的东西"
-}, {
-  "tid": "33",
-  "questionCategory": 0,
-  "content": "33、计算机中提供指令地址的程序计数器PC在（ ）中。",
-  "isCollect": true,
-  "isMark": false,
-  "options": [{
-    "title": "控制器",
-    "state": true
-  }, {
-    "title": "运算器",
-    "state": false
-  }, {
-    "title": "存储器",
-    "state": false
-  }, {
-    "title": "I/O设备",
-    "state": false
-  }],
-  "answer": {
-    "1": "B"
-  },
-  "analysis": ""
-}, {
-  "tid": "34",
-  "questionCategory": 0,
-  "content": "34、在程序运行过程中，CPU需要将指令从内存中取出并加以分析和执行。CPU依据（）来区分在内存中以二进制编码形式存放的指令和数据。",
-  "isCollect": false,
-  "isMark": false,
-  "options": [{
-    "title": "指令周期的不同阶段",
-    "state": true
-  }, {
-    "title": "指令和数据的寻址方式",
-    "state": false
-  }, {
-    "title": "指令操作码的译码结果",
-    "state": false
-  }, {
-    "title": "指令和数据所在的存储单元",
-    "state": false
-  }],
-  "answer": {
-    "2": "C"
-  },
-  "analysis": "指令周期是执行一条指令所需要的时间，一般由若干个机器周期组成，是从取指令、分析指令到执行完所需的全部时间。CPU执行指令的过程中，根据时序部件发出的时钟信号按部就班进行操作。在取指令阶段读取到的是指令，在分析指令和执行指令时，需要操作数时再去读操作数。"
-}, {
-  "tid": "35",
-  "questionCategory": 0,
-  "content": "35、某Python程序中定义了X=[1, 2]，那么X*2的值为(  )。",
-  "isCollect": true,
-  "isMark": true,
-  "options": [{
-    "title": "[1, 2, 1, 2]",
-    "state": true
-  }, {
-    "title": "[1, 1, 2, 2]",
-    "state": false
-  }, {
-    "title": "[2, 4]",
-    "state": false
-  }, {
-    "title": "出错",
-    "state": false
-  }],
-  "answer": {
-    "0": "A"
-  },
-  "analysis": "X=[1,2]表示List结构，*2表示重复2次，运算结果为[1,2,1,2]。"
-}, {
-  "tid": "36",
-  "questionCategory": 0,
-  "content": "36、以下信息交换情形中，采用异步传输方式的是()。",
-  "isCollect": true,
-  "isMark": true,
-  "options": [{
-    "title": "CPU与内存储器之间交换信息",
-    "state": false
-  }, {
-    "title": "CPU与PCI总线交换信息",
-    "state": false
-  }, {
-    "title": "CPU与l/O接口交换信息",
-    "state": true
-  }, {
-    "title": "I/O接口与打印设备间交换",
-    "state": false
-  }],
-  "answer": {
-    "0": "A"
-  },
-  "analysis": "同步传输方式中发送方和接收方的时钟是统一的、字符与字符间的传输是同步无间隔的。异步传输方式并不要求发送方和接收方的时钟完全一样，字符与字符间的传输是异步的。"
-}, {
-  "tid": "37",
-  "questionCategory": 1,
-  "content": "37、请注意用电安全",
-  "isCollect": false,
-  "isMark": false,
-  "options": [{
-    "title": "好的",
-    "state": true
-  }, {
-    "title": "遵守",
-    "state": true
-  }, {
-    "title": "不管不问",
-    "state": false
-  }, {
-    "title": "不受",
-    "state": false
-  }],
-  "answer": {
-    "0": "A",
-    "1": "B"
-  },
-  "analysis": ""
-}, {
-  "tid": "38",
-  "questionCategory": 2,
-  "content": "38、永恒之蓝属于计算机病毒的是计算机病毒吗？",
-  "isCollect": false,
-  "isMark": false,
-  "options": [{
-    "title": "是的",
-    "state": false
-  }, {
-    "title": "不是",
-    "state": true
-  }],
-  "answer": {
-    "0": "A"
-  },
-  "analysis": "永恒之蓝是指2017年4月14日晚，黑客团体Shadow Brokers公布一大批网络攻击工具，其中包含“永恒之蓝”工具，“永恒之蓝”利用Windows系统的SMB漏洞可以获取系统最高权限并扫描开放445文件共享端口的Windows机器，无需用户任何操作，只要开机上网，不法分子就能在电脑和服务器中植入勒索软件、远程控制木马、虚拟货币挖矿机等恶意程序。"
-}, {
-  "tid": "39",
-  "questionCategory": 1,
-  "content": "39、关于计算机网络,以下说法哪个正确()。",
-  "isCollect": false,
-  "isMark": false,
-  "options": [{
-    "title": "网络就是计算机的集合",
-    "state": false
-  }, {
-    "title": "网络可提供远程用户共享网络资源,但可靠性很差",
-    "state": false
-  }, {
-    "title": "网络是通信、计算机和微电子技术相结合的产物",
-    "state": true
-  }, {
-    "title": "当今世界规模最大的网络是因特网",
-    "state": true
-  }],
-  "answer": {
-    "0": "C",
-    "1": "D"
-  },
-  "analysis": "计算机网络是通信技术与计算机技术结合的产物，也就是说计算机网络就是为了解决计算机与计算机之间通讯的问题。什么是通讯的问题，就是数据交换的问题，也是信息交换的问题。在现实世界中，我们用信息来形容交换的内容，在计算机世界里，我们用「数据」这个词来代替。这些词都是对内容的抽象概括，因为现实世界需要交换的内容太复杂了，一段文字称之为信息，一张图片也叫信息。所以这些词都是对这些内容的抽象概括，其实完全没有那么高大上，意会了就好。继续讲，我们知道，与计算机网络相关的东西有哪些，大家可以列举出很多，比如网线，网卡，路由器，计算机中的 IP 地址。专业一点的人知道 TCP UDP，HTTP ，FTP。这些东西分别对应着计算机网络中不同的层次。层次有不同的分法， OSI（网络）模型将计算机网络分成了七层（搜索关键词 OSI 七层模型），因为分的太多太细，跟现实生活中操作有一些不匹配，被我们称为理论上的成果，市场上的失败，但却是我们学习计算机网络的好工具。在市场上成功的方式是将计算机网络分成五层或者四层。我喜欢按五层来分。刚刚列举出关于计算机网络的内容中，网线属于物理层，网卡属于数据链路层，路由器属于网络层，对应的协议有 IP ，ICMP等。最后一个字母 P 代表 Protocol 协议的意思，因为狗血的语言不合的问题，我们还时不时的称之为 IP 协议，HTTP 协议等，重在理解，叫什么就无所谓了。还有计算机网络拥有的是一个体系结构，分成那么多层是因为计算机网络体系太复杂了，还涉及到各种各样的组成部分，一次性规范这么多内容不太现实，所以我们按不同设备按照功能划分成不同的层次。这样做的好处是每一层对其他层来说都是透明的，更利于标准化。某一层变化了，不影响其他层的工作。分层思想在计算机领域应用的还是比较多的。分层带来的好处就是透明，更容易制定标准。如何理解透明这一概念，透明的含义就是我不需要知道你是怎么工作的，我想要什么你能给什么就行。最简单的例子，我玩手机不需要知道手机是怎么工作的，我只要会点屏幕就行，我能处理你给我展现的内容就行。屏幕显示的内容就是手机提供给我们的内容。但是内部电池如何供电，供多大的电流，我们不需要考虑。这就是透明的含义。在计算机网络中也是如此，不需要理解上层和下层是怎么工作的，我只需要接受下层给我的数据，并且我能看懂，经过我这层之后，我按照上层在一开始规范好的数据格式，提交给上一层，上一层就会能正确的接收我提交的数据。分层之后，某一层的修改不会影响其他层。怎么理解呢，IPv4 和 IPv6 都处于网络层，属于不同版本的协议，但是从 IPv4 切换到 IPv6 对于应用层的 HTTP 来讲是没有区别的，HTTP 不需要管你用的是 IPv4 还是 IPv6，你按照我这 HTTP 的格式传上来数据就行。就是这个意思。"
-}, {
-  "tid": "40",
-  "questionCategory": 0,
-  "content": "40、在程序执行过程中，高速缓存(Cache) 与主存间的地址映射由（  ）。",
-  "isCollect": false,
-  "isMark": true,
-  "options": [{
-    "title": "操作系统进行管理",
-    "state": false
-  }, {
-    "title": "程序员自行安排",
-    "state": false
-  }, {
-    "title": "硬件自动完成",
-    "state": true
-  }, {
-    "title": "用户软件",
-    "state": false
-  }],
-  "answer": {
-    "1": "B"
-  },
-  "analysis": "cache是辅助cpu的，不是操作系统层面的东西"
-}, {
-  "tid": "41",
-  "questionCategory": 0,
-  "content": "41、计算机中提供指令地址的程序计数器PC在（ ）中。",
-  "isCollect": true,
-  "isMark": false,
-  "options": [{
-    "title": "控制器",
-    "state": true
-  }, {
-    "title": "运算器",
-    "state": false
-  }, {
-    "title": "存储器",
-    "state": false
-  }, {
-    "title": "I/O设备",
-    "state": false
-  }],
-  "answer": {
-    "1": "B"
-  },
-  "analysis": ""
-}, {
-  "tid": "42",
-  "questionCategory": 0,
-  "content": "42、在程序运行过程中，CPU需要将指令从内存中取出并加以分析和执行。CPU依据（）来区分在内存中以二进制编码形式存放的指令和数据。",
-  "isCollect": false,
-  "isMark": false,
-  "options": [{
-    "title": "指令周期的不同阶段",
-    "state": true
-  }, {
-    "title": "指令和数据的寻址方式",
-    "state": false
-  }, {
-    "title": "指令操作码的译码结果",
-    "state": false
-  }, {
-    "title": "指令和数据所在的存储单元",
-    "state": false
-  }],
-  "answer": {
-    "2": "C"
-  },
-  "analysis": "指令周期是执行一条指令所需要的时间，一般由若干个机器周期组成，是从取指令、分析指令到执行完所需的全部时间。CPU执行指令的过程中，根据时序部件发出的时钟信号按部就班进行操作。在取指令阶段读取到的是指令，在分析指令和执行指令时，需要操作数时再去读操作数。"
-}, {
-  "tid": "43",
-  "questionCategory": 0,
-  "content": "43、某Python程序中定义了X=[1, 2]，那么X*2的值为(  )。",
-  "isCollect": true,
-  "isMark": true,
-  "options": [{
-    "title": "[1, 2, 1, 2]",
-    "state": true
-  }, {
-    "title": "[1, 1, 2, 2]",
-    "state": false
-  }, {
-    "title": "[2, 4]",
-    "state": false
-  }, {
-    "title": "出错",
-    "state": false
-  }],
-  "answer": {
-    "0": "A"
-  },
-  "analysis": "X=[1,2]表示List结构，*2表示重复2次，运算结果为[1,2,1,2]。"
-}, {
-  "tid": "44",
-  "questionCategory": 0,
-  "content": "44、以下信息交换情形中，采用异步传输方式的是()。",
-  "isCollect": true,
-  "isMark": true,
-  "options": [{
-    "title": "CPU与内存储器之间交换信息",
-    "state": false
-  }, {
-    "title": "CPU与PCI总线交换信息",
-    "state": false
-  }, {
-    "title": "CPU与l/O接口交换信息",
-    "state": true
-  }, {
-    "title": "I/O接口与打印设备间交换",
-    "state": false
-  }],
-  "answer": {
-    "0": "A"
-  },
-  "analysis": "同步传输方式中发送方和接收方的时钟是统一的、字符与字符间的传输是同步无间隔的。异步传输方式并不要求发送方和接收方的时钟完全一样，字符与字符间的传输是异步的。"
-}, {
-  "tid": "45",
-  "questionCategory": 1,
-  "content": "45、请注意用电安全",
-  "isCollect": false,
-  "isMark": false,
-  "options": [{
-    "title": "好的",
-    "state": true
-  }, {
-    "title": "遵守",
-    "state": true
-  }, {
-    "title": "不管不问",
-    "state": false
-  }, {
-    "title": "不受",
-    "state": false
-  }],
-  "answer": {
-    "0": "A",
-    "1": "B"
-  },
-  "analysis": ""
-}, {
-  "tid": "46",
-  "questionCategory": 2,
-  "content": "46、永恒之蓝属于计算机病毒的是计算机病毒吗？",
-  "isCollect": false,
-  "isMark": false,
-  "options": [{
-    "title": "是的",
-    "state": false
-  }, {
-    "title": "不是",
-    "state": true
-  }],
-  "answer": {
-    "0": "A"
-  },
-  "analysis": "永恒之蓝是指2017年4月14日晚，黑客团体Shadow Brokers公布一大批网络攻击工具，其中包含“永恒之蓝”工具，“永恒之蓝”利用Windows系统的SMB漏洞可以获取系统最高权限并扫描开放445文件共享端口的Windows机器，无需用户任何操作，只要开机上网，不法分子就能在电脑和服务器中植入勒索软件、远程控制木马、虚拟货币挖矿机等恶意程序。"
-}, {
-  "tid": "47",
-  "questionCategory": 1,
-  "content": "47、关于计算机网络,以下说法哪个正确()。",
-  "isCollect": false,
-  "isMark": false,
-  "options": [{
-    "title": "网络就是计算机的集合",
-    "state": false
-  }, {
-    "title": "网络可提供远程用户共享网络资源,但可靠性很差",
-    "state": false
-  }, {
-    "title": "网络是通信、计算机和微电子技术相结合的产物",
-    "state": true
-  }, {
-    "title": "当今世界规模最大的网络是因特网",
-    "state": true
-  }],
-  "answer": {
-    "0": "C",
-    "1": "D"
-  },
-  "analysis": "计算机网络是通信技术与计算机技术结合的产物，也就是说计算机网络就是为了解决计算机与计算机之间通讯的问题。什么是通讯的问题，就是数据交换的问题，也是信息交换的问题。在现实世界中，我们用信息来形容交换的内容，在计算机世界里，我们用「数据」这个词来代替。这些词都是对内容的抽象概括，因为现实世界需要交换的内容太复杂了，一段文字称之为信息，一张图片也叫信息。所以这些词都是对这些内容的抽象概括，其实完全没有那么高大上，意会了就好。继续讲，我们知道，与计算机网络相关的东西有哪些，大家可以列举出很多，比如网线，网卡，路由器，计算机中的 IP 地址。专业一点的人知道 TCP UDP，HTTP ，FTP。这些东西分别对应着计算机网络中不同的层次。层次有不同的分法， OSI（网络）模型将计算机网络分成了七层（搜索关键词 OSI 七层模型），因为分的太多太细，跟现实生活中操作有一些不匹配，被我们称为理论上的成果，市场上的失败，但却是我们学习计算机网络的好工具。在市场上成功的方式是将计算机网络分成五层或者四层。我喜欢按五层来分。刚刚列举出关于计算机网络的内容中，网线属于物理层，网卡属于数据链路层，路由器属于网络层，对应的协议有 IP ，ICMP等。最后一个字母 P 代表 Protocol 协议的意思，因为狗血的语言不合的问题，我们还时不时的称之为 IP 协议，HTTP 协议等，重在理解，叫什么就无所谓了。还有计算机网络拥有的是一个体系结构，分成那么多层是因为计算机网络体系太复杂了，还涉及到各种各样的组成部分，一次性规范这么多内容不太现实，所以我们按不同设备按照功能划分成不同的层次。这样做的好处是每一层对其他层来说都是透明的，更利于标准化。某一层变化了，不影响其他层的工作。分层思想在计算机领域应用的还是比较多的。分层带来的好处就是透明，更容易制定标准。如何理解透明这一概念，透明的含义就是我不需要知道你是怎么工作的，我想要什么你能给什么就行。最简单的例子，我玩手机不需要知道手机是怎么工作的，我只要会点屏幕就行，我能处理你给我展现的内容就行。屏幕显示的内容就是手机提供给我们的内容。但是内部电池如何供电，供多大的电流，我们不需要考虑。这就是透明的含义。在计算机网络中也是如此，不需要理解上层和下层是怎么工作的，我只需要接受下层给我的数据，并且我能看懂，经过我这层之后，我按照上层在一开始规范好的数据格式，提交给上一层，上一层就会能正确的接收我提交的数据。分层之后，某一层的修改不会影响其他层。怎么理解呢，IPv4 和 IPv6 都处于网络层，属于不同版本的协议，但是从 IPv4 切换到 IPv6 对于应用层的 HTTP 来讲是没有区别的，HTTP 不需要管你用的是 IPv4 还是 IPv6，你按照我这 HTTP 的格式传上来数据就行。就是这个意思。"
-}, {
-  "tid": "48",
-  "questionCategory": 0,
-  "content": "48、在程序执行过程中，高速缓存(Cache) 与主存间的地址映射由（  ）。",
-  "isCollect": false,
-  "isMark": true,
-  "options": [{
-    "title": "操作系统进行管理",
-    "state": false
-  }, {
-    "title": "程序员自行安排",
-    "state": false
-  }, {
-    "title": "硬件自动完成",
-    "state": true
-  }, {
-    "title": "用户软件",
-    "state": false
-  }],
-  "answer": {
-    "1": "B"
-  },
-  "analysis": "cache是辅助cpu的，不是操作系统层面的东西"
-}, {
-  "tid": "49",
-  "questionCategory": 0,
-  "content": "49、计算机中提供指令地址的程序计数器PC在（ ）中。",
-  "isCollect": true,
-  "isMark": false,
-  "options": [{
-    "title": "控制器",
-    "state": true
-  }, {
-    "title": "运算器",
-    "state": false
-  }, {
-    "title": "存储器",
-    "state": false
-  }, {
-    "title": "I/O设备",
-    "state": false
-  }],
-  "answer": {
-    "1": "B"
-  },
-  "analysis": ""
-}, {
-  "tid": "50",
-  "questionCategory": 0,
-  "content": "50、在程序运行过程中，CPU需要将指令从内存中取出并加以分析和执行。CPU依据（）来区分在内存中以二进制编码形式存放的指令和数据。",
-  "isCollect": false,
-  "isMark": false,
-  "options": [{
-    "title": "指令周期的不同阶段",
-    "state": true
-  }, {
-    "title": "指令和数据的寻址方式",
-    "state": false
-  }, {
-    "title": "指令操作码的译码结果",
-    "state": false
-  }, {
-    "title": "指令和数据所在的存储单元",
-    "state": false
-  }],
-  "answer": {
-    "2": "C"
-  },
-  "analysis": "指令周期是执行一条指令所需要的时间，一般由若干个机器周期组成，是从取指令、分析指令到执行完所需的全部时间。CPU执行指令的过程中，根据时序部件发出的时钟信号按部就班进行操作。在取指令阶段读取到的是指令，在分析指令和执行指令时，需要操作数时再去读操作数。"
-}];
+}
+// {
+//   "tid": "5",
+//   "questionCategory": 0,
+//   "content": "5、某Python程序中定义了X=[1, 2]，那么X*2的值为(  )。",
+//   "isCollect": true,
+//   "isMark": true,
+//   "options": [
+//     {
+//       "title": "[1, 2, 1, 2]",
+//       "state": true
+//     },
+//     {
+//       "title": "[1, 1, 2, 2]",
+//       "state": false
+//     },
+//     {
+//       "title": "[2, 4]",
+//       "state": false
+//     },
+//     {
+//       "title": "出错",
+//       "state": false
+//     }
+//   ],
+//   "analysis": "X=[1,2]表示List结构，*2表示重复2次，运算结果为[1,2,1,2]。"
+// },
+// {
+//   "tid": "6",
+//   "questionCategory": 0,
+//   "content": "6、以下信息交换情形中，采用异步传输方式的是()。",
+//   "isCollect": true,
+//   "isMark": true,
+//   "options": [
+//     {
+//       "title": "CPU与内存储器之间交换信息",
+//       "state": false
+//     },
+//     {
+//       "title": "CPU与PCI总线交换信息",
+//       "state": false
+//     },
+//     {
+//       "title": "CPU与l/O接口交换信息",
+//       "state": true
+//     },
+//     {
+//       "title": "I/O接口与打印设备间交换",
+//       "state": false
+//     }
+//   ],
+//   "analysis": "同步传输方式中发送方和接收方的时钟是统一的、字符与字符间的传输是同步无间隔的。异步传输方式并不要求发送方和接收方的时钟完全一样，字符与字符间的传输是异步的。"
+// },
+// {
+//   "tid": "7",
+//   "questionCategory": 1,
+//   "content": "7、请注意用电安全",
+//   "isCollect": false,
+//   "isMark": false,
+//   "options": [
+//     {
+//       "title": "好的",
+//       "state": true
+//     },
+//     {
+//       "title": "遵守",
+//       "state": true
+//     },
+//     {
+//       "title": "不管不问",
+//       "state": false
+//     },
+//     {
+//       "title": "不受",
+//       "state": false
+//     }
+//   ],
+//   "analysis": ""
+// },
+// {
+//   "tid": "8",
+//   "questionCategory": 2,
+//   "content": "8、永恒之蓝属于计算机病毒的是计算机病毒吗？",
+//   "isCollect": false,
+//   "isMark": false,
+//   "options": [
+//     {
+//       "title": "是的",
+//       "state": true
+//     },
+//     {
+//       "title": "不是",
+//       "state": false
+//     }
+//   ],
+//   "analysis": "永恒之蓝是指2017年4月14日晚，黑客团体Shadow Brokers公布一大批网络攻击工具，其中包含“永恒之蓝”工具，“永恒之蓝”利用Windows系统的SMB漏洞可以获取系统最高权限并扫描开放445文件共享端口的Windows机器，无需用户任何操作，只要开机上网，不法分子就能在电脑和服务器中植入勒索软件、远程控制木马、虚拟货币挖矿机等恶意程序。"
+// },
+// {
+//   "tid": "9",
+//   "questionCategory": 0,
+//   "content": "9、下列协议中，可以用于文件安全传输的是（）。",
+//   "isCollect": false,
+//   "isMark": false,
+//   "options": [
+//     {
+//       "title": "FTP",
+//       "state": false
+//     },
+//     {
+//       "title": "SFTP",
+//       "state": true
+//     },
+//     {
+//       "title": "TFTP",
+//       "state": false
+//     },
+//     {
+//       "title": "ICMP",
+//       "state": false
+//     }
+//   ],
+//   "analysis": "SFTP (SSH File Transfer Protocol,安全文件传送协议)，是一种基于 SSH (安全外壳)的安全的文件传输协议，在文件传输过程中提供一种安全的加密算法,从而保证数据的安全传输。"
+// },
+// {
+//   "tid": "10",
+//   "questionCategory": 0,
+//   "content": "10、SQL注入是常见的Web攻击，以下不能够有效防御SQL注入的手段是( )。",
+//   "isCollect": false,
+//   "isMark": true,
+//   "options": [
+//     {
+//       "title": "对用户输入做关键字过滤",
+//       "state": false
+//     },
+//     {
+//       "title": "部署Web应用防火墙进行防护",
+//       "state": false
+//     },
+//     {
+//       "title": "部署入侵检测系统阻断攻击",
+//       "state": true
+//     },
+//     {
+//       "title": "定期扫描系统漏洞并及时修复",
+//       "state": false
+//     }
+//   ],
+//   "analysis": "部署入侵检测系统可以发现攻击并进行告警，但无法阻断攻击"
+// },
+// {
+//   "tid": "11",
+//   "questionCategory": 0,
+//   "content": "11、以下关于杀毒软件的描述中，错误的是( )。",
+//   "isCollect": true,
+//   "isMark": false,
+//   "options": [
+//     {
+//       "title": "应当为计算机安装杀毒软件并及时更新病毒库",
+//       "state": false
+//     },
+//     {
+//       "title": "安装杀毒软件可以有效防止蠕虫病毒",
+//       "state": false
+//     },
+//     {
+//       "title": "安装杀毒软件可以有效防止网站信息被篡改",
+//       "state": true
+//     },
+//     {
+//       "title": "服务器操作系统也需要安装杀毒软件",
+//       "state": false
+//     }
+//   ],
+//   "analysis": ""
+// },
+// {
+//   "tid": "12",
+//   "questionCategory": 0,
+//   "content": "12、通过在出口防火墙上配置( )功能，可以阻止外部未授权用户访问内部网络。",
+//   "isCollect": false,
+//   "isMark": false,
+//   "options": [
+//     {
+//       "title": "ACL",
+//       "state": true
+//     },
+//     {
+//       "title": "SNAT",
+//       "state": false
+//     },
+//     {
+//       "title": "入侵检测",
+//       "state": false
+//     },
+//     {
+//       "title": "防病毒",
+//       "state": false
+//     }
+//   ],
+//   "analysis": "指令周期是执行一条指令所需要的时间，一般由若干个机器周期组成，是从取指令、分析指令到执行完所需的全部时间。CPU执行指令的过程中，根据时序部件发出的时钟信号按部就班进行操作。在取指令阶段读取到的是指令，在分析指令和执行指令时，需要操作数时再去读操作数。"
+// },
+// {
+//   "tid": "13",
+//   "questionCategory": 0,
+//   "content": "13、甲乙丙三人分别就相同内容的计算机程序的发明创造，先后向国务院专利行政部门]提出申请，( )可以获得专利申请权。",
+//   "isCollect": true,
+//   "isMark": true,
+//   "options": [
+//     {
+//       "title": "甲乙丙均",
+//       "state": false
+//     },
+//     {
+//       "title": "先申请者",
+//       "state": true
+//     },
+//     {
+//       "title": "先使用者",
+//       "state": false
+//     },
+//     {
+//       "title": "先发明者",
+//       "state": false
+//     }
+//   ],
+//   "analysis": "一份专利申请文件只能就一项发明创造提出专利申请。一项发明只授予一项专利，同样的发明申请专利，则按照申请时间的先后决定授予给谁。两个以上的申请人在同一日分别就同样的发明创造申请专利的，应当在收到国务院专利行政部门的通知后自行协商确定申请人。"
+// },
+// {
+//   "tid": "14",
+//   "questionCategory": 0,
+//   "content": "14、( )的保护期限是可以延长的。",
+//   "isCollect": true,
+//   "isMark": true,
+//   "options": [
+//     {
+//       "title": "著作权",
+//       "state": false
+//     },
+//     {
+//       "title": "专利权",
+//       "state": false
+//     },
+//     {
+//       "title": "商标权",
+//       "state": true
+//     },
+//     {
+//       "title": "商业秘密权",
+//       "state": false
+//     }
+//   ],
+//   "analysis": "注册商标的有效期限为10年，自核准注册之日起计算。1、注册商标有效期满，需要继续使用的，应当在期满前6个月内申请续展注册；2、在此期间未能提出申请的，可以给予6个月的宽展期；3、宽展期满仍未提出申请的，注销其注册商标；4、每次续展注册的有效期为10年。"
+// },
+// {
+//   "tid": "15",
+//   "questionCategory": 0,
+//   "content": "15、针对月收入小于等于3500元免征个人所得税的需求，现分别输入3499、3500和3501进行测试，则采用的测试方法( )。",
+//   "isCollect": false,
+//   "isMark": false,
+//   "options": [
+//     {
+//       "title": "判定覆盖",
+//       "state": false
+//     },
+//     {
+//       "title": "边界值分析",
+//       "state": true
+//     },
+//     {
+//       "title": "路径覆盖",
+//       "state": false
+//     },
+//     {
+//       "title": "因果图",
+//       "state": false
+//     }
+//   ],
+//   "analysis": "3499、3500、3501 都是条件 x <= 3500 的临界值"
+// },
+// {
+//   "tid": "16",
+//   "questionCategory": 2,
+//   "content": "16、以下关于软件维护的叙述中，正确的是( )。",
+//   "isCollect": false,
+//   "isMark": false,
+//   "options": [
+//     {
+//       "title": "工作量相对于软件开发而言要小很多",
+//       "state": false
+//     },
+//     {
+//       "title": "成本相对于软件开发而言要更低",
+//       "state": false
+//     },
+//     {
+//       "title": "时间相对于软件开发而言通常更长",
+//       "state": true
+//     },
+//     {
+//       "title": "只对软件代码进行修改的行为",
+//       "state": false
+//     }
+//   ],
+//   "analysis": "软件开发一般是定长的，软件维护是在程序使用一直到程序消亡的整个过程，是整个软件生命周期中用时最长，工作量和成本最大的过程。如果维护期很长那么成本也相对较高。软件维护不仅仅是对于代码层面的，还有配套的文档，比如测试文档、测试用例。"
+// },
+// {
+//   "tid": "17",
+//   "questionCategory": 0,
+//   "content": "17、在运行时将函数调用和响应调用所需执行的代码加以结合的机制是( )。",
+//   "isCollect": false,
+//   "isMark": false,
+//   "options": [
+//     {
+//       "title": "强类型",
+//       "state": false
+//     },
+//     {
+//       "title": "弱类型",
+//       "state": false
+//     },
+//     {
+//       "title": "静态绑定",
+//       "state": false
+//     },
+//     {
+//       "title": "动态绑定",
+//       "state": true
+//     }
+//   ],
+//   "analysis": "动态绑定在运行时将函数调用和响应调用所需执行的代码加以结合，静态绑定在编译时将函数调用和响应调用所需执行的代码加以结合。"
+// },
+// {
+//   "tid": "18",
+//   "questionCategory": 0,
+//   "content": "18、进行面向对象系统设计时，在包的依赖关系图中不允许存在环，这属于( )原则。",
+//   "isCollect": false,
+//   "isMark": true,
+//   "options": [
+//     {
+//       "title": "单一责任",
+//       "state": false
+//     },
+//     {
+//       "title": "无环依赖",
+//       "state": true
+//     },
+//     {
+//       "title": "依赖倒置",
+//       "state": false
+//     },
+//     {
+//       "title": "里氏替换",
+//       "state": false
+//     }
+//   ],
+//   "analysis": ""
+// },
+// {
+//   "tid": "19",
+//   "questionCategory": 0,
+//   "content": "19、面向对象分析的第一项活动是( );面向对象程序设计语言为面向对象( )。",
+//   "isCollect": true,
+//   "isMark": false,
+//   "options": [
+//     {
+//       "title": "组织对象、用例设计",
+//       "state": false
+//     },
+//     {
+//       "title": "描述对象间的相互作用、分析",
+//       "state": false
+//     },
+//     {
+//       "title": "认定对象、实现",
+//       "state": true
+//     },
+//     {
+//       "title": "确定对象的操作、需求分析",
+//       "state": false
+//     }
+//   ],
+//   "analysis": "面向对象分析包含5个活动:认定对象、组织对象、描述对象间的相互作用、确定对象的操作、定义对象的内部信息。面向对象（OO）分为三部分：1、OOA 面向对象分析；2、OOD 面向对象设计；3、OOP 面向对象编程（实现）"
+// },
+// {
+//   "tid": "20",
+//   "questionCategory": 0,
+//   "content": "20、用 pip 安装 Numpy 模块的命令为( )。",
+//   "isCollect": false,
+//   "isMark": false,
+//   "options": [
+//     {
+//       "title": "pip numpy",
+//       "state": false
+//     },
+//     {
+//       "title": "pip install numpy",
+//       "state": true
+//     },
+//     {
+//       "title": "install numpy",
+//       "state": false
+//     },
+//     {
+//       "title": "import num",
+//       "state": false
+//     }
+//   ],
+//   "analysis": "pip安装模块方法：方法一：使用 pip install + 要安装的模块名称(pip install numpy)、方法二：提前下载相应模块，手动安装"
+// },
+// {
+//   "tid": "21",
+//   "questionCategory": 0,
+//   "content": "21、22.在Python语言中，( )是一种不可变的、有序的序列结构，其中元素可以重复。",
+//   "isCollect": true,
+//   "isMark": true,
+//   "options": [
+//     {
+//       "title": "tuple(元组)",
+//       "state": true
+//     },
+//     {
+//       "title": "dict(字典)",
+//       "state": false
+//     },
+//     {
+//       "title": "List(列表)",
+//       "state": false
+//     },
+//     {
+//       "title": "set(集合)",
+//       "state": false
+//     }
+//   ],
+//   "analysis": "不可变数据(3个): Number(数字)、String(字符串)、Tuple(元组)。可变数据(3个): List(列表)、Dictionary(字典)、Set(集合)；1、tuple(元组)， 类似于 List 列表，元组用 () 标识。内部元素用逗号隔开。但是元组不能二次赋值，相当于只读列表；2、list(列表)， 可以完成大多数集合类的数据结构实现。它支持字符、数字、字符串甚至可以包含列表(即嵌套或叫多维列表，用来表示多维数组)。列表用 [] 标识，是 Python 最通用的复合数据类型；3、dict(字典)， 是除列表以外 python 之 中最灵活的内置数据结构类型，列表是有序的对象集合，字典是无序的对象集合，字典用 {} 标识，字典由索引 key 和它对应的值 value 组成；4、set(集合)，集合中的元素是无序和唯一 的，它主要用于进行关系测试和消除重复元素,可以使用大括号 {} 或者 set() 函数创建集合。"
+// },
+// {
+//   "tid": "22",
+//   "questionCategory": 0,
+//   "content": "22、数据库中的视图是一个虚拟表，若设计师为user表创建一个use1视图，那么数据字典中保存的是( )。",
+//   "isCollect": true,
+//   "isMark": true,
+//   "options": [
+//     {
+//       "title": "user1 查询语句",
+//       "state": false
+//     },
+//     {
+//       "title": "user1 视图定义",
+//       "state": true
+//     },
+//     {
+//       "title": "user1 查询结果",
+//       "state": false
+//     },
+//     {
+//       "title": "所引用的基本表",
+//       "state": false
+//     }
+//   ],
+//   "analysis": "他是一个虚拟表，并不是一个物理存储表，他是在引用视图的时候生成的，那么数据字典中保存的就是视图的定义"
+// },
+// {
+//   "tid": "23",
+//   "questionCategory": 0,
+//   "content": "23、以下关于散列表(哈希表)及其查找特点的叙述中，正确的是( )。",
+//   "isCollect": false,
+//   "isMark": false,
+//   "options": [
+//     {
+//       "title": "在散列表中进行查找时，只需要与待查找关键字及其同义词进行比较",
+//       "state": false
+//     },
+//     {
+//       "title": "只要散列表的装填因子不大于1/2，就能避免冲突",
+//       "state": false
+//     },
+//     {
+//       "title": "用线性探测法解决冲突容易产生聚集问题",
+//       "state": true
+//     },
+//     {
+//       "title": "用链地址法解决冲突可确保平均查找长度为1",
+//       "state": false
+//     }
+//   ],
+//   "analysis": ""
+// },
+// {
+//   "tid": "24",
+//   "questionCategory": 0,
+//   "content": "24、对长度为n的有序顺序表进行折半查找(即二分查找)的过程，可用一棵判定树表示，该判定树的形态符合( )的特点。",
+//   "isCollect": false,
+//   "isMark": false,
+//   "options": [
+//     {
+//       "title": "最优二叉树(即哈夫曼树)",
+//       "state": false
+//     },
+//     {
+//       "title": "平衡二叉树",
+//       "state": true
+//     },
+//     {
+//       "title": "完全二叉树",
+//       "state": false
+//     },
+//     {
+//       "title": "最小生成数",
+//       "state": false
+//     }
+//   ],
+//   "analysis": ""
+// },
+// {
+//   "tid": "25",
+//   "questionCategory": 0,
+//   "content": "25、已知树T的度为4，且度为4的结点数为7个、度为3的结点数5个、度为2的结点数为8个、度为1的结点数为10个，那么T的叶子结点个数为( )。(注: 树中节点个数称为结点的度，结点的度中的最大值称为树的度)",
+//   "isCollect": false,
+//   "isMark": false,
+//   "options": [
+//     {
+//       "title": "30",
+//       "state": false
+//     },
+//     {
+//       "title": "35,但可靠性很差",
+//       "state": false
+//     },
+//     {
+//       "title": "40",
+//       "state": true
+//     },
+//     {
+//       "title": "49",
+//       "state": false
+//     }
+//   ],
+//   "analysis": ""
+// },
+// {
+//   "tid": "26",
+//   "questionCategory": 0,
+//   "content": "26、排序算法的稳定性是指将待排序列排序后，能确保排序码中的相对位置保持不变。( )是稳定的排序算法。",
+//   "isCollect": false,
+//   "isMark": true,
+//   "options": [
+//     {
+//       "title": "冒泡排序",
+//       "state": true
+//     },
+//     {
+//       "title": "快速排序",
+//       "state": false
+//     },
+//     {
+//       "title": "堆排序",
+//       "state": false
+//     },
+//     {
+//       "title": "简单选择排序",
+//       "state": false
+//     }
+//   ],
+//   "analysis": "直接插入、冒泡排序、归并排序、基数排序是稳定的"
+// },
+// {
+//   "tid": "27",
+//   "questionCategory": 0,
+//   "content": "27、某图G的邻接表中共有奇数个表示边的表结点，则图G( )。",
+//   "isCollect": true,
+//   "isMark": false,
+//   "options": [
+//     {
+//       "title": "有奇数个顶点",
+//       "state": false
+//     },
+//     {
+//       "title": "有偶数个顶点",
+//       "state": false
+//     },
+//     {
+//       "title": "是无向图",
+//       "state": false
+//     },
+//     {
+//       "title": "是有向图",
+//       "state": true
+//     }
+//   ],
+//   "analysis": ""
+// },
+// {
+//   "tid": "28",
+//   "questionCategory": 0,
+//   "content": "28、在OSI参考模型中，( )在物理线路上提供可靠的数据传输服务。",
+//   "isCollect": false,
+//   "isMark": false,
+//   "options": [
+//     {
+//       "title": "物理层",
+//       "state": false
+//     },
+//     {
+//       "title": "数据链路层",
+//       "state": false
+//     },
+//     {
+//       "title": "网络层",
+//       "state": false
+//     },
+//     {
+//       "title": "传输层",
+//       "state": true
+//     }
+//   ],
+//   "analysis": ""
+// },
+// {
+//   "tid": "29",
+//   "questionCategory": 0,
+//   "content": "29、在TCP/IP协议栈中，远程登录采用的协议为( )。",
+//   "isCollect": true,
+//   "isMark": true,
+//   "options": [
+//     {
+//       "title": "HTTP",
+//       "state": false
+//     },
+//     {
+//       "title": "TELNET",
+//       "state": true
+//     },
+//     {
+//       "title": "SMTP",
+//       "state": false
+//     },
+//     {
+//       "title": "FTP",
+//       "state": false
+//     }
+//   ],
+//   "analysis": ""
+// },
+// {
+//   "tid": "30",
+//   "questionCategory": 0,
+//   "content": "30、浏览器开启无痕浏览模式时，( )仍然会被保存到。",
+//   "isCollect": true,
+//   "isMark": true,
+//   "options": [
+//     {
+//       "title": "浏览历史",
+//       "state": false
+//     },
+//     {
+//       "title": "搜索历史",
+//       "state": false
+//     },
+//     {
+//       "title": "下载的文件",
+//       "state": true
+//     },
+//     {
+//       "title": "临时文件",
+//       "state": false
+//     }
+//   ],
+//   "analysis": "无痕浏览指的是不保存：浏览历史、搜索历史、表单历史、Cookie 历史、internal 临时文件"
+// },
+// {
+//   "tid": "31",
+//   "questionCategory": 0,
+//   "content": "31、.下列不属于电子邮件收发协议的是( )。",
+//   "isCollect": false,
+//   "isMark": false,
+//   "options": [
+//     {
+//       "title": "SMTP",
+//       "state": false
+//     },
+//     {
+//       "title": "POP3",
+//       "state": false
+//     },
+//     {
+//       "title": "IMAP",
+//       "state": false
+//     },
+//     {
+//       "title": "FTP",
+//       "state": true
+//     }
+//   ],
+//   "analysis": "SMTP：发邮件协议，端口 25，POP3：收邮件协议，端口 110，IMAP：收邮件协议，端口 143。POP3 在客户端对邮件的操作不会返回到服务器上，IMAP 在客户端对邮件的操作会返回到服务器上。"
+// },
+// {
+//   "tid": "32",
+//   "questionCategory": 0,
+//   "content": "32、在程序执行过程中，高速缓存(Cache) 与主存间的地址映射由（  ）。",
+//   "isCollect": false,
+//   "isMark": true,
+//   "options": [
+//     {
+//       "title": "操作系统进行管理",
+//       "state": false
+//     },
+//     {
+//       "title": "程序员自行安排",
+//       "state": false
+//     },
+//     {
+//       "title": "硬件自动完成",
+//       "state": true
+//     },
+//     {
+//       "title": "用户软件",
+//       "state": false
+//     }
+//   ],
+//   "answer": {
+//     "1": "B"
+//   },
+//   "analysis": "cache是辅助cpu的，不是操作系统层面的东西"
+// },
+// {
+//   "tid": "33",
+//   "questionCategory": 0,
+//   "content": "33、计算机中提供指令地址的程序计数器PC在（ ）中。",
+//   "isCollect": true,
+//   "isMark": false,
+//   "options": [
+//     {
+//       "title": "控制器",
+//       "state": true
+//     },
+//     {
+//       "title": "运算器",
+//       "state": false
+//     },
+//     {
+//       "title": "存储器",
+//       "state": false
+//     },
+//     {
+//       "title": "I/O设备",
+//       "state": false
+//     }
+//   ],
+//   "answer": {
+//     "1": "B"
+//   },
+//   "analysis": ""
+// },
+// {
+//   "tid": "34",
+//   "questionCategory": 0,
+//   "content": "34、在程序运行过程中，CPU需要将指令从内存中取出并加以分析和执行。CPU依据（）来区分在内存中以二进制编码形式存放的指令和数据。",
+//   "isCollect": false,
+//   "isMark": false,
+//   "options": [
+//     {
+//       "title": "指令周期的不同阶段",
+//       "state": true
+//     },
+//     {
+//       "title": "指令和数据的寻址方式",
+//       "state": false
+//     },
+//     {
+//       "title": "指令操作码的译码结果",
+//       "state": false
+//     },
+//     {
+//       "title": "指令和数据所在的存储单元",
+//       "state": false
+//     }
+//   ],
+//   "answer": {
+//     "2": "C"
+//   },
+//   "analysis": "指令周期是执行一条指令所需要的时间，一般由若干个机器周期组成，是从取指令、分析指令到执行完所需的全部时间。CPU执行指令的过程中，根据时序部件发出的时钟信号按部就班进行操作。在取指令阶段读取到的是指令，在分析指令和执行指令时，需要操作数时再去读操作数。"
+// },
+// {
+//   "tid": "35",
+//   "questionCategory": 0,
+//   "content": "35、某Python程序中定义了X=[1, 2]，那么X*2的值为(  )。",
+//   "isCollect": true,
+//   "isMark": true,
+//   "options": [
+//     {
+//       "title": "[1, 2, 1, 2]",
+//       "state": true
+//     },
+//     {
+//       "title": "[1, 1, 2, 2]",
+//       "state": false
+//     },
+//     {
+//       "title": "[2, 4]",
+//       "state": false
+//     },
+//     {
+//       "title": "出错",
+//       "state": false
+//     }
+//   ],
+//   "answer": {
+//     "0": "A"
+//   },
+//   "analysis": "X=[1,2]表示List结构，*2表示重复2次，运算结果为[1,2,1,2]。"
+// },
+// {
+//   "tid": "36",
+//   "questionCategory": 0,
+//   "content": "36、以下信息交换情形中，采用异步传输方式的是()。",
+//   "isCollect": true,
+//   "isMark": true,
+//   "options": [
+//     {
+//       "title": "CPU与内存储器之间交换信息",
+//       "state": false
+//     },
+//     {
+//       "title": "CPU与PCI总线交换信息",
+//       "state": false
+//     },
+//     {
+//       "title": "CPU与l/O接口交换信息",
+//       "state": true
+//     },
+//     {
+//       "title": "I/O接口与打印设备间交换",
+//       "state": false
+//     }
+//   ],
+//   "answer": {
+//     "0": "A"
+//   },
+//   "analysis": "同步传输方式中发送方和接收方的时钟是统一的、字符与字符间的传输是同步无间隔的。异步传输方式并不要求发送方和接收方的时钟完全一样，字符与字符间的传输是异步的。"
+// },
+// {
+//   "tid": "37",
+//   "questionCategory": 1,
+//   "content": "37、请注意用电安全",
+//   "isCollect": false,
+//   "isMark": false,
+//   "options": [
+//     {
+//       "title": "好的",
+//       "state": true
+//     },
+//     {
+//       "title": "遵守",
+//       "state": true
+//     },
+//     {
+//       "title": "不管不问",
+//       "state": false
+//     },
+//     {
+//       "title": "不受",
+//       "state": false
+//     }
+//   ],
+//   "answer": {
+//     "0": "A",
+//     "1": "B"
+//   },
+//   "analysis": ""
+// },
+// {
+//   "tid": "38",
+//   "questionCategory": 2,
+//   "content": "38、永恒之蓝属于计算机病毒的是计算机病毒吗？",
+//   "isCollect": false,
+//   "isMark": false,
+//   "options": [
+//     {
+//       "title": "是的",
+//       "state": false
+//     },
+//     {
+//       "title": "不是",
+//       "state": true
+//     }
+//   ],
+//   "answer": {
+//     "0": "A"
+//   },
+//   "analysis": "永恒之蓝是指2017年4月14日晚，黑客团体Shadow Brokers公布一大批网络攻击工具，其中包含“永恒之蓝”工具，“永恒之蓝”利用Windows系统的SMB漏洞可以获取系统最高权限并扫描开放445文件共享端口的Windows机器，无需用户任何操作，只要开机上网，不法分子就能在电脑和服务器中植入勒索软件、远程控制木马、虚拟货币挖矿机等恶意程序。"
+// },
+// {
+//   "tid": "39",
+//   "questionCategory": 1,
+//   "content": "39、关于计算机网络,以下说法哪个正确()。",
+//   "isCollect": false,
+//   "isMark": false,
+//   "options": [
+//     {
+//       "title": "网络就是计算机的集合",
+//       "state": false
+//     },
+//     {
+//       "title": "网络可提供远程用户共享网络资源,但可靠性很差",
+//       "state": false
+//     },
+//     {
+//       "title": "网络是通信、计算机和微电子技术相结合的产物",
+//       "state": true
+//     },
+//     {
+//       "title": "当今世界规模最大的网络是因特网",
+//       "state": true
+//     }
+//   ],
+//   "answer": {
+//     "0": "C",
+//     "1": "D"
+//   },
+//   "analysis": "计算机网络是通信技术与计算机技术结合的产物，也就是说计算机网络就是为了解决计算机与计算机之间通讯的问题。什么是通讯的问题，就是数据交换的问题，也是信息交换的问题。在现实世界中，我们用信息来形容交换的内容，在计算机世界里，我们用「数据」这个词来代替。这些词都是对内容的抽象概括，因为现实世界需要交换的内容太复杂了，一段文字称之为信息，一张图片也叫信息。所以这些词都是对这些内容的抽象概括，其实完全没有那么高大上，意会了就好。继续讲，我们知道，与计算机网络相关的东西有哪些，大家可以列举出很多，比如网线，网卡，路由器，计算机中的 IP 地址。专业一点的人知道 TCP UDP，HTTP ，FTP。这些东西分别对应着计算机网络中不同的层次。层次有不同的分法， OSI（网络）模型将计算机网络分成了七层（搜索关键词 OSI 七层模型），因为分的太多太细，跟现实生活中操作有一些不匹配，被我们称为理论上的成果，市场上的失败，但却是我们学习计算机网络的好工具。在市场上成功的方式是将计算机网络分成五层或者四层。我喜欢按五层来分。刚刚列举出关于计算机网络的内容中，网线属于物理层，网卡属于数据链路层，路由器属于网络层，对应的协议有 IP ，ICMP等。最后一个字母 P 代表 Protocol 协议的意思，因为狗血的语言不合的问题，我们还时不时的称之为 IP 协议，HTTP 协议等，重在理解，叫什么就无所谓了。还有计算机网络拥有的是一个体系结构，分成那么多层是因为计算机网络体系太复杂了，还涉及到各种各样的组成部分，一次性规范这么多内容不太现实，所以我们按不同设备按照功能划分成不同的层次。这样做的好处是每一层对其他层来说都是透明的，更利于标准化。某一层变化了，不影响其他层的工作。分层思想在计算机领域应用的还是比较多的。分层带来的好处就是透明，更容易制定标准。如何理解透明这一概念，透明的含义就是我不需要知道你是怎么工作的，我想要什么你能给什么就行。最简单的例子，我玩手机不需要知道手机是怎么工作的，我只要会点屏幕就行，我能处理你给我展现的内容就行。屏幕显示的内容就是手机提供给我们的内容。但是内部电池如何供电，供多大的电流，我们不需要考虑。这就是透明的含义。在计算机网络中也是如此，不需要理解上层和下层是怎么工作的，我只需要接受下层给我的数据，并且我能看懂，经过我这层之后，我按照上层在一开始规范好的数据格式，提交给上一层，上一层就会能正确的接收我提交的数据。分层之后，某一层的修改不会影响其他层。怎么理解呢，IPv4 和 IPv6 都处于网络层，属于不同版本的协议，但是从 IPv4 切换到 IPv6 对于应用层的 HTTP 来讲是没有区别的，HTTP 不需要管你用的是 IPv4 还是 IPv6，你按照我这 HTTP 的格式传上来数据就行。就是这个意思。"
+// },
+// {
+//   "tid": "40",
+//   "questionCategory": 0,
+//   "content": "40、在程序执行过程中，高速缓存(Cache) 与主存间的地址映射由（  ）。",
+//   "isCollect": false,
+//   "isMark": true,
+//   "options": [
+//     {
+//       "title": "操作系统进行管理",
+//       "state": false
+//     },
+//     {
+//       "title": "程序员自行安排",
+//       "state": false
+//     },
+//     {
+//       "title": "硬件自动完成",
+//       "state": true
+//     },
+//     {
+//       "title": "用户软件",
+//       "state": false
+//     }
+//   ],
+//   "answer": {
+//     "1": "B"
+//   },
+//   "analysis": "cache是辅助cpu的，不是操作系统层面的东西"
+// },
+// {
+//   "tid": "41",
+//   "questionCategory": 0,
+//   "content": "41、计算机中提供指令地址的程序计数器PC在（ ）中。",
+//   "isCollect": true,
+//   "isMark": false,
+//   "options": [
+//     {
+//       "title": "控制器",
+//       "state": true
+//     },
+//     {
+//       "title": "运算器",
+//       "state": false
+//     },
+//     {
+//       "title": "存储器",
+//       "state": false
+//     },
+//     {
+//       "title": "I/O设备",
+//       "state": false
+//     }
+//   ],
+//   "answer": {
+//     "1": "B"
+//   },
+//   "analysis": ""
+// },
+// {
+//   "tid": "42",
+//   "questionCategory": 0,
+//   "content": "42、在程序运行过程中，CPU需要将指令从内存中取出并加以分析和执行。CPU依据（）来区分在内存中以二进制编码形式存放的指令和数据。",
+//   "isCollect": false,
+//   "isMark": false,
+//   "options": [
+//     {
+//       "title": "指令周期的不同阶段",
+//       "state": true
+//     },
+//     {
+//       "title": "指令和数据的寻址方式",
+//       "state": false
+//     },
+//     {
+//       "title": "指令操作码的译码结果",
+//       "state": false
+//     },
+//     {
+//       "title": "指令和数据所在的存储单元",
+//       "state": false
+//     }
+//   ],
+//   "answer": {
+//     "2": "C"
+//   },
+//   "analysis": "指令周期是执行一条指令所需要的时间，一般由若干个机器周期组成，是从取指令、分析指令到执行完所需的全部时间。CPU执行指令的过程中，根据时序部件发出的时钟信号按部就班进行操作。在取指令阶段读取到的是指令，在分析指令和执行指令时，需要操作数时再去读操作数。"
+// },
+// {
+//   "tid": "43",
+//   "questionCategory": 0,
+//   "content": "43、某Python程序中定义了X=[1, 2]，那么X*2的值为(  )。",
+//   "isCollect": true,
+//   "isMark": true,
+//   "options": [
+//     {
+//       "title": "[1, 2, 1, 2]",
+//       "state": true
+//     },
+//     {
+//       "title": "[1, 1, 2, 2]",
+//       "state": false
+//     },
+//     {
+//       "title": "[2, 4]",
+//       "state": false
+//     },
+//     {
+//       "title": "出错",
+//       "state": false
+//     }
+//   ],
+//   "answer": {
+//     "0": "A"
+//   },
+//   "analysis": "X=[1,2]表示List结构，*2表示重复2次，运算结果为[1,2,1,2]。"
+// },
+// {
+//   "tid": "44",
+//   "questionCategory": 0,
+//   "content": "44、以下信息交换情形中，采用异步传输方式的是()。",
+//   "isCollect": true,
+//   "isMark": true,
+//   "options": [
+//     {
+//       "title": "CPU与内存储器之间交换信息",
+//       "state": false
+//     },
+//     {
+//       "title": "CPU与PCI总线交换信息",
+//       "state": false
+//     },
+//     {
+//       "title": "CPU与l/O接口交换信息",
+//       "state": true
+//     },
+//     {
+//       "title": "I/O接口与打印设备间交换",
+//       "state": false
+//     }
+//   ],
+//   "answer": {
+//     "0": "A"
+//   },
+//   "analysis": "同步传输方式中发送方和接收方的时钟是统一的、字符与字符间的传输是同步无间隔的。异步传输方式并不要求发送方和接收方的时钟完全一样，字符与字符间的传输是异步的。"
+// },
+// {
+//   "tid": "45",
+//   "questionCategory": 1,
+//   "content": "45、请注意用电安全",
+//   "isCollect": false,
+//   "isMark": false,
+//   "options": [
+//     {
+//       "title": "好的",
+//       "state": true
+//     },
+//     {
+//       "title": "遵守",
+//       "state": true
+//     },
+//     {
+//       "title": "不管不问",
+//       "state": false
+//     },
+//     {
+//       "title": "不受",
+//       "state": false
+//     }
+//   ],
+//   "answer": {
+//     "0": "A",
+//     "1": "B"
+//   },
+//   "analysis": ""
+// },
+// {
+//   "tid": "46",
+//   "questionCategory": 2,
+//   "content": "46、永恒之蓝属于计算机病毒的是计算机病毒吗？",
+//   "isCollect": false,
+//   "isMark": false,
+//   "options": [
+//     {
+//       "title": "是的",
+//       "state": false
+//     },
+//     {
+//       "title": "不是",
+//       "state": true
+//     }
+//   ],
+//   "answer": {
+//     "0": "A"
+//   },
+//   "analysis": "永恒之蓝是指2017年4月14日晚，黑客团体Shadow Brokers公布一大批网络攻击工具，其中包含“永恒之蓝”工具，“永恒之蓝”利用Windows系统的SMB漏洞可以获取系统最高权限并扫描开放445文件共享端口的Windows机器，无需用户任何操作，只要开机上网，不法分子就能在电脑和服务器中植入勒索软件、远程控制木马、虚拟货币挖矿机等恶意程序。"
+// },
+// {
+//   "tid": "47",
+//   "questionCategory": 1,
+//   "content": "47、关于计算机网络,以下说法哪个正确()。",
+//   "isCollect": false,
+//   "isMark": false,
+//   "options": [
+//     {
+//       "title": "网络就是计算机的集合",
+//       "state": false
+//     },
+//     {
+//       "title": "网络可提供远程用户共享网络资源,但可靠性很差",
+//       "state": false
+//     },
+//     {
+//       "title": "网络是通信、计算机和微电子技术相结合的产物",
+//       "state": true
+//     },
+//     {
+//       "title": "当今世界规模最大的网络是因特网",
+//       "state": true
+//     }
+//   ],
+//   "answer": {
+//     "0": "C",
+//     "1": "D"
+//   },
+//   "analysis": "计算机网络是通信技术与计算机技术结合的产物，也就是说计算机网络就是为了解决计算机与计算机之间通讯的问题。什么是通讯的问题，就是数据交换的问题，也是信息交换的问题。在现实世界中，我们用信息来形容交换的内容，在计算机世界里，我们用「数据」这个词来代替。这些词都是对内容的抽象概括，因为现实世界需要交换的内容太复杂了，一段文字称之为信息，一张图片也叫信息。所以这些词都是对这些内容的抽象概括，其实完全没有那么高大上，意会了就好。继续讲，我们知道，与计算机网络相关的东西有哪些，大家可以列举出很多，比如网线，网卡，路由器，计算机中的 IP 地址。专业一点的人知道 TCP UDP，HTTP ，FTP。这些东西分别对应着计算机网络中不同的层次。层次有不同的分法， OSI（网络）模型将计算机网络分成了七层（搜索关键词 OSI 七层模型），因为分的太多太细，跟现实生活中操作有一些不匹配，被我们称为理论上的成果，市场上的失败，但却是我们学习计算机网络的好工具。在市场上成功的方式是将计算机网络分成五层或者四层。我喜欢按五层来分。刚刚列举出关于计算机网络的内容中，网线属于物理层，网卡属于数据链路层，路由器属于网络层，对应的协议有 IP ，ICMP等。最后一个字母 P 代表 Protocol 协议的意思，因为狗血的语言不合的问题，我们还时不时的称之为 IP 协议，HTTP 协议等，重在理解，叫什么就无所谓了。还有计算机网络拥有的是一个体系结构，分成那么多层是因为计算机网络体系太复杂了，还涉及到各种各样的组成部分，一次性规范这么多内容不太现实，所以我们按不同设备按照功能划分成不同的层次。这样做的好处是每一层对其他层来说都是透明的，更利于标准化。某一层变化了，不影响其他层的工作。分层思想在计算机领域应用的还是比较多的。分层带来的好处就是透明，更容易制定标准。如何理解透明这一概念，透明的含义就是我不需要知道你是怎么工作的，我想要什么你能给什么就行。最简单的例子，我玩手机不需要知道手机是怎么工作的，我只要会点屏幕就行，我能处理你给我展现的内容就行。屏幕显示的内容就是手机提供给我们的内容。但是内部电池如何供电，供多大的电流，我们不需要考虑。这就是透明的含义。在计算机网络中也是如此，不需要理解上层和下层是怎么工作的，我只需要接受下层给我的数据，并且我能看懂，经过我这层之后，我按照上层在一开始规范好的数据格式，提交给上一层，上一层就会能正确的接收我提交的数据。分层之后，某一层的修改不会影响其他层。怎么理解呢，IPv4 和 IPv6 都处于网络层，属于不同版本的协议，但是从 IPv4 切换到 IPv6 对于应用层的 HTTP 来讲是没有区别的，HTTP 不需要管你用的是 IPv4 还是 IPv6，你按照我这 HTTP 的格式传上来数据就行。就是这个意思。"
+// },
+// {
+//   "tid": "48",
+//   "questionCategory": 0,
+//   "content": "48、在程序执行过程中，高速缓存(Cache) 与主存间的地址映射由（  ）。",
+//   "isCollect": false,
+//   "isMark": true,
+//   "options": [
+//     {
+//       "title": "操作系统进行管理",
+//       "state": false
+//     },
+//     {
+//       "title": "程序员自行安排",
+//       "state": false
+//     },
+//     {
+//       "title": "硬件自动完成",
+//       "state": true
+//     },
+//     {
+//       "title": "用户软件",
+//       "state": false
+//     }
+//   ],
+//   "answer": {
+//     "1": "B"
+//   },
+//   "analysis": "cache是辅助cpu的，不是操作系统层面的东西"
+// },
+// {
+//   "tid": "49",
+//   "questionCategory": 0,
+//   "content": "49、计算机中提供指令地址的程序计数器PC在（ ）中。",
+//   "isCollect": true,
+//   "isMark": false,
+//   "options": [
+//     {
+//       "title": "控制器",
+//       "state": true
+//     },
+//     {
+//       "title": "运算器",
+//       "state": false
+//     },
+//     {
+//       "title": "存储器",
+//       "state": false
+//     },
+//     {
+//       "title": "I/O设备",
+//       "state": false
+//     }
+//   ],
+//   "answer": {
+//     "1": "B"
+//   },
+//   "analysis": ""
+// },
+// {
+//   "tid": "50",
+//   "questionCategory": 0,
+//   "content": "50、在程序运行过程中，CPU需要将指令从内存中取出并加以分析和执行。CPU依据（）来区分在内存中以二进制编码形式存放的指令和数据。",
+//   "isCollect": false,
+//   "isMark": false,
+//   "options": [
+//     {
+//       "title": "指令周期的不同阶段",
+//       "state": true
+//     },
+//     {
+//       "title": "指令和数据的寻址方式",
+//       "state": false
+//     },
+//     {
+//       "title": "指令操作码的译码结果",
+//       "state": false
+//     },
+//     {
+//       "title": "指令和数据所在的存储单元",
+//       "state": false
+//     }
+//   ],
+//   "answer": {
+//     "2": "C"
+//   },
+//   "analysis": "指令周期是执行一条指令所需要的时间，一般由若干个机器周期组成，是从取指令、分析指令到执行完所需的全部时间。CPU执行指令的过程中，根据时序部件发出的时钟信号按部就班进行操作。在取指令阶段读取到的是指令，在分析指令和执行指令时，需要操作数时再去读操作数。"
+// }
+];
 
 // 模拟请求结果
 var res = {
@@ -11562,7 +11846,15 @@ module.exports = {
 /* 116 */,
 /* 117 */,
 /* 118 */,
-/* 119 */
+/* 119 */,
+/* 120 */,
+/* 121 */,
+/* 122 */,
+/* 123 */,
+/* 124 */,
+/* 125 */,
+/* 126 */,
+/* 127 */
 /*!***************************************************************!*\
   !*** D:/work/psychology/miniapp/utils/answering-questions.js ***!
   \***************************************************************/
@@ -11599,18 +11891,23 @@ var AnsweringQuestions = /*#__PURE__*/function () {
       // 断开选项列表原型影响，用于后面返回选项列表，达到改变题对象属性方式，从而重新渲染页面
       optionsList = this.deepCopy(optionsList);
       // 设置我的答案和正确答案初始值为 Set 集合，阻止元素重复记录
+      topicInfoObj.myAnswer = new Set();
+      topicInfoObj.correctAnswer = new Set();
       topicInfoObj.myAnswer = (topicInfoObj === null || topicInfoObj === void 0 ? void 0 : topicInfoObj.myAnswer) || new Set();
-      topicInfoObj.correctAnswer = (topicInfoObj === null || topicInfoObj === void 0 ? void 0 : topicInfoObj.correctAnswer) || new Set();
+      // topicInfoObj.correctAnswer = topicInfoObj?.correctAnswer || new Set()
+      topicInfoObj.correctAnswer = (topicInfoObj === null || topicInfoObj === void 0 ? void 0 : topicInfoObj.myAnswer) || new Set();
       topicInfoObj.currentScore = optionsList[currentOptionIndex].score;
       topicInfoObj.questionId = topicInfoObj.id;
       topicInfoObj.selectId = optionsList[currentOptionIndex].id;
       topicInfoObj.currentOptionIndex = currentOptionIndex;
-
       // 单题选项点击设置 checked 点击样式，点击其他选项并取消上一个选项的 checked 点击样式，点击自身不做操作
       if (topicInfoObj.myAnswer.size) {
         var oldIndex = optionsMarkList.indexOf(_toConsumableArray(topicInfoObj.myAnswer)[0]);
         optionsList[oldIndex].style = '';
         topicInfoObj.myAnswer.clear();
+      }
+      for (var i = 0; i < optionsList.length; i++) {
+        optionsList[i].style = '';
       }
       optionsList[currentOptionIndex].style = 'checked';
       topicInfoObj.myAnswer.add(optionsMarkList[currentOptionIndex]);

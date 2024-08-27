@@ -3,7 +3,7 @@
 		<view class="introduce-detail">
 			<!-- 封面图片 -->
 			<view class="cover">
-			<image style="width: 100%;height: 100%;" :src="introduceInfo.img_url" mode=""></image>
+			<image style="width: 100%;height: 100%;border-radius: 20rpx;" :src="introduceInfo.img_url" mode=""></image>
 			</view>
 
 			<!-- 标题、价格 -->
@@ -11,13 +11,13 @@
 				<view class="title">{{introduceInfo.title}}</view>
 				<view class="text">{{introduceInfo.description}}？</view>
 				<view class="price"> ￥{{introduceInfo.price}} </view>
-				<!-- <view class="list">
+				<view class="list">
 					<ul style="display: flex;justify-content: space-around;align-items: center;color: gray;">
-						<li>15道精选题</li>
-						<li>7页专业报告</li>
-						<li>1125人已测试</li>
+						<li style="font-size: .75rem;">题目易懂： {{introduceInfo.easy }}</li>
+						<li style="font-size: .75rem;">结果准确性：{{introduceInfo.exact}}</li>
+						<li style="font-size: .75rem;">建议实用性：{{introduceInfo.utility}}</li>
 					</ul>
-				</view> -->
+				</view>
 			</view>
 
 			<!-- 详情介绍 -->
@@ -61,10 +61,10 @@
 			<view class="goods-carts">
 				<view class="bottom">
 					<view class="goHome" @click="goHome">
-						<button> 测试大厅 </button>
+						<button > 测试大厅 </button>
 					</view>
-					<view class="test" @click="goSelectSex">
-						<button>立即测试</button>
+					<view class="test" >
+						<button class="btn-pay" @click="goSelectSex" :loading="loading" :disabled="disabled">立即测试</button>
 					</view>
 				</view>
 			</view>
@@ -76,15 +76,23 @@
 	import { getQuestionDetail } from '@/api/index.js'
 	export default {
 		onLoad: function(option) {
+			uni.showToast({
+				title: "加载中",
+				mask: true,
+				icon: 'loading'
+			})
 			this.currentId = option.id
 			getQuestionDetail(option.id).then(res => {
+				uni.hideToast()
 				this.introduceInfo = res.data.info
 			})
 		},
 		data() {
 			return {
 				introduceInfo: {},
-				currentId: ''
+				currentId: '',
+				disabled: false,
+				loading: false
 			}
 		},
 		methods: {
@@ -93,6 +101,26 @@
 				uni.switchTab({
 					url:"/pages/index/index"
 				})
+			},
+			async payment() {
+				if(this.loading) {
+					return;
+				}
+				this.loading = true
+				uni.showLoading({
+					title: '支付处理中'
+				})
+				try{
+					// 调取订单
+				} catch(e) {
+					uni.showModal({
+						content: e.message,
+						showCancel: false
+					})
+				}finally{
+					this.loading = false,
+					uni.hideLoading()
+				}
 			},
 			goSelectSex(currentId) {
 				uni.navigateTo({

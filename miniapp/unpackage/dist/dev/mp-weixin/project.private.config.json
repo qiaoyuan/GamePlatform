@@ -3,5 +3,6 @@
   "projectname": "Psychological",
   "setting": {
     "compileHotReLoad": true
-  }
+  },
+  "libVersion": "3.5.4"
 }

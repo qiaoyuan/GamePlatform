@@ -6,8 +6,8 @@
     <!-- 题目区域 -->
     <view class="topic-container">
       <text>
-        <!-- <em class="topic-icon">{{ topicInfoObj.questionCategory | topicType }}</em> -->
-       {{ topicInfoObj.title }}
+        <em class="topic-icon">单选题</em>
+        {{topicInfoObj._tid}}.{{ topicInfoObj.title }}
       </text>
     </view>
 
@@ -15,19 +15,56 @@
     <view class="options-container">
       <button
         class="options-item"
+        
         v-for="(optionItem, optionIndex) in topicInfoObj.options"
+		:style="{background: optionItem.style ? 'deepskyblue' : '' }"
         :key="optionIndex"
         :data-oid="optionIndex"
         @tap="onClickOption">
         <i
           class="options-icon"
-		  :style="{background: optionIndex == currentOptionIndex ? 'blue' : 'none'}"
           >{{ optionsMarkList[optionIndex] }}</i
         >
         <text class="options-content">{{ optionItem.title }}</text>
       </button>
     </view>
 
+    <!-- 多选题点击确认区域，判断答题模式、题目类型、是否已经点击确认，满足则显示确认按钮 -->
+    <button
+      v-if="topicInfoObj.questionCategory === 1 && !topicInfoObj.confirm"
+      class="confirm-btn"
+      type="primary"
+      @click="onClickConfirm">
+      确认
+    </button>
+
+    <!-- 结果区域 -->
+    <!-- <view
+      class="result-container"
+      v-if="topicInfoObj.confirm">
+      <view class="result-item-container">
+        <text class="result-item-title">你的答案</text>
+        <text
+          class="result-item-option"
+          :class="topicInfoObj.state | myAnswerStyle"
+          >{{ topicInfoObj.myAnswer || '未选' }}</text
+        >
+      </view>
+      <view class="result-item-container">
+        <text class="result-item-title">正确答案</text>
+        <text class="result-item-option">{{ topicInfoObj.correctAnswer }}</text>
+      </view>
+    </view> -->
+
+    <!-- 解析区域 -->
+   <!-- <view
+      class="parse-contaienr"
+      v-if="topicInfoObj.confirm">
+      <text>
+        <em class="parse-icon">解析</em>
+        {{ topicInfoObj.analysis | nullHandling }}
+      </text>
+    </view> -->
   </view>
 </template>
 
@@ -48,8 +85,6 @@ export default {
   data() {
     return {
       topicInfoObj: this.topicInfo,
-	  answerArray: [], // 答案内容
-	  currentOptionIndex: -1,
       // 生成 26 个字母
       optionsMarkList: [...Array(26).keys()].map(i => String.fromCharCode(i + 65)),
     }
@@ -64,7 +99,6 @@ export default {
     topicInfo: {
       handler(topicObj) {
         this.topicInfoObj = topicObj
-		this.currentOptionIndex = -1
       },
     },
   },
@@ -109,14 +143,13 @@ export default {
 
   methods: {
     /**
-     * 点击选项方法 保存当前和之前选项值
+     * 点击选项方法
      * @param {Object} e 点击选项产生的事件对象
      */
     onClickOption(e) {
       const { topicInfoObj, optionsMarkList } = this
       const currentOptionIndex = e.currentTarget.dataset.oid
-	  this.currentOptionIndex = currentOptionIndex
-      const { questionCategory: topicCategory, options: optionsList } = topicInfoObj
+      const { questionCategory: topicCategory, options: optionsList } = topicInfoObj  
       // 调用选项处理方法，用于注入选项属性与选中样式
       const options = answeringQuestions.optionHandle({
         topicInfoObj,
@@ -125,8 +158,39 @@ export default {
         currentOptionIndex,
         optionsMarkList,
       })
+	  var currentquestList =  uni.getStorageSync('questionList')
+	  this.$set(this.topicInfoObj, 'options', options)
+	  currentquestList[topicInfoObj._tid - 1] = this.topicInfoObj
+	  uni.setStorageSync('questionList', currentquestList)
+      // 更新题对象中的选项属性，以至于重新渲染页面
+	  this.currentClickList = uni.getStorageSync('questionList')
+      // 是单选题时直接调用多选题点击确认方法，显示正确答案信息
+      // if (topicCategory !== 1) return this.onClickConfirm()
+	  this.$emit('selected', {
+		  data: this.topicInfoObj,
+		  index: topicInfoObj._tid - 1
+	  })
+	  
     },
 
+    /**
+     * 多选题点击确认方法
+     */
+    onClickConfirm() {
+      const { topicInfoObj, optionsMarkList } = this
+      const optionsList = topicInfoObj.options
+
+      // 将当前 this 赋值给 that 用于在确认答案后的回调函数中，调用自定义事件
+      const that = this
+
+      // 调用答案结果处理方法，显示正确答案信息
+      answeringQuestions.answerResultHandle({
+        topicInfoObj,
+        optionsList,
+        optionsMarkList,
+        callback: state => that.$emit('selected', state),
+      })
+    },
   },
 }
 </script>

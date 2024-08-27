@@ -119,7 +119,7 @@
   position: relative;
   width: 100%;
   height: 140rpx;
-  border-bottom: 1px solid #C0C0C0;
+  border-bottom: 1px solid #eeeeee;
 }
 .item .main.data-v-4dcceeb0 {
   font-size: 0.75rem;
@@ -133,7 +133,7 @@
   text-align: left;
 }
 .item .price.data-v-4dcceeb0 {
-  color: #f4ea2a;
+  color: #ffa852;
   position: absolute;
   bottom: 20rpx;
   left: 0rpx;
@@ -146,10 +146,20 @@
   color: gray;
 }
 .item .img.data-v-4dcceeb0 {
-  width: 3rem;
-  height: 3rem;
+  width: 6rem;
+  height: 4rem;
   position: absolute;
-  right: 100rpx;
-  bottom: 10rpx;
+  right: 20rpx;
+  bottom: 8rpx;
+}
+.loginBtn.data-v-4dcceeb0 {
+  width: 200rpx;
+  height: 100rpx;
+  line-height: 100rpx;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  -webkit-transform: translate(-50%, 400%);
+          transform: translate(-50%, 400%);
 }
 
