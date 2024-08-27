@@ -20,7 +20,6 @@ class Order extends BaseController
             $this->error('问卷不存在');
         }
 
-
         $order = QuestionnairesOrder::where(['uid', $this->getUid(), 'questionnaire_id', $param['questionnaire_id']])->find();
         if(empty($order)) {
 
@@ -36,16 +35,11 @@ class Order extends BaseController
                 'price' => $questionnairesObj->price,
                 'pay_status' => QuestionnairesOrder::PAY_UNPAID_STATUS,
             ];
-            $obj = QuestionnairesOrder::create($orderInfo);
+            $order = QuestionnairesOrder::create($orderInfo);
 
         }
 
-//        echo $orderId;
-//        die;
-
-
-
-        $this->success('创建订单成功', $obj);
+        $this->success('创建订单成功', ['info'=>$order]);
 
     }
 
