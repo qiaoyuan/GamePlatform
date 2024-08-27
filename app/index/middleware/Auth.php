@@ -26,7 +26,7 @@ class Auth
             $user = User::verifyToken($request->header(config('jwt.field'), ''));
 
             if ($user) {
-                $request->uid = $user->id;
+                $request->uid = $user->uid;
                 $request->open_id = $user->open_id;
             } else {
                 $this->error('登录失效', '', 401);

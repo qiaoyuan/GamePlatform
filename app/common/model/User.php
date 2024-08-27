@@ -94,7 +94,7 @@ class User extends Base
             // Configures the expiration time of the token (exp claim)
             ->expiresAt($now->modify(config('jwt.expire')))
             // Configures a new claim, called "uid"
-            ->withClaim('code', $code)
+            ->withClaim('open_id', $code)
             ->withClaim('uid', $uid)
             // Builds a new token
             ->getToken($algorithm, $signingKey);
