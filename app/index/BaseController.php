@@ -13,6 +13,13 @@ class BaseController extends \app\common\BaseController
 //        $uid = 999;
 //        return $uid;
     }
+
+    public function getOpenId()
+    {
+        return $this->request->open_id;
+//        $uid = 999;
+//        return $uid;
+    }
     protected function getResponseType(): string
     {
         return 'json';

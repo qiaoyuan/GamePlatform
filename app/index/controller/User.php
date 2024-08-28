@@ -117,21 +117,15 @@ class User extends BaseController
         if (!empty($questionAnswer)) {
 
             //2、已完成报告
-            if ($questionAnswer->response_id = $questionResponse->id) {
+            if ($questionAnswer->response_id == $questionResponse->id) {
                 $this->success("请勿重复生成问卷报!", ['info' => $questionAnswer]);
             }
 
             //1、存在未完成报告
-            $questionAnswer = [
-                'json' => json_encode($param['options']),
-                'created_at' => time(),
-                'uid' => $this->getUid(),
-                'questionnaire_id' => $param['questionnaire_id'],
-                'score' => $scoreSum,
-                'response_id' => $questionResponse->id
-            ];
-
-            QuestionAnswer::update(['response_id' => $questionResponse->id], ['id' => $questionAnswer->id]);
+            $questionAnswer->score = $scoreSum;
+            $questionAnswer->response_id = $questionResponse->id;
+            $questionAnswer->updated_at = time();
+            $questionAnswer->save();
 
         } else { //3 用户没有该问卷报告
 
