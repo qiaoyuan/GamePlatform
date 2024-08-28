@@ -84,7 +84,8 @@ class Order extends BaseController
         $res = $app->order->unify($payData);
         if($res['return_code'] == 'SUCCESS') {
             if(empty($res['prepay_id'])) {
-                $this->error('支付异常：', ['info'=>$res]);
+//                $this->error('支付异常：', ['info'=>$res]);
+                $this->error('已支付未生成报告', [], 3002);
             }
         }
 
@@ -129,7 +130,7 @@ class Order extends BaseController
             $order = $message['out_trade_no'];
             $orderObj = QuestionnairesOrder::where('id', $order)->find();
             if (!empty($orderObj)) { // 如果订单不存在 或者 订单已经支付过了
-                QuestionnairesOrder::where('id', $order)->update(["pay_status"=>QuestionnairesOrder::PAY_PAID_STATUS]);
+                QuestionnairesOrder::where('order_id', $order)->update(["pay_status"=>QuestionnairesOrder::PAY_PAID_STATUS]);
             }
             return true; // 告诉微信，我已经处理完了，订单没找到，别再通知我了
 
