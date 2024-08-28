@@ -9,6 +9,6 @@ return [
     'mch_id' => '1684115005',
 //    'cert_path' => 'xx',
 //    'key_path' => 'xx',
-//    'key' => 'xx',
+    'key' => 'DsW2K1NxRKSA6LKDw4MI0v236XZh3yNC',
     'notify_url' => 'https://psychology.xuanzeti.top/index/order/callback'
 ];

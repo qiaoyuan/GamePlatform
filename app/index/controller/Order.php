@@ -60,7 +60,7 @@ class Order extends BaseController
             // 必要配置
             'app_id'             => config('wechat.app_id'),
             'mch_id'             => config('wechat.mch_id'),
-            'key'                => config('wechat.secret'),   // API v2 密钥 (注意: 是v2密钥 是v2密钥 是v2密钥)
+            'key'                => config('wechat.key'),   // API v2 密钥 (注意: 是v2密钥 是v2密钥 是v2密钥)
 //            'cert_path'          => app()->getRootPath().'public/cert.pem',
 //            'key_path'           => app()->getRootPath().'public/cert.pem',
             'notify_url'         => config('wechat.notify_url'),     // 你也可以在下单时单独设置来想覆盖它
@@ -99,7 +99,7 @@ class Order extends BaseController
             // 必要配置
             'app_id'             => config('wechat.app_id'),
             'mch_id'             => config('wechat.mch_id'),
-            'key'                => config('wechat.secret'),   // API v2 密钥 (注意: 是v2密钥 是v2密钥 是v2密钥)
+            'key'                => config('wechat.key'),   // API v2 密钥 (注意: 是v2密钥 是v2密钥 是v2密钥)
 //            'cert_path'          => 'path/to/your/cert.pem',
 //            'key_path'           => 'path/to/your/key',
             'notify_url'         => config('wechat.notify_url'),     // 你也可以在下单时单独设置来想覆盖它
