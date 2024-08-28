@@ -125,6 +125,7 @@ class User extends BaseController
             $questionAnswer->score = $scoreSum;
             $questionAnswer->response_id = $questionResponse->id;
             $questionAnswer->updated_at = time();
+            $questionAnswer->save();
 
         } else { //3 用户没有该问卷报告
 
