@@ -31,8 +31,6 @@ class Order extends BaseController
                 $answerObj = QuestionAnswer::where(['uid' => $this->getUid(), 'questionnaire_id' => $param['questionnaire_id']])->find();
                 if (!empty($answerObj) && $answerObj->response_id > 0) {
                     $this->error('已支付', ['info' => $answerObj], 3001);
-                } else {
-
                 }
                 $this->error('已支付未生成报告', [], 3002);
             }
