@@ -72,7 +72,7 @@ class Order extends BaseController
         $app = Factory::payment($config);
 
         $payData = [
-            'body' => '问卷支付',
+            'body' => $questionnairesObj->title,
             'out_trade_no' => $order->order_id,
             'total_fee' => $questionnairesObj->price * 100,
             'notify_url' => config('wechat.notify_url'),
@@ -82,8 +82,11 @@ class Order extends BaseController
 //        var_dump($payData);
 //        die;
         $res = $app->order->unify($payData);
-//        var_dump($res);
-//        die;
+        if($res['return_code'] == 'SUCCESS') {
+            if(empty($res['prepay_id'])) {
+                $this->error('支付异常：', ['info'=>$res]);
+            }
+        }
 
         $appId = $res['appid'];
         $nonceStr = $res['nonce_str'];
@@ -96,6 +99,8 @@ class Order extends BaseController
 
         $paySign = strtoupper(md5($string));
         $res['paySign'] = $paySign;
+        $res['timeStamp'] = $timeStamp;
+        $res['package'] = $package;
 
         $this->success('创建订单成功', ['info' => $res]);
 
@@ -121,14 +126,12 @@ class Order extends BaseController
 //        var_dump($app, $config);
 //        die;
         $res = $app->handlePaidNotify(function ($message, $fail) {
-//            $order = $message['out_trade_no'];
-//            $orderObj = QuestionnairesOrder::where('id', $order)->find();
-//            if (!empty($orderObj)) { // 如果订单不存在 或者 订单已经支付过了
-//                QuestionnairesOrder::where('id', $order)->update(["pay_status"=>QuestionnairesOrder::PAY_PAID_STATUS]);
-//            }
-
+            $order = $message['out_trade_no'];
+            $orderObj = QuestionnairesOrder::where('id', $order)->find();
+            if (!empty($orderObj)) { // 如果订单不存在 或者 订单已经支付过了
+                QuestionnairesOrder::where('id', $order)->update(["pay_status"=>QuestionnairesOrder::PAY_PAID_STATUS]);
+            }
             return true; // 告诉微信，我已经处理完了，订单没找到，别再通知我了
-
 
         });
 
