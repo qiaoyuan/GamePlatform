@@ -173,7 +173,9 @@ class User extends BaseController
         //未完成报告
         if (!empty($param['is_ok'])) {
             if ($param['is_ok'] == 2) {
-                $where[] = ['response_id', '=', 0];
+                $order = 'id desc';
+
+
             } else if ($param['is_ok'] == 1) {
                 $where[] = ['response_id', '>', 0];
             }

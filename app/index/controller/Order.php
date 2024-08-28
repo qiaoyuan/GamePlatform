@@ -29,9 +29,10 @@ class Order extends BaseController
             if ($order->pay_status == QuestionnairesOrder::PAY_PAID_STATUS) {
 
                 $answerObj = QuestionAnswer::where(['uid' => $this->getUid(), 'questionnaire_id' => $param['questionnaire_id']])->find();
-
                 if (!empty($answerObj) && $answerObj->response_id > 0) {
                     $this->error('已支付', ['info' => $answerObj], 3001);
+                } else {
+
                 }
                 $this->error('已支付未生成报告', [], 3002);
             }
@@ -112,8 +113,7 @@ class Order extends BaseController
     //回调支付
     public function callback()
     {
-        $input = $this->request->param();
-        QuestionnairesOrderCallback::create(['input_data' => json_encode($input), 'created_at' => time()]);
+        QuestionnairesOrderCallback::create(['input_data' => json_encode($this->request->header()), 'created_at' => time()]);
 
         $config = [
             // 必要配置
@@ -125,11 +125,26 @@ class Order extends BaseController
             'notify_url' => config('wechat.notify_url'),     // 你也可以在下单时单独设置来想覆盖它
         ];
         $app = Factory::payment($config);
-//        var_dump($app, $config);
-//        die;
         $res = $app->handlePaidNotify(function ($message, $fail) {
             $order = $message['out_trade_no'];
-            QuestionnairesOrder::where('order_id', $order)->update(["pay_status" => QuestionnairesOrder::PAY_PAID_STATUS]);
+        $order = '483907144769474560';
+        $orderObj = QuestionnairesOrder::where('order_id', $order)->find();
+        $orderObj->pay_status = QuestionnairesOrder::PAY_PAID_STATUS;
+        $orderObj->save();
+
+        $answer = QuestionAnswer::where('uid', $orderObj->uid)->where('questionnaire_id', $orderObj->questionnaire_id)->find();
+        if (empty($answer)) {
+            $questionAnswer = [
+                'json' => '',
+                'created_at' => time(),
+                'uid' => $orderObj->uid,
+                'questionnaire_id' => $orderObj->questionnaire_id,
+                'score' => 0,
+                'response_id' => 0,
+            ];
+            QuestionAnswer::create($questionAnswer);
+        }
+
             return true; // 告诉微信，我已经处理完了，订单没找到，别再通知我了
 
         });
