@@ -111,7 +111,9 @@ class Order extends BaseController
     //回调支付
     public function callback()
     {
-        QuestionnairesOrderCallback::create(['input_data' => json_encode($this->request->header()), 'created_at' => time()]);
+        $input['head'] = $this->request->header();
+        $input['param'] = $this->request->param();
+        QuestionnairesOrderCallback::create(['input_data' => json_encode($input), 'created_at' => time()]);
 
         $config = [
             // 必要配置
@@ -125,7 +127,7 @@ class Order extends BaseController
         $app = Factory::payment($config);
         $res = $app->handlePaidNotify(function ($message, $fail) {
             $order = $message['out_trade_no'];
-        $order = '483907144769474560';
+//        $order = '483907144769474560';
         $orderObj = QuestionnairesOrder::where('order_id', $order)->find();
         $orderObj->pay_status = QuestionnairesOrder::PAY_PAID_STATUS;
         $orderObj->save();
