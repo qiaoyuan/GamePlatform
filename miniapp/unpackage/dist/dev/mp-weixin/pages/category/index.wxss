@@ -46,7 +46,7 @@
 }
 .category .left .active.data-v-2f754cba {
   color: deepskyblue;
-  border-left: 2px solid deepskyblue;
+  border-left: 4px solid deepskyblue;
   background-color: #ffffff;
 }
 .category .right.data-v-2f754cba {

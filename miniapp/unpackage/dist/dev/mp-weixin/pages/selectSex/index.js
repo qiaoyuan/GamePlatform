@@ -172,10 +172,12 @@ exports.default = void 0;
 var _default = {
   onLoad: function onLoad(option) {
     this.currentId = option.id;
+    this.title = option.title;
   },
   data: function data() {
     return {
-      currentId: ''
+      currentId: '',
+      title: ''
     };
   },
   methods: {

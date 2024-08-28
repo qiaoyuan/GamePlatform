@@ -21,9 +21,9 @@
 					@clickItem="onClickItem" />
 			</view>
 			<view class="content">
-				<view v-if="current === 0" style="width: 100%;">
+				<view v-if="current === 0" style="width: 100%;height: 100%;min-height: 600rpx;">
 					<view v-if="allTest.length>0" style="width: 100%;height: 100%;">
-						<view class="item" v-for="(all,k) in allTest" :key="k" @click="lookReport(all)">
+						<view class="item" v-for="(all,k) in allTest" :key="k" @click="goAllTest(all)">
 							<view class="main">
 								{{all.questionnaire.title}}
 							</view>
@@ -33,6 +33,12 @@
 							<view class="price">
 								￥{{all.questionnaire.price}}
 							</view>
+							<view class="test readyTest" v-if="all.response_id">
+								已测
+							</view>
+							<view class="test noTest" v-else>
+								未测
+							</view>
 							<view class="img" >
 								<image style="width: 100%; height: 100%; border-radius: 10rpx;" :src="all.questionnaire.img_url" alt="" />
 							</view>
@@ -40,7 +46,7 @@
 					</view>
 					<text v-else style="height: 80px;">暂无数据</text>
 				</view>
-				<view v-if="current === 1" style="width: 100%; height: 100%;">
+				<view v-if="current === 1" style="width: 100%; height: 100%; min-height: 600rpx;">
 					<view v-if="finishTest.length>0" style="width: 100%;height: 100%;">
 						<view class="item" v-for="(fin,j) in finishTest" :key="j" @click="lookReport(fin)">
 							<view class="main">
@@ -59,9 +65,9 @@
 					</view>
 					<text v-else style="height: 80px;">暂无数据</text>
 				</view>
-				<view v-else-if="current === 2" style="width: 100%;height: 100%;">
-					<view v-if="inFinishTest.length>0" style="width: 100%;height: 100%;">
-						<view class="item" v-for="(item,index) in inFinishTest" :key="index">
+				<view v-else-if="current === 2" style="width: 100%;height: 100%; min-height: 600rpx;">
+					<view v-if='inFinishTest.length>0' style="width: 100%;height: 100%;">
+						<view class="item" v-for="(item,index) in inFinishTest" :key="index" @click="toAnswer(item.questionnaire_id)">
 							<view class="main">
 								{{item.questionnaire.title}}
 							</view>
@@ -108,22 +114,9 @@
 			return {
 				current: 0,
 				items: ['全部测评', '已完成','未完成'],
-				category: [
-					{
-						id: '3',
-						text: '全部测评'
-					},{
-						id: '2',
-						text: '已完成'
-					},
-					{
-						id: '1',
-						text: '未完成'
-					}
-				],
-				inFinishTest: [],
-				finishTest: [],
-				allTest: [],
+				inFinishTest: [], // 未完成数据
+				finishTest: [], // 已完成数据
+				allTest: [], // 全部数据
 			}
 		},
 		onShow() {
@@ -132,6 +125,13 @@
 			// if (!token) {
 			// 	this.$refs.popup.open('top')
 			// }
+		},
+		onLoad() {
+				uni.showToast({
+					title: '加载中',
+					icon: 'loading',
+					mask:true
+				})
 		},
 		methods: {
 			onClickItem(e) {
@@ -147,27 +147,39 @@
 				})
 			},
 			getTestData(type) {
-				if (type == 0) {
+				if (type == 0) { // 全部测评
 					reportList('').then(res => {
 						this.allTest = res.data.list
 					})
-				} else if (type == 1) {
+				} else if (type == 1) { // 已完成测评
 					reportList(type).then(res => {
 						this.finishTest = res.data.list
 					})
-				} else if(type == 2){
+				} else if(type == 2){ // 未完成测评
 					reportList(type).then(res => {
 						this.inFinishTest = res.data.list
 					})
 				}
 			},
+			goAllTest(all) {
+					if(!all.response_id) { // 前往答题
+						this.toAnswer(all.questionnaire_id)
+					}else { // 查看报告
+						this.lookReport(all)
+					}
+			},
 			// 查看报告
 			lookReport(data) {
-				console.log(data)
 				uni.setStorageSync('reportContent', data.questionnaire.content)
 				uni.navigateTo({
 					url: '/pages/result/index'
 				})
+			},
+			//未完成进入答题
+			toAnswer(id) {
+					uni.navigateTo({
+						url: `/pages/selectSex/index?id=${id}`
+					})
 			},
 			// 登录
 			async getUserInfo() {
@@ -352,7 +364,6 @@
 			font-size: 0.75rem;
 			font-weight: 600;
 			text-align: left;
-
 		}
 
 		.text {
@@ -376,6 +387,12 @@
 			right: 180rpx;
 			color: gray;
 		}
+		.test{
+			font-size: 0.5rem;
+			position: absolute;
+			top: 20rpx;
+			right: 240rpx;
+		}
 
 		.img {
 			width: 6rem;
@@ -383,6 +400,14 @@
 			position: absolute;
 			right: 20rpx;
 			bottom: 8rpx;
+		}
+		.readyTest{
+			color: springgreen;
+			border: 1px solid springgreen;
+		}
+		.noTest{
+			color: #ff0000;
+			border: 1px solid #ff0000;
 		}
 	}
 

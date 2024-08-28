@@ -145,12 +145,26 @@
   right: 180rpx;
   color: gray;
 }
+.item .test.data-v-4dcceeb0 {
+  font-size: 0.5rem;
+  position: absolute;
+  top: 20rpx;
+  right: 240rpx;
+}
 .item .img.data-v-4dcceeb0 {
   width: 6rem;
   height: 4rem;
   position: absolute;
   right: 20rpx;
   bottom: 8rpx;
+}
+.item .readyTest.data-v-4dcceeb0 {
+  color: springgreen;
+  border: 1px solid springgreen;
+}
+.item .noTest.data-v-4dcceeb0 {
+  color: #ff0000;
+  border: 1px solid #ff0000;
 }
 .loginBtn.data-v-4dcceeb0 {
   width: 200rpx;

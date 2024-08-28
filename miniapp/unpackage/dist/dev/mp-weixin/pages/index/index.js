@@ -1,6 +1,6 @@
 (global["webpackJsonp"] = global["webpackJsonp"] || []).push([["pages/index/index"],{
 
-/***/ 130:
+/***/ 34:
 /*!***************************************************************************!*\
   !*** D:/work/psychology/miniapp/main.js?{"page":"pages%2Findex%2Findex"} ***!
   \***************************************************************************/
@@ -275,12 +275,15 @@ var _default = {
       mask: true,
       icon: 'loading'
     });
+    this.getUserCode();
     (0, _index.getHomeInfo)().then(function (res) {
-      uni.hideToast();
       _this.bannerList = res.data.recommend;
       _this.listData = res.data.icon_list;
       _this.hotListData = res.data.home_list;
     });
+  },
+  onPullDownRefresh: function onPullDownRefresh() {
+    this.getUserCode();
   },
   methods: {
     getUserCode: function getUserCode() {
@@ -330,7 +333,6 @@ var _default = {
             },
             success: function success(res) {
               if (res.data) {
-                uni.hideToast();
                 uni.setStorageSync('openId', res.data.data.open_id);
                 uni.setStorageSync('token', res.data.data.token);
               } else {
@@ -437,5 +439,5 @@ __webpack_require__.r(__webpack_exports__);
 
 /***/ })
 
-},[[130,"common/runtime","common/vendor"]]]);
+},[[34,"common/runtime","common/vendor"]]]);
 //# sourceMappingURL=../../../.sourcemap/mp-weixin/pages/index/index.js.map

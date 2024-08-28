@@ -87,9 +87,23 @@ export function reportInfo(id){
 /**
  * 历史报告is_ok'=1：完成的报告  is_ok=0: 未完成报告
  */
-export function reportList(type) {
+export function reportList(data) {
 	return request({
-		url: `/index/user/reportList?is_ok=${type}`,
-		method: 'POST'
+		url: `/index/user/reportList`,
+		method: 'POST',
+		data: {
+			is_ok: data
+		}
+	})
+}
+
+/**
+ * 获取订单详情
+ */
+export function getOrderInfo(data) {
+	return request({
+		url: '/index/order/create',
+		method: 'POST',
+		data
 	})
 }

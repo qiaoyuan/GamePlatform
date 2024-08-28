@@ -63,8 +63,8 @@
 					<view class="goHome" @click="goHome">
 						<button > 测试大厅 </button>
 					</view>
-					<view class="test" >
-						<button class="btn-pay" @click="goSelectSex" :loading="loading" :disabled="disabled">立即测试</button>
+					<view class="test">
+						<button class="btn-pay" @click="payment" :loading="loading" :disabled="disabled">立即测试</button>
 					</view>
 				</view>
 			</view>
@@ -73,7 +73,7 @@
 </template>
 
 <script>
-	import { getQuestionDetail } from '@/api/index.js'
+	import { getQuestionDetail, getOrderInfo } from '@/api/index.js'
 	export default {
 		onLoad: function(option) {
 			uni.showToast({
@@ -103,34 +103,95 @@
 				})
 			},
 			async payment() {
-				if(this.loading) {
-					return;
-				}
-				this.loading = true
 				uni.showLoading({
-					title: '支付处理中'
+					title: '获取订单中',
+					icon: 'loding',
+					mask: true
 				})
 				try{
-					// 调取订单
+					var params = {// 调取订单接口所需的数据
+						questionnaire_id: this.currentId, // 问卷id
+					}
+					// 调取订单接口
+					getOrderInfo(params).then(res => {
+						console.log(res)
+						if(res.code== 0) {
+							// 订单调取成功，查看是否支付，第一次直接支付；若已经支付查看是否完成答题，
+							// 未完成答题则开始答题，已完成答题直接进入报告页
+							this.wxPay(res) // 微信支付
+						}else if(res.code == 3001) { // 已支付，已生成报告  查看报告
+							uni.hideLoading()
+							uni.navigateTo({
+								url: `/pages/report/index?id=${res.data.info.id}`
+							})
+						}else if(res.code == 3002) { // 已支付，未生成报告  进入答题页
+						  uni.hideLoading()
+							uni.navigateTo({
+								url: `/pages/selectSex/index?id=${this.currentId}`
+							})
+						}
+					})
 				} catch(e) {
+					console.log(e)
 					uni.showModal({
 						content: e.message,
 						showCancel: false
 					})
-				}finally{
-					this.loading = false,
-					uni.hideLoading()
-				}
+				} 
+				// finally{
+				// 	uni.hideLoading()
+				// }
+			},
+			wxPay(data) {
+				let orderInfo = data.data
+				let orderData = {
+						// "appid": orderInfo.info.appid,  // 微信开放平台 - 应用 - AppId，注意和微信小程序、公众号 AppId 可能不一致
+						// "mch_id": orderInfo.info.mch_id, // 商户id
+						"package": 'prepay_id=' + orderInfo.info.prepay_id,        // 固定值 
+						"timeStamp": orderInfo.info.timeStamp,       // 时间戳（单位：秒） 
+						"nonceStr": orderInfo.info.nonce_str, // 随机字符串 
+						"paySign": orderInfo.info.paySign ,// 签名，这里用的 MD5/RSA 签名 
+						"signType": "MD5", // 签名类型 
+						// "body": orderInfo.pay_data.body, // 商品描述
+						// "out_trade_no": orderInfo.pay_data.out_trade_no, // 订单号
+						// "total_fee": orderInfo.pay_data.total_fee, // 总价钱，以分为单位
+						// "notify_url": orderInfo.pay_data.notify_url, // 通知地址
+						// "trade_type": orderInfo.pay_data.trade_type, // 支付类型
+					}
+				uni.requestPayment({
+				    provider: 'wxpay',
+				    ...orderData,
+				    success: function (res) {
+							uni.hideLoading()
+							console.log(res)
+							// 进入答题页答题
+							uni.navigateTo({
+								url: `/pages/selectSex/index?id=${this.currentId}`
+							})
+				    },
+				    fail: function (err) {
+							uni.showToast({
+								title: JSON.stringify(err),
+								icon: 'none',
+								mask: true
+							})
+				    },
+						complete(com) {
+							// console.log("用户支付扣款返回", com)
+							uni.showToast({
+								title: '取消支付',
+								icon: 'none'
+							})
+						}
+				});
+			},
+			// 获取当前时间戳 转为字符串
+			getTimeStamp() {
+			  return Math.round(new Date().getTime() / 1000).toString();
 			},
 			goSelectSex(currentId) {
 				uni.navigateTo({
-					url: `/pages/selectSex/index?id=${this.currentId}`
-				})
-			},
-			onClick(e) {
-				uni.showToast({
-					title: `点击${e.content.text}`,
-					icon: 'none'
+					url: `/pages/selectSex/index?id=${this.currentId}&title=${this.introduceInfo.title}`
 				})
 			},
 		}

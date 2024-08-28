@@ -2,7 +2,7 @@
 	<view class="selectSex">
 		<view class="sex">
 			<view class="title">
-				360全面检测（综合方案）
+				{{ title }}
 			</view>
 			<view class="text">
 				为确保测试结果的可信度，<br />
@@ -30,11 +30,13 @@
 	export default{
 		onLoad(option) {
 			this.currentId = option.id
+			this.title = option.title
 			
 		},
 		data() {
 			return {
-				currentId: ''
+				currentId: '',
+				title: ''
 			}
 		},
 		methods: {

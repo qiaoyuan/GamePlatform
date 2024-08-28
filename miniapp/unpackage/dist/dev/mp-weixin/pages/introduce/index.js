@@ -143,82 +143,11 @@ Object.defineProperty(exports, "__esModule", {
 });
 exports.default = void 0;
 var _regenerator = _interopRequireDefault(__webpack_require__(/*! @babel/runtime/regenerator */ 40));
+var _defineProperty2 = _interopRequireDefault(__webpack_require__(/*! @babel/runtime/helpers/defineProperty */ 11));
 var _asyncToGenerator2 = _interopRequireDefault(__webpack_require__(/*! @babel/runtime/helpers/asyncToGenerator */ 42));
 var _index = __webpack_require__(/*! @/api/index.js */ 43);
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
+function ownKeys(object, enumerableOnly) { var keys = Object.keys(object); if (Object.getOwnPropertySymbols) { var symbols = Object.getOwnPropertySymbols(object); enumerableOnly && (symbols = symbols.filter(function (sym) { return Object.getOwnPropertyDescriptor(object, sym).enumerable; })), keys.push.apply(keys, symbols); } return keys; }
+function _objectSpread(target) { for (var i = 1; i < arguments.length; i++) { var source = null != arguments[i] ? arguments[i] : {}; i % 2 ? ownKeys(Object(source), !0).forEach(function (key) { (0, _defineProperty2.default)(target, key, source[key]); }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(target, Object.getOwnPropertyDescriptors(source)) : ownKeys(Object(source)).forEach(function (key) { Object.defineProperty(target, key, Object.getOwnPropertyDescriptor(source, key)); }); } return target; }
 var _default = {
   onLoad: function onLoad(option) {
     var _this = this;
@@ -251,31 +180,53 @@ var _default = {
     payment: function payment() {
       var _this2 = this;
       return (0, _asyncToGenerator2.default)( /*#__PURE__*/_regenerator.default.mark(function _callee() {
+        var params;
         return _regenerator.default.wrap(function _callee$(_context) {
           while (1) {
             switch (_context.prev = _context.next) {
               case 0:
-                if (!_this2.loading) {
-                  _context.next = 2;
-                  break;
-                }
-                return _context.abrupt("return");
-              case 2:
-                _this2.loading = true;
                 uni.showLoading({
-                  title: '支付处理中'
+                  title: '获取订单中',
+                  icon: 'loding',
+                  mask: true
                 });
                 try {
-                  // 调取订单
+                  params = {
+                    // 调取订单接口所需的数据
+                    questionnaire_id: _this2.currentId // 问卷id
+                  }; // 调取订单接口
+
+                  (0, _index.getOrderInfo)(params).then(function (res) {
+                    console.log(res);
+                    if (res.code == 0) {
+                      // 订单调取成功，查看是否支付，第一次直接支付；若已经支付查看是否完成答题，
+                      // 未完成答题则开始答题，已完成答题直接进入报告页
+                      _this2.wxPay(res); // 微信支付
+                    } else if (res.code == 3001) {
+                      // 已支付，已生成报告  查看报告
+                      uni.hideLoading();
+                      uni.navigateTo({
+                        url: "/pages/report/index?id=".concat(res.data.info.id)
+                      });
+                    } else if (res.code == 3002) {
+                      // 已支付，未生成报告  进入答题页
+                      uni.hideLoading();
+                      uni.navigateTo({
+                        url: "/pages/selectSex/index?id=".concat(_this2.currentId)
+                      });
+                    }
+                  });
                 } catch (e) {
+                  console.log(e);
                   uni.showModal({
                     content: e.message,
                     showCancel: false
                   });
-                } finally {
-                  _this2.loading = false, uni.hideLoading();
                 }
-              case 5:
+                // finally{
+                // 	uni.hideLoading()
+                // }
+              case 2:
               case "end":
                 return _context.stop();
             }
@@ -283,15 +234,61 @@ var _default = {
         }, _callee);
       }))();
     },
+    wxPay: function wxPay(data) {
+      var orderInfo = data.data;
+      var orderData = {
+        // "appid": orderInfo.info.appid,  // 微信开放平台 - 应用 - AppId，注意和微信小程序、公众号 AppId 可能不一致
+        // "mch_id": orderInfo.info.mch_id, // 商户id
+        "package": 'prepay_id=' + orderInfo.info.prepay_id,
+        // 固定值 
+        "timeStamp": orderInfo.info.timeStamp,
+        // 时间戳（单位：秒） 
+        "nonceStr": orderInfo.info.nonce_str,
+        // 随机字符串 
+        "paySign": orderInfo.info.paySign,
+        // 签名，这里用的 MD5/RSA 签名 
+        "signType": "MD5" // 签名类型 
+        // "body": orderInfo.pay_data.body, // 商品描述
+        // "out_trade_no": orderInfo.pay_data.out_trade_no, // 订单号
+        // "total_fee": orderInfo.pay_data.total_fee, // 总价钱，以分为单位
+        // "notify_url": orderInfo.pay_data.notify_url, // 通知地址
+        // "trade_type": orderInfo.pay_data.trade_type, // 支付类型
+      };
+
+      uni.requestPayment(_objectSpread(_objectSpread({
+        provider: 'wxpay'
+      }, orderData), {}, {
+        success: function success(res) {
+          uni.hideLoading();
+          console.log(res);
+          // 进入答题页答题
+          uni.navigateTo({
+            url: "/pages/selectSex/index?id=".concat(this.currentId)
+          });
+        },
+        fail: function fail(err) {
+          uni.showToast({
+            title: JSON.stringify(err),
+            icon: 'none',
+            mask: true
+          });
+        },
+        complete: function complete(com) {
+          // console.log("用户支付扣款返回", com)
+          uni.showToast({
+            title: '取消支付',
+            icon: 'none'
+          });
+        }
+      }));
+    },
+    // 获取当前时间戳 转为字符串
+    getTimeStamp: function getTimeStamp() {
+      return Math.round(new Date().getTime() / 1000).toString();
+    },
     goSelectSex: function goSelectSex(currentId) {
       uni.navigateTo({
-        url: "/pages/selectSex/index?id=".concat(this.currentId)
-      });
-    },
-    onClick: function onClick(e) {
-      uni.showToast({
-        title: "\u70B9\u51FB".concat(e.content.text),
-        icon: 'none'
+        url: "/pages/selectSex/index?id=".concat(this.currentId, "&title=").concat(this.introduceInfo.title)
       });
     }
   }

@@ -200,7 +200,7 @@
 
 			.active {
 				color: deepskyblue;
-				border-left: 2px solid deepskyblue;
+				border-left: 4px solid deepskyblue;
 				background-color: #ffffff;
 			}
 		}
