@@ -93,6 +93,8 @@ class Order extends BaseController
     //回调支付
     public function callback()
     {
+//        $message = $this->request->param();
+
         $config = [
             // 必要配置
             'app_id'             => config('wechat.app_id'),
@@ -103,17 +105,21 @@ class Order extends BaseController
             'notify_url'         => config('wechat.notify_url'),     // 你也可以在下单时单独设置来想覆盖它
         ];
         $app = Factory::payment($config);
-        $app->handlePaidNotify(function ($message, $fail) {
-            $order = $message['out_trade_no'];
-            $orderObj = QuestionnairesOrder::where('id', $order)->find();
-            if (!empty($orderObj)) { // 如果订单不存在 或者 订单已经支付过了
-                QuestionnairesOrder::where('id', $order)->update(["pay_status"=>QuestionnairesOrder::PAY_PAID_STATUS]);
-            }
+//        var_dump($app, $config);
+//        die;
+        $res = $app->handlePaidNotify(function ($message, $fail) {
+//            $order = $message['out_trade_no'];
+//            $orderObj = QuestionnairesOrder::where('id', $order)->find();
+//            if (!empty($orderObj)) { // 如果订单不存在 或者 订单已经支付过了
+//                QuestionnairesOrder::where('id', $order)->update(["pay_status"=>QuestionnairesOrder::PAY_PAID_STATUS]);
+//            }
 
             return true; // 告诉微信，我已经处理完了，订单没找到，别再通知我了
 
 
         });
+
+        return $res;
 
     }
 

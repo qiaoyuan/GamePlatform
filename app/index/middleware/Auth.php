@@ -25,8 +25,8 @@ class Auth
 
             $user = User::verifyToken($request->header(config('jwt.field'), ''));
 
-//            $request->uid = 1037;
-//            $request->open_id = "oJ6ds7XGfz4PVVXwUstiuX8bIkpM";
+//            $request->uid = 1036;
+//            $request->open_id = "oJ6ds7ZAo-Lgjc8987HC7QcWuNEI";
 
             if ($user) {
                 $request->uid = $user['uid'];

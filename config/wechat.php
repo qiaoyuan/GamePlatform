@@ -10,5 +10,5 @@ return [
 //    'cert_path' => 'xx',
 //    'key_path' => 'xx',
 //    'key' => 'xx',
-    'notify_url' => 'https://psychology.xuanzeti.top/order/user/callback'
+    'notify_url' => 'https://psychology.xuanzeti.top/index/order/callback'
 ];

@@ -93,7 +93,6 @@ class BaseClient
         $this->pushMiddleware($this->logMiddleware(), 'log');
 
         $response = $this->performRequest($endpoint, $method, $options);
-
         return $returnResponse ? $response : $this->castResponseToType($response, $this->app->config->get('response_type'));
     }
 
