@@ -102,7 +102,7 @@ class Order extends BaseController
         $res['timeStamp'] = $timeStamp;
         $res['package'] = $package;
 
-        $this->success('创建订单成功', ['info' => $res]);
+        $this->success('创建订单成功', ['info' => $res, 'pay_data'=>$payData]);
 
     }
 
