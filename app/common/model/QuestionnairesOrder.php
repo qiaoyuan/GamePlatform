@@ -17,7 +17,8 @@ namespace app\common\model;
  */
 class QuestionnairesOrder extends Base
 {
-    
+    protected $autoWriteTimestamp = true;
+
     protected $table = 'questionnaires_order';
     protected $pk = 'id';
     protected $field = [

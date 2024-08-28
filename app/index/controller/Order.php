@@ -124,26 +124,27 @@ class Order extends BaseController
 //            'key_path'           => 'path/to/your/key',
             'notify_url' => config('wechat.notify_url'),     // 你也可以在下单时单独设置来想覆盖它
         ];
+
         $app = Factory::payment($config);
         $res = $app->handlePaidNotify(function ($message, $fail) {
             $order = $message['out_trade_no'];
-//        $order = '483907144769474560';
-        $orderObj = QuestionnairesOrder::where('order_id', $order)->find();
-        $orderObj->pay_status = QuestionnairesOrder::PAY_PAID_STATUS;
-        $orderObj->save();
+            $orderObj = QuestionnairesOrder::where('order_id', $order)->find();
+            $orderObj->pay_status = QuestionnairesOrder::PAY_PAID_STATUS;
+            $orderObj->updated_at = time();
+            $orderObj->save();
 
-        $answer = QuestionAnswer::where('uid', $orderObj->uid)->where('questionnaire_id', $orderObj->questionnaire_id)->find();
-        if (empty($answer)) {
-            $questionAnswer = [
-                'json' => '',
-                'created_at' => time(),
-                'uid' => $orderObj->uid,
-                'questionnaire_id' => $orderObj->questionnaire_id,
-                'score' => 0,
-                'response_id' => 0,
-            ];
-            QuestionAnswer::create($questionAnswer);
-        }
+            $answer = QuestionAnswer::where('uid', $orderObj->uid)->where('questionnaire_id', $orderObj->questionnaire_id)->find();
+            if (empty($answer)) {
+                $questionAnswer = [
+                    'json' => '',
+                    'created_at' => time(),
+                    'uid' => $orderObj->uid,
+                    'questionnaire_id' => $orderObj->questionnaire_id,
+                    'score' => 0,
+                    'response_id' => 0,
+                ];
+                QuestionAnswer::create($questionAnswer);
+            }
 
             return true; // 告诉微信，我已经处理完了，订单没找到，别再通知我了
 
