@@ -4,6 +4,7 @@ namespace app\index\controller;
 
 use app\common\model\QuestionAnswer;
 use app\common\model\QuestionnairesOrder;
+use app\common\model\QuestionnairesOrderCallback;
 use app\common\model\Snowflake;
 use app\index\BaseController;
 use EasyWeChat\Factory;
@@ -59,12 +60,12 @@ class Order extends BaseController
 
         $config = [
             // 必要配置
-            'app_id'             => config('wechat.app_id'),
-            'mch_id'             => config('wechat.mch_id'),
-            'key'                => config('wechat.key'),   // API v2 密钥 (注意: 是v2密钥 是v2密钥 是v2密钥)
+            'app_id' => config('wechat.app_id'),
+            'mch_id' => config('wechat.mch_id'),
+            'key' => config('wechat.key'),   // API v2 密钥 (注意: 是v2密钥 是v2密钥 是v2密钥)
 //            'cert_path'          => app()->getRootPath().'public/cert.pem',
 //            'key_path'           => app()->getRootPath().'public/cert.pem',
-            'notify_url'         => config('wechat.notify_url'),     // 你也可以在下单时单独设置来想覆盖它
+            'notify_url' => config('wechat.notify_url'),     // 你也可以在下单时单独设置来想覆盖它
         ];
 
 //        var_dump($config);
@@ -82,8 +83,8 @@ class Order extends BaseController
 //        var_dump($payData);
 //        die;
         $res = $app->order->unify($payData);
-        if($res['return_code'] == 'SUCCESS') {
-            if(empty($res['prepay_id'])) {
+        if ($res['return_code'] == 'SUCCESS') {
+            if (empty($res['prepay_id'])) {
 //                $this->error('支付异常：', ['info'=>$res]);
                 $this->error('已支付未生成报告', [], 3002);
             }
@@ -91,9 +92,9 @@ class Order extends BaseController
 
         $appId = $res['appid'];
         $nonceStr = $res['nonce_str'];
-        $package = 'prepay_id='.$res['prepay_id'];
+        $package = 'prepay_id=' . $res['prepay_id'];
         $signType = 'MD5';
-        $timeStamp = time().'';
+        $timeStamp = time() . '';
         $key = config('wechat.key');
 
         $string = "appId=$appId&nonceStr=$nonceStr&package=$package&signType=$signType&timeStamp=$timeStamp&key=$key";
@@ -103,35 +104,32 @@ class Order extends BaseController
         $res['timeStamp'] = $timeStamp;
         $res['package'] = $package;
 
-        $this->success('创建订单成功', ['info' => $res, 'pay_data'=>$payData]);
+        $this->success('创建订单成功', ['info' => $res, 'pay_data' => $payData]);
 
     }
-
 
 
     //回调支付
     public function callback()
     {
-//        $message = $this->request->param();
+        $input = $this->request->param();
+        QuestionnairesOrderCallback::create(['input_data' => json_encode($input), 'created_at' => time()]);
 
         $config = [
             // 必要配置
-            'app_id'             => config('wechat.app_id'),
-            'mch_id'             => config('wechat.mch_id'),
-            'key'                => config('wechat.key'),   // API v2 密钥 (注意: 是v2密钥 是v2密钥 是v2密钥)
+            'app_id' => config('wechat.app_id'),
+            'mch_id' => config('wechat.mch_id'),
+            'key' => config('wechat.key'),   // API v2 密钥 (注意: 是v2密钥 是v2密钥 是v2密钥)
 //            'cert_path'          => 'path/to/your/cert.pem',
 //            'key_path'           => 'path/to/your/key',
-            'notify_url'         => config('wechat.notify_url'),     // 你也可以在下单时单独设置来想覆盖它
+            'notify_url' => config('wechat.notify_url'),     // 你也可以在下单时单独设置来想覆盖它
         ];
         $app = Factory::payment($config);
 //        var_dump($app, $config);
 //        die;
         $res = $app->handlePaidNotify(function ($message, $fail) {
             $order = $message['out_trade_no'];
-            $orderObj = QuestionnairesOrder::where('id', $order)->find();
-            if (!empty($orderObj)) { // 如果订单不存在 或者 订单已经支付过了
-                QuestionnairesOrder::where('order_id', $order)->update(["pay_status"=>QuestionnairesOrder::PAY_PAID_STATUS]);
-            }
+            QuestionnairesOrder::where('order_id', $order)->update(["pay_status" => QuestionnairesOrder::PAY_PAID_STATUS]);
             return true; // 告诉微信，我已经处理完了，订单没找到，别再通知我了
 
         });
