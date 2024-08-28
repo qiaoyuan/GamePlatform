@@ -61,28 +61,30 @@ class Order extends BaseController
             'app_id'             => config('wechat.app_id'),
             'mch_id'             => config('wechat.mch_id'),
             'key'                => config('wechat.secret'),   // API v2 密钥 (注意: 是v2密钥 是v2密钥 是v2密钥)
-//            'cert_path'          => 'path/to/your/cert.pem',
-//            'key_path'           => 'path/to/your/key',
+//            'cert_path'          => app()->getRootPath().'public/cert.pem',
+//            'key_path'           => app()->getRootPath().'public/cert.pem',
             'notify_url'         => config('wechat.notify_url'),     // 你也可以在下单时单独设置来想覆盖它
         ];
 
 //        var_dump($config);
-//        die;
+
         $app = Factory::payment($config);
-//        var_dump($app);
-//        die;
+
         $payData = [
             'body' => '问卷支付',
-            'out_trade_no' => $order->order_id.'',
+            'out_trade_no' => $order->order_id,
             'total_fee' => $questionnairesObj->price * 100,
             'notify_url' => config('wechat.notify_url'),
             'trade_type' => 'JSAPI',
             'openid' => $this->getOpenId(),
         ];
 //        var_dump($payData);
+//        die;
         $res = $app->order->unify($payData);
+//        var_dump($res);
+//        die;
 
-        $this->success('创建订单成功', ['info' => $res, 'pay_data'=>$payData]);
+        $this->success('创建订单成功', ['info' => $res, 'pay_data'=>$payData, 'config'=>$config]);
 
     }
 

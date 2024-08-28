@@ -5,10 +5,10 @@
 
 return [
     'app_id' => 'wxc7f97127d4db121a',
-    'secret' => '9f7053126c953845f5c418255e1641b7',
+    'secret' => '6a7c59db34b0149d5a88d98811a96776',
     'mch_id' => '1684115005',
-    'cert_path' => 'xx',
-    'key_path' => 'xx',
-    'key' => 'xx',
+//    'cert_path' => 'xx',
+//    'key_path' => 'xx',
+//    'key' => 'xx',
     'notify_url' => 'https://psychology.xuanzeti.top/order/user/callback'
 ];
