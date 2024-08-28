@@ -8,6 +8,7 @@ use app\common\model\Snowflake;
 use app\index\BaseController;
 use EasyWeChat\Factory;
 use think\App;
+use Yansongda\Pay\Provider\Wechat;
 
 class Order extends BaseController
 {
@@ -84,7 +85,19 @@ class Order extends BaseController
 //        var_dump($res);
 //        die;
 
-        $this->success('创建订单成功', ['info' => $res, 'pay_data'=>$payData, 'config'=>$config]);
+        $appId = $res['appid'];
+        $nonceStr = $res['nonce_str'];
+        $package = 'prepay_id='.$res['prepay_id'];
+        $signType = 'MD5';
+        $timeStamp = time().'';
+        $key = config('wechat.key');
+
+        $string = "appId=$appId&nonceStr=$nonceStr&package=$package&signType=$signType&timeStamp=$timeStamp&key=$key";
+
+        $paySign = strtoupper(md5($string));
+        $res['paySign'] = $paySign;
+
+        $this->success('创建订单成功', ['info' => $res]);
 
     }
 
