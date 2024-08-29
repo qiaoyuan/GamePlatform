@@ -89,8 +89,8 @@ class Order extends BaseController
 //        var_dump($payData);
 //        die;
         $res = $app->order->unify($payData);
-        var_dump($res);
-        die;
+//        var_dump($res);
+//        die;
         if ($res['return_code'] == 'SUCCESS') {
             if (empty($res['prepay_id'])) {
 //                $this->error('支付异常：', ['info'=>$res]);
