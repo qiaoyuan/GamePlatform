@@ -2,6 +2,8 @@
 
 namespace app\common\model;
 
+use think\model\relation\BelongsTo;
+
 /**
  * @property int $id
  * @property int $questionnaire_id 问卷id
@@ -44,4 +46,9 @@ class QuestionnairesOrder extends Base
         self::PAY_UNPAID_STATUS => '未支付',
         self::PAY_PAID_STATUS => '已支付',
     ];
+
+    public function questionnaire(): BelongsTo
+    {
+        return $this->belongsTo(Questionnaires::class, 'questionnaire_id', 'id');
+    }
 }
