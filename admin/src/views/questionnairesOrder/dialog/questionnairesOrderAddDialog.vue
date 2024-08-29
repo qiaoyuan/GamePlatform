@@ -27,7 +27,7 @@ export default {
           label: '问卷id',
           value: questionnaire_id,
           formType: 'select',
-          options: '/questionnaire/select'
+          options: '/questionnaires/select'
         },
         order_id: {
           label: '订单号',
@@ -36,7 +36,21 @@ export default {
         },
         uid: { label: '用户', value: uid, formType: 'number' },
         price: { label: '问卷价格', value: price, formType: 'number' },
-        pay_status: { label: '0：未支付，1：支付', value: pay_status, formType: 'number' },
+        pay_status: {
+          label: '支付情况',
+          value: pay_status,
+          formType: 'select',
+          options: [
+            {
+              label: '未支付',
+              value: 0
+            },{
+              label: '已支付',
+              value: 1
+            }
+          ]
+        }
+        // pay_status: { label: '0：未支付，1：支付', value: pay_status, formType: 'number' },
       }
       if (id) {
         this.form.id = { show: false, value: id }
