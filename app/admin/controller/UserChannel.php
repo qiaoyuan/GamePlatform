@@ -15,9 +15,16 @@ class UserChannel extends BaseController
     {
         $lists = $this->tableList(Model::class, ['id' => 'DESC'], ['title'])
             ->selectData();
+
+        if(!is_numeric($lists)) {
+            $lists->each(function ($item) {
+                $item->link = "https://psychology.xuanzeti.top?channel_id=" . $item->id;
+            });
+        }
         $this->success('', [
             'list' => $lists,
         ]);
+
     }
 
     #[Permission(title: '修改渠道')]
@@ -64,9 +71,11 @@ class UserChannel extends BaseController
     {
         return [
             ['v' => 'id', 'label' => 'ID', 'searchType' => 'match', 'sort' => 'id'],
+            ['v' => 'title', 'label' => '渠道名称'],
+            ['v' => 'link', 'label' => '链接'],
+//            ['v' => 'img_url', 'label' => '二维码', "render"=>"image"],
             ['v' => 'status', 'label' => '是否启用', 'render' => 'status', 'sort' => 'status'],
             ['v' => 'created_at', 'label' => '日期', 'searchType' => 'number', 'sort' => 'created_at'],
-            ['v' => 'title', 'label' => ''],
         ];
     }
 }

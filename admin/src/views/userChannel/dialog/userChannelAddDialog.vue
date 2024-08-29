@@ -21,9 +21,10 @@ export default {
     }
   },
   methods: {
-    setForm({ id, status, title }) {
+    setForm({ id, title, img_url}) {
       this.form = {
         title: { label: '渠道名称', value: title },
+        // img_url: { label: '渠道名称', value: img_url, formType:'upload' },
       }
       if (id) {
         this.form.id = { show: false, value: id }

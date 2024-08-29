@@ -8,6 +8,8 @@ namespace app\common\model;
  * @property string $created_at
  * @property string $updated_at
  * @property string $title
+ * @property string $img_url
+ * @property string $link
  */
 class UserChannel extends Base
 {
@@ -21,6 +23,8 @@ class UserChannel extends Base
         'created_at',
         'updated_at',
         'title',
+        'img_url',
+        'link',
     ];
     protected $type = [];
 }
