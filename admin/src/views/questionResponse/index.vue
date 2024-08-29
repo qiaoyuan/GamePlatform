@@ -38,7 +38,6 @@ export default {
       this.$refs.wTable.getList()
     },
     onEdit(row) {
-      console.log(row)
       this.$refs.questionResponseAddDialog.open(row)
     },
     onAdd() {
