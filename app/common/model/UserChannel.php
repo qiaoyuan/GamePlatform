@@ -11,7 +11,8 @@ namespace app\common\model;
  */
 class UserChannel extends Base
 {
-    
+    protected $autoWriteTimestamp = true;
+
     protected $table = 'user_channel';
     protected $pk = 'id';
     protected $field = [

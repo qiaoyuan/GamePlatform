@@ -23,8 +23,7 @@ export default {
   methods: {
     setForm({ id, status, title }) {
       this.form = {
-        status: { label: '', value: status, formType: 'status' },
-        title: { label: '', value: title },
+        title: { label: '渠道名称', value: title },
       }
       if (id) {
         this.form.id = { show: false, value: id }

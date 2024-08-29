@@ -45,6 +45,13 @@ class UserChannel extends BaseController
         ]);
     }
 
+    #[Permission(title: '修改状态')]
+    public function status(): void
+    {
+        $status = input('status', 0);
+        Model::update(['status' => $status], ['id' => $this->getInputPk()]);
+        $this->success('修改成功', ['status' => $status]);
+    }
 
     public function select(): void
     {
@@ -56,8 +63,8 @@ class UserChannel extends BaseController
     public function columns(): array
     {
         return [
-            ['v' => 'id', 'label' => '渠道ID', 'searchType' => 'match', 'sort' => 'id'],
-            ['v' => 'status', 'label' => '', 'render' => 'status', 'sort' => 'status'],
+            ['v' => 'id', 'label' => 'ID', 'searchType' => 'match', 'sort' => 'id'],
+            ['v' => 'status', 'label' => '是否启用', 'render' => 'status', 'sort' => 'status'],
             ['v' => 'created_at', 'label' => '日期', 'searchType' => 'number', 'sort' => 'created_at'],
             ['v' => 'title', 'label' => ''],
         ];
