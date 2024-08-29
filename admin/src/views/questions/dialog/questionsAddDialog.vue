@@ -92,5 +92,8 @@ export default {
   display: flex;
   justify-content: flex-start;
 }
+::v-deep.el-button--small.is-circle{
+  padding: 4px !important;
+}
 </style>
 

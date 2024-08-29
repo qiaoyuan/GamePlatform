@@ -1,6 +1,7 @@
 # 忽略以下文件和目录
 node_modules/
 /dist/
+/unpackage/
 /dev/
 /.DS_Store
  
