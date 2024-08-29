@@ -17,7 +17,7 @@ class Questions extends BaseController
             $this->error('参数错误');
         }
 
-        $lists = Model::order(['sort' => 'ASC'])->with(['questionOptions' => function ($query) {
+        $lists = Model::where('questionnaire_id', $param['questionnaire_id'])->where('status', 1)->order(['sort' => 'ASC'])->with(['questionOptions' => function ($query) {
             $query->order(['sort' => 'ASC']);
         }])->select();
         $lists->each(function ($item) {
