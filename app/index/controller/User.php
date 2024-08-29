@@ -56,6 +56,7 @@ class User extends BaseController
                 'nickname' => '',
                 'open_id' => $openId,
                 'content' => $content,
+                'channel_id' => $param['channel_id'] ?? 0,
             ];
             $usrObj = \app\common\model\User::create($data);
 

@@ -9,3 +9,4 @@ runtime/
 node_modules
 public/image/
 .phpunit.result.cache
+admin/.env.development
