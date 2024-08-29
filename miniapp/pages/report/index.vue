@@ -25,9 +25,10 @@
 				icon: 'loading'
 			})
 			reportInfo(options.id).then(res => {
-				const htmlString = res.data.info.text
-				this.ReportObj = res.data.info.text
+				const htmlString = res.data.info.text || null
+				this.ReportObj = res.data.info.text || null
 				uni.hideToast()
+				
 			})
 		},
 		data() {

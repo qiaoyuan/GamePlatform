@@ -232,7 +232,7 @@ var _default = {
   data: function data() {
     return {
       navTitle: '答题栏',
-      displayPopup: false,
+      // displayPopup: false,
       surveryId: '',
       questionList: [],
       initCurrentIndex: 0,
@@ -261,7 +261,7 @@ var _default = {
             case 0:
               uni.showToast({
                 title: '加载中',
-                mask: true,
+                // mask: true,
                 icon: "loading"
               });
               _this.surveryId = options.id;
@@ -271,6 +271,16 @@ var _default = {
               questionList = _context.sent;
               _this.questionList = questionList.data.list;
               uni.hideToast();
+              if (_this.questionList.length <= 0) {
+                uni.showLoading({
+                  title: '该问卷没有题目',
+                  icon: 'errro',
+                  mask: true
+                });
+                setTimeout(function () {
+                  uni.hideLoading();
+                }, 2000);
+              }
               uni.setStorageSync('questionList', []);
               _this.resultObj.total = _this.questionList.length;
 
@@ -279,7 +289,7 @@ var _default = {
 
               // 设置导航栏题号信息
               _this.navTitle = "".concat(_this.initCurrentIndex + 1, "/").concat(_this.resultObj.total) + "\u7B54\u9898\u4E2D\u3002\u3002\u3002";
-            case 11:
+            case 12:
             case "end":
               return _context.stop();
           }
@@ -335,9 +345,9 @@ var _default = {
     /**
      * 点击答题卡方法
      */
-    onClickAnswerSheet: function onClickAnswerSheet() {
-      this.displayPopup = true;
-    },
+    // onClickAnswerSheet() {
+    // 	this.displayPopup = true
+    // },
     /**
      * 点击下一题方法
      */

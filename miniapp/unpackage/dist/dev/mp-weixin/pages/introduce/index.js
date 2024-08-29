@@ -260,25 +260,35 @@ var _default = {
       }, orderData), {}, {
         success: function success(res) {
           uni.hideLoading();
-          console.log(res);
+          // console.log(res)
           // 进入答题页答题
           uni.navigateTo({
             url: "/pages/selectSex/index?id=".concat(this.currentId)
           });
         },
         fail: function fail(err) {
-          uni.showToast({
-            title: JSON.stringify(err),
-            icon: 'none',
-            mask: true
-          });
+          if (err.errMsg == 'requestPayment:fail cancel') {
+            uni.showToast({
+              title: '取消支付',
+              icon: 'none',
+              mask: true
+            });
+          } else {
+            uni.showToast({
+              title: JSON.stringify(err),
+              icon: 'none',
+              mask: true
+            });
+          }
+          uni.hideLoading();
         },
         complete: function complete(com) {
           // console.log("用户支付扣款返回", com)
-          uni.showToast({
-            title: '取消支付',
-            icon: 'none'
-          });
+          uni.hideLoading();
+          // uni.showToast({
+          // 	title: '取消支付',
+          // 	icon: 'none'
+          // })
         }
       }));
     },

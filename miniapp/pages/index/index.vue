@@ -68,7 +68,7 @@
 					<view class="bottom-left" @click="reviewDetail(item.questionnaires[1].id ? item.questionnaires[1].id : '')">
 						<view class="top">
 							<view class="title">{{item.questionnaires[1].title}}</view>
-							<view class="text">{{ item.questionnaires[1].description }}</view>
+							<view class="text">{{ item.questionnaires[1].description? item.questionnaires[1].description : ''}}</view>
 						</view>
 						<view class="bottom">
 							<view class="btn">去测试</view>
@@ -83,7 +83,7 @@
 					<view class="bottom-right" @click="reviewDetail(item.questionnaires[2].id ? item.questionnaires[2].id : '')">
 						<view class="top">
 							<view class="title">{{ item.questionnaires[2].title }}</view>
-							<view class="text">{{ item.questionnaires[2].description }}</view>
+							<view class="text">{{ item.questionnaires[2].description ? item.questionnaires[2].description : '' }}</view>
 						</view>
 						<view class="bottom">
 							<view class="btn">去测试</view>
@@ -116,7 +116,8 @@
 				bannerList: [],
 				listData: [],
 				hotListData: [],
-				token: ''
+				token: '',
+				channelId: 0
 			}
 		},
 		onShow() {
@@ -126,7 +127,12 @@
 				this.getUserCode()
 			}
 		},
-		onLoad() {
+		onLoad(options) {
+			if(options.q){
+				let scene = decodeURIComponent(options.q)
+				this.channelId = scene.split('=')[1]
+			}
+			
 			uni.showToast({
 				title: "加载中",
 				mask: true,
@@ -167,7 +173,8 @@
 							url: 'https://psychology.xuanzeti.top/index/user/login', // 你的登录API地址
 							method: 'POST',
 							data: {
-								code
+								code: code,
+								channel_id: this.channelId
 							},
 							success: (res) => {
 								if (res.data) {
