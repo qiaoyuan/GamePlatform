@@ -97,14 +97,14 @@ class Admin extends BaseController
             ['v' => 'username', 'label' => '账号'],
             ['v' => 'nickname', 'label' => '名称'],
             ['v' => 'phone', 'label' => '电话'],
-            [
-                'v' => 'admin_department_id',
-                'label' => '部门',
-                'sort' => 'admin_department_id',
-                'searchType' => 'multiple',
-                'searchList' => '/adminDepartment/select',
-                'replace' => true,
-            ],
+            // [
+            //     'v' => 'admin_department_id',
+            //     'label' => '部门',
+            //     'sort' => 'admin_department_id',
+            //     'searchType' => 'multiple',
+            //     'searchList' => '/adminDepartment/select',
+            //     'replace' => true,
+            // ],
             [
                 'v' => 'reg_admin_id',
                 'label' => '创建人',

@@ -53,9 +53,6 @@
 
 <script>
 	// 导入请求方法
-	import {
-		getTrainTopicInitData
-	} from '../../api/train-topic.js'
 import { getQusetionList, submitAnswer, reportInfo } from '@/api/index.js'
 	export default {
 		data() {
@@ -89,7 +86,6 @@ import { getQusetionList, submitAnswer, reportInfo } from '@/api/index.js'
 			})
 			this.surveryId = options.id
 			const questionList = await getQusetionList(options.id)
-			// this.questionList = topic.data.data
 			this.questionList = questionList.data.list
 			uni.hideToast()
 			uni.setStorageSync('questionList', [])
@@ -99,7 +95,7 @@ import { getQusetionList, submitAnswer, reportInfo } from '@/api/index.js'
 			this.$refs.swiperRef.init(this.questionList, this.initCurrentIndex)
 			
 			// 设置导航栏题号信息
-			this.navTitle = `${this.initCurrentIndex + 1}/${this.resultObj.total}`
+			this.navTitle = `${this.initCurrentIndex + 1}/${this.resultObj.total}` + `答题中。。。`
 		},
 
 		filters: {
@@ -143,7 +139,7 @@ import { getQusetionList, submitAnswer, reportInfo } from '@/api/index.js'
 			 */
 			swiperChangeEvent(e) {
 				this.initCurrentIndex = e.current
-				this.navTitle = `${this.initCurrentIndex + 1}/${this.resultObj.total}`
+				this.navTitle = `${this.initCurrentIndex + 1}/${this.resultObj.total}` + `答题中。。。`
 			},
 
 			/**
@@ -174,8 +170,6 @@ import { getQusetionList, submitAnswer, reportInfo } from '@/api/index.js'
 					icon: 'error'
 				})
 			}
-				
-				
 			},
 
 			/**
@@ -207,6 +201,7 @@ import { getQusetionList, submitAnswer, reportInfo } from '@/api/index.js'
 							// 	uni.setStorageSync('reportContent', res.data.info.text)
 							// })
 							// uni.removeStorageSync('optionsList')
+							uni.removeStorageSync("questionList")
 							uni.navigateTo({
 								url: `/pages/report/index?id=${res.data.info.id}`
 							})

@@ -27,12 +27,12 @@ export default {
         nickname: { label: '姓名', value: nickname },
         username: { label: '账号', value: username },
         phone: { label: '电话', value: phone },
-        admin_department_id: {
-          label: '部门',
-          value: admin_department_id,
-          formType: 'treeRadioFree',
-          options: '/adminDepartment/selectTree',
-        },
+        // admin_department_id: {
+        //   label: '部门',
+        //   value: admin_department_id,
+        //   formType: 'treeRadioFree',
+        //   options: '/adminDepartment/selectTree',
+        // },
         password: { label: '密码', value: password, required: false, tooltip: '不修改密码请留空' },
         status: { label: '状态', value: status, formType: 'status' }
       }

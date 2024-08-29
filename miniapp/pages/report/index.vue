@@ -1,22 +1,22 @@
 <template>
 	<view class="result">
-		<rich-text :nodes="ReportObj"></rich-text>
+		<!-- <NavBar
+		   :title="navTitle"
+		   @back="onClickBack" /> -->
+				<rich-text :nodes="ReportObj"></rich-text>
 	</view>
 </template>
 
 <script>
 	import { reportInfo } from '@/api/index.js'
 	export default {
-		onShow() {
-			// uni.showToast({
-			// 	title: '加载中',
-			// 	mask:true,
-			// 	icon: 'loading'
-			// })
-			// this.ReportObj = uni.getStorageSync('reportContent')
-			// if(this.ReportObj) {
-			// 	uni.hideToast()
-			// }
+		 onUnload() {// 页面销毁返回首页
+		  // 如果多端发布的话判断一下当前操作的客户端 
+			//#ifdef MP-WEIXIN
+			uni.switchTab({
+				url: '/pages/index/index'
+			})
+			//#endif
 		},
 		onLoad(options) {
 			uni.showToast({
@@ -26,17 +26,23 @@
 			})
 			reportInfo(options.id).then(res => {
 				const htmlString = res.data.info.text
-				console.log(typeof(htmlString))
 				this.ReportObj = res.data.info.text
 				uni.hideToast()
 			})
-			
 		},
 		data() {
 			return {
-				ReportObj: null
+				ReportObj: null,
+				navTitle: '报告内容'
 			}
-		}
+		},
+		methods: {
+			onClickBack() {
+				uni.switchTab({
+					url: "/pages/index/index"
+				})
+			}
+		},
 	}
 </script>
 

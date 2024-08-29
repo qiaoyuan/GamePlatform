@@ -6,8 +6,8 @@
     <!-- 题目区域 -->
     <view class="topic-container">
       <text>
-        <em class="topic-icon">单选题</em>
-        {{topicInfoObj._tid}}.{{ topicInfoObj.title }}
+        <!-- <em class="topic-icon">单选题</em> -->
+        {{topicInfoObj._tid}}、{{ topicInfoObj.title }}
       </text>
     </view>
 
@@ -149,7 +149,7 @@ export default {
     onClickOption(e) {
       const { topicInfoObj, optionsMarkList } = this
       const currentOptionIndex = e.currentTarget.dataset.oid
-      const { questionCategory: topicCategory, options: optionsList } = topicInfoObj  
+      const { questionCategory: topicCategory, options: optionsList } = topicInfoObj
       // 调用选项处理方法，用于注入选项属性与选中样式
       const options = answeringQuestions.optionHandle({
         topicInfoObj,

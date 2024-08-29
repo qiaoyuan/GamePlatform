@@ -101,7 +101,7 @@ var components
 try {
   components = {
     uniSegmentedControl: function () {
-      return __webpack_require__.e(/*! import() | uni_modules/uni-segmented-control/components/uni-segmented-control/uni-segmented-control */ "uni_modules/uni-segmented-control/components/uni-segmented-control/uni-segmented-control").then(__webpack_require__.bind(null, /*! @/uni_modules/uni-segmented-control/components/uni-segmented-control/uni-segmented-control.vue */ 101))
+      return __webpack_require__.e(/*! import() | uni_modules/uni-segmented-control/components/uni-segmented-control/uni-segmented-control */ "uni_modules/uni-segmented-control/components/uni-segmented-control/uni-segmented-control").then(__webpack_require__.bind(null, /*! @/uni_modules/uni-segmented-control/components/uni-segmented-control/uni-segmented-control.vue */ 108))
     },
   }
 } catch (e) {
@@ -283,24 +283,22 @@ var _index = __webpack_require__(/*! @/api/index.js */ 43);
 //
 //
 //
+//
+//
+//
+//
+//
+//
 var _default = {
   data: function data() {
     return {
       current: 0,
       items: ['全部测评', '已完成', '未完成'],
-      category: [{
-        id: '3',
-        text: '全部测评'
-      }, {
-        id: '2',
-        text: '已完成'
-      }, {
-        id: '1',
-        text: '未完成'
-      }],
       inFinishTest: [],
+      // 未完成数据
       finishTest: [],
-      allTest: []
+      // 已完成数据
+      allTest: [] // 全部数据
     };
   },
   onShow: function onShow() {
@@ -310,7 +308,13 @@ var _default = {
     // 	this.$refs.popup.open('top')
     // }
   },
-
+  onLoad: function onLoad() {
+    uni.showToast({
+      title: '加载中',
+      icon: 'loading',
+      mask: true
+    });
+  },
   methods: {
     onClickItem: function onClickItem(e) {
       if (this.current !== e.currentIndex) {
@@ -327,25 +331,42 @@ var _default = {
     getTestData: function getTestData(type) {
       var _this = this;
       if (type == 0) {
+        // 全部测评
         (0, _index.reportList)('').then(function (res) {
           _this.allTest = res.data.list;
         });
       } else if (type == 1) {
+        // 已完成测评
         (0, _index.reportList)(type).then(function (res) {
           _this.finishTest = res.data.list;
         });
       } else if (type == 2) {
+        // 未完成测评
         (0, _index.reportList)(type).then(function (res) {
           _this.inFinishTest = res.data.list;
         });
       }
     },
+    goAllTest: function goAllTest(all) {
+      if (!all.response_id) {
+        // 前往答题
+        this.toAnswer(all.questionnaire_id);
+      } else {
+        // 查看报告
+        this.lookReport(all);
+      }
+    },
     // 查看报告
     lookReport: function lookReport(data) {
-      console.log(data);
       uni.setStorageSync('reportContent', data.questionnaire.content);
       uni.navigateTo({
         url: '/pages/result/index'
+      });
+    },
+    //未完成进入答题
+    toAnswer: function toAnswer(id) {
+      uni.navigateTo({
+        url: "/pages/selectSex/index?id=".concat(id)
       });
     },
     // 登录

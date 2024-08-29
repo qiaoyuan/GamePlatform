@@ -4,7 +4,7 @@
       <i class="back iconfont icon-back"
         @click="onClickBack" />
     </slot>
-	<text>{{ title }}答题中。。。</text>
+	<text>{{ title }}</text>
     <slot>
       <view class="back"></view>
     </slot>

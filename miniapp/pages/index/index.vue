@@ -132,12 +132,15 @@
 				mask: true,
 				icon: 'loading'
 			})
+			this.getUserCode()
 			getHomeInfo().then(res => {
-				uni.hideToast()
 				this.bannerList = res.data.recommend
 				this.listData = res.data.icon_list
 				this.hotListData = res.data.home_list
 			})
+		},
+		onPullDownRefresh() {
+			this.getUserCode()
 		},
 		methods: {
 			async getUserCode() {
@@ -168,7 +171,6 @@
 							},
 							success: (res) => {
 								if (res.data) {
-									uni.hideToast()
 									uni.setStorageSync('openId', res.data.data.open_id);
 									uni.setStorageSync('token', res.data.data.token);
 								} else {
@@ -221,7 +223,6 @@
 						icon: 'none'
 					})
 				}
-				
 			},
 			// 查看更多测评
 			lookMore(id, index) {

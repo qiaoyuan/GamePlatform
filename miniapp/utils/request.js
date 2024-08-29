@@ -36,31 +36,30 @@ const request = config => {
         //   reject('后端接口连接异常')
         //   return
         // }
-		let res = response
+				let res = response
         const code = res.data.code || 0
-		console.log(code)
         const msg = errorCode[code] || res.data.msg || errorCode['default']
         if (code === 401) {
 			//未登录可能是没有刷新令牌，这里刷新一次然后再去请求
-			let refreshToken =  getRefreshToken()
-			if(refreshToken){
-				//没有刷新令牌
-				// logOut()
-			}else {
-				//刷新令牌
-			}
+					let refreshToken =  getRefreshToken()
+					if(refreshToken){
+						//没有刷新令牌
+						// logOut()
+					}else {
+						//刷新令牌
+					}
+					toast('会话已过期，请回到首页下拉刷新')
           reject('无效的会话，或者会话已过期，请重新登录。')
         } else if (code === 500) {
           toast(msg)
           reject('500')
-        } else if (code !== 0) {
+        } else if (code !== 0 && code !== 3002 && code !== 3001) {
           toast(res.data.message)
           reject(code)
         }
         resolve(res.data)
       })
       .catch(error => {
-		console.log(error)
         let { message } = error
         if (message === 'Network Error') {
           message = '后端接口连接异常'
