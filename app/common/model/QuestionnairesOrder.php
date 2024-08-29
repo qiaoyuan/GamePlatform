@@ -42,7 +42,8 @@ class QuestionnairesOrder extends Base
 
     const PAY_UNPAID_STATUS = 0;
     const PAY_PAID_STATUS = 1;
-    const pay_status = [
+
+    public static $PAY_STATUS = [
         self::PAY_UNPAID_STATUS => '未支付',
         self::PAY_PAID_STATUS => '已支付',
     ];
@@ -51,4 +52,13 @@ class QuestionnairesOrder extends Base
     {
         return $this->belongsTo(Questionnaires::class, 'questionnaire_id', 'id');
     }
+
+    public static function getPayStatusList()
+    {
+        return [
+            ['label' => self::PAY_UNPAID_STATUS, 'value' => self::$PAY_STATUS[self::PAY_UNPAID_STATUS]],
+            ['label' => self::PAY_PAID_STATUS, 'value' => self::$PAY_STATUS[self::PAY_PAID_STATUS]],
+        ];
+    }
+
 }

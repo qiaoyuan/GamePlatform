@@ -126,6 +126,7 @@ class Order extends BaseController
         ];
 
         $app = Factory::payment($config);
+
         $res = $app->handlePaidNotify(function ($message, $fail) {
             $order = $message['out_trade_no'];
             $orderObj = QuestionnairesOrder::where('order_id', $order)->find();
