@@ -15,11 +15,13 @@ class QuestionnairesOrder extends BaseController
     {
         $lists = $this->tableList(Model::class, ['created_at' => 'DESC'])->with('questionnaire')
             ->selectData();
-        $payMap = Model::$PAY_MAP;
 
         if(!is_numeric($lists)) {
-            $lists->each(function (Model $item) use ($payMap) {
+            $lists->each(function (Model $item)  {
+                $payMap = Model::$PAY_MAP;
+                $statusMap = Model::$statusMap;
                 $item->pay_status_name = $payMap[$item->pay_status];
+                $item->status_name = $statusMap[$item->status];
             });
         }
 
@@ -70,6 +72,7 @@ class QuestionnairesOrder extends BaseController
                 'v' => 'questionnaire.title',
                 'label' => '问卷名称',
                 'sort' => 'questionnaire_id',
+                'search' => 'questionnaire_id',
                 'searchType' => 'multiple',
                 'searchList' => '/questionnaires/select',
             ],
@@ -81,6 +84,7 @@ class QuestionnairesOrder extends BaseController
             ['v' => 'uid', 'label' => '用户', 'searchType' => 'number', 'sort' => 'uid'],
             ['v' => 'created_at', 'label' => '创建时间', 'searchType' => 'number', 'sort' => 'created_at'],
             ['v' => 'price', 'label' => '订单价格', 'searchType' => 'number', 'sort' => 'price'],
+            ['v' => 'status_name', 'search'=>'status', 'label' => '订单状态', 'searchType' => 'multiple', 'searchList' => Model::getStatusList()],
             ['v' => 'pay_status_name', 'search'=>'pay_status', 'label' => '支付状态', 'searchType' => 'multiple', 'searchList' => Model::getPayStatusList()],
         ];
     }

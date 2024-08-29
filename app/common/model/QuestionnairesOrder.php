@@ -48,6 +48,13 @@ class QuestionnairesOrder extends Base
         self::PAY_PAID_STATUS => '已支付',
     ];
 
+    const NONE_STATUS = 1;
+    const DEL_STATUS = 0;
+    public static $statusMap = [
+        self::NONE_STATUS => '正常',
+        self::DEL_STATUS => '删除',
+    ];
+
     public function questionnaire(): BelongsTo
     {
         return $this->belongsTo(Questionnaires::class, 'questionnaire_id', 'id');
@@ -58,6 +65,14 @@ class QuestionnairesOrder extends Base
         return [
             ['label' => self::$PAY_MAP[self::PAY_UNPAID_STATUS], 'value' =>self::PAY_UNPAID_STATUS],
             ['label' => self::$PAY_MAP[self::PAY_PAID_STATUS], 'value' => self::PAY_PAID_STATUS],
+        ];
+    }
+
+    public static function getStatusList()
+    {
+        return [
+            ['label' => '正常', 'value' =>1],
+            ['label' => '删除', 'value' => 0],
         ];
     }
 

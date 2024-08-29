@@ -19,14 +19,18 @@ class Order extends BaseController
         $param = $this->request->param();
 
         $time = time();
+
         $questionnairesObj = \app\common\model\Questionnaires::where(['id' => $param['questionnaire_id'], 'status' => 1])->find();
         if (empty($questionnairesObj)) {
             $this->error('问卷不存在');
         }
 
-        $order = QuestionnairesOrder::where(['uid' => $this->getUid(), 'questionnaire_id' => $param['questionnaire_id']])->find();
+        $order = QuestionnairesOrder::where(['uid' => $this->getUid(), 'questionnaire_id' => $param['questionnaire_id'], 'status' => 1])->find();
         if(!empty($order) && $order->price != $questionnairesObj->price) {
-            $order->delete();
+            $order->updated_at = time();
+            $order->status = 0;
+            $order->save();
+            $order = null;
         }
         if (!empty($order) ) {
             if ($order->pay_status == QuestionnairesOrder::PAY_PAID_STATUS) {
