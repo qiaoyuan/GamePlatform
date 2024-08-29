@@ -25,7 +25,10 @@ class Order extends BaseController
         }
 
         $order = QuestionnairesOrder::where(['uid' => $this->getUid(), 'questionnaire_id' => $param['questionnaire_id']])->find();
-        if (!empty($order)) {
+        if(!empty($order) && $order->price != $questionnairesObj->price) {
+            $order->delete();
+        }
+        if (!empty($order) ) {
             if ($order->pay_status == QuestionnairesOrder::PAY_PAID_STATUS) {
 
                 $answerObj = QuestionAnswer::where(['uid' => $this->getUid(), 'questionnaire_id' => $param['questionnaire_id']])->find();
@@ -82,6 +85,8 @@ class Order extends BaseController
 //        var_dump($payData);
 //        die;
         $res = $app->order->unify($payData);
+        var_dump($res);
+        die;
         if ($res['return_code'] == 'SUCCESS') {
             if (empty($res['prepay_id'])) {
 //                $this->error('支付异常：', ['info'=>$res]);
