@@ -99,7 +99,7 @@
             <!-- 数字框 number -->
             <w-input
               v-else-if="item.formType === 'number'"
-              v-model.number="model[item.prop]"
+              v-model="model[item.prop]"
               v-bind="item.attrs"
               v-on="item.methods"
               type="number"
@@ -516,6 +516,9 @@ export default {
             case 'treeRadio':
             case 'treeRadioFree':
               data[prop] = data[prop][0] || ''
+              break
+            case 'number':
+              data[prop] = data[prop] ? parseFloat(data[prop]) : 0
               break
           }
         })
