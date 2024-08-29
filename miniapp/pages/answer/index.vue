@@ -58,7 +58,7 @@ import { getQusetionList, submitAnswer, reportInfo } from '@/api/index.js'
 		data() {
 			return {
 				navTitle: '答题栏',
-				displayPopup: false,
+				// displayPopup: false,
 				surveryId: '',
 				questionList: [],
 				initCurrentIndex: 0,
@@ -81,13 +81,23 @@ import { getQusetionList, submitAnswer, reportInfo } from '@/api/index.js'
 		async onLoad(options) {
 			uni.showToast({
 				title: '加载中',
-				mask: true,
+				// mask: true,
 				icon: "loading"
 			})
 			this.surveryId = options.id
 			const questionList = await getQusetionList(options.id)
 			this.questionList = questionList.data.list
 			uni.hideToast()
+			if(this.questionList.length<=0) {
+				uni.showLoading({
+					title: '该问卷没有题目',
+					icon: 'errro',
+					mask: true
+				})
+				setTimeout(() => {
+					uni.hideLoading()
+				},2000)
+			}
 			uni.setStorageSync('questionList', [])
 			this.resultObj.total = this.questionList.length
 			
@@ -152,9 +162,9 @@ import { getQusetionList, submitAnswer, reportInfo } from '@/api/index.js'
 			/**
 			 * 点击答题卡方法
 			 */
-			onClickAnswerSheet() {
-				this.displayPopup = true
-			},
+			// onClickAnswerSheet() {
+			// 	this.displayPopup = true
+			// },
 
 			/**
 			 * 点击下一题方法

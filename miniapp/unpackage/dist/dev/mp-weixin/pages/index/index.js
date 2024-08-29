@@ -258,7 +258,8 @@ var _default = {
       bannerList: [],
       listData: [],
       hotListData: [],
-      token: ''
+      token: '',
+      channelId: 0
     };
   },
   onShow: function onShow() {
@@ -268,8 +269,12 @@ var _default = {
       this.getUserCode();
     }
   },
-  onLoad: function onLoad() {
+  onLoad: function onLoad(options) {
     var _this = this;
+    if (options.q) {
+      var scene = decodeURIComponent(options.q);
+      this.channelId = scene.split('=')[1];
+    }
     uni.showToast({
       title: "加载中",
       mask: true,
@@ -318,6 +323,7 @@ var _default = {
       }))();
     },
     login: function login() {
+      var _this3 = this;
       uni.login({
         provider: 'weixin',
         success: function success(loginRes) {
@@ -329,7 +335,8 @@ var _default = {
             // 你的登录API地址
             method: 'POST',
             data: {
-              code: code
+              code: code,
+              channel_id: _this3.channelId
             },
             success: function success(res) {
               if (res.data) {

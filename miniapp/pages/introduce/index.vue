@@ -64,6 +64,7 @@
 						<button > 测试大厅 </button>
 					</view>
 					<view class="test">
+						<!-- <button class="btn-pay" @click="goSelectSex" :loading="loading" :disabled="disabled">立即测试</button> -->
 						<button class="btn-pay" @click="payment" :loading="loading" :disabled="disabled">立即测试</button>
 					</view>
 				</view>
@@ -163,25 +164,35 @@
 				    ...orderData,
 				    success: function (res) {
 							uni.hideLoading()
-							console.log(res)
+							// console.log(res)
 							// 进入答题页答题
 							uni.navigateTo({
 								url: `/pages/selectSex/index?id=${this.currentId}`
 							})
 				    },
 				    fail: function (err) {
-							uni.showToast({
-								title: JSON.stringify(err),
-								icon: 'none',
-								mask: true
-							})
+							if(err.errMsg == 'requestPayment:fail cancel'){
+								uni.showToast({
+									title: '取消支付',
+									icon: 'none',
+									mask: true
+								})
+							}else {
+								uni.showToast({
+									title: JSON.stringify(err),
+									icon: 'none',
+									mask: true
+								})
+							}
+							uni.hideLoading()
 				    },
 						complete(com) {
 							// console.log("用户支付扣款返回", com)
-							uni.showToast({
-								title: '取消支付',
-								icon: 'none'
-							})
+							uni.hideLoading()
+							// uni.showToast({
+							// 	title: '取消支付',
+							// 	icon: 'none'
+							// })
 						}
 				});
 			},

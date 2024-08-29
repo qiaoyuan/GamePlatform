@@ -168,8 +168,8 @@ var _default = {
       icon: 'loading'
     });
     (0, _index.reportInfo)(options.id).then(function (res) {
-      var htmlString = res.data.info.text;
-      _this.ReportObj = res.data.info.text;
+      var htmlString = res.data.info.text || null;
+      _this.ReportObj = res.data.info.text || null;
       uni.hideToast();
     });
   },

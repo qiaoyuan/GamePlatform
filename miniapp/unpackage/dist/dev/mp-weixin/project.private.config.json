@@ -4,5 +4,22 @@
   "setting": {
     "compileHotReLoad": true
   },
-  "libVersion": "3.5.4"
+  "libVersion": "3.5.4",
+  "condition": {
+    "miniprogram": {
+      "list": [
+        {
+          "name": "pages/index/index",
+          "pathName": "pages/index/index",
+          "query": "id=123",
+          "launchMode": "default",
+          "scene": null,
+          "partialCompile": {
+            "enabled": true,
+            "pages": []
+          }
+        }
+      ]
+    }
+  }
 }
