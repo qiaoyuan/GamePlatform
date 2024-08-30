@@ -48,8 +48,10 @@ return array(
     'GuzzleHttp\\Psr7\\' => array($vendorDir . '/guzzlehttp/psr7/src'),
     'GuzzleHttp\\Promise\\' => array($vendorDir . '/guzzlehttp/promises/src'),
     'GuzzleHttp\\' => array($vendorDir . '/guzzlehttp/guzzle/src'),
+    'Endroid\\QrCode\\' => array($vendorDir . '/endroid/qr-code/src'),
     'EasyWeChat\\' => array($vendorDir . '/overtrue/wechat/src'),
     'EasyWeChatComposer\\' => array($vendorDir . '/easywechat-composer/easywechat-composer/src'),
+    'DASPRiD\\Enum\\' => array($vendorDir . '/dasprid/enum/src'),
     'Complex\\' => array($vendorDir . '/markbaker/complex/classes/src'),
     'Carbon\\Doctrine\\' => array($vendorDir . '/carbonphp/carbon-doctrine-types/src/Carbon/Doctrine'),
     'Carbon\\' => array($vendorDir . '/nesbot/carbon/src/Carbon'),
@@ -58,4 +60,5 @@ return array(
     'Cache\\Bridge\\SimpleCache\\' => array($vendorDir . '/cache/simple-cache-bridge'),
     'Cache\\Adapter\\Redis\\' => array($vendorDir . '/cache/redis-adapter'),
     'Cache\\Adapter\\Common\\' => array($vendorDir . '/cache/adapter-common'),
+    'BaconQrCode\\' => array($vendorDir . '/bacon/bacon-qr-code/src'),
 );

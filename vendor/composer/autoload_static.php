@@ -106,8 +106,13 @@ class ComposerStaticInit3390516bac5a61e995266df63e47519c
         ),
         'E' => 
         array (
+            'Endroid\\QrCode\\' => 15,
             'EasyWeChat\\' => 11,
             'EasyWeChatComposer\\' => 19,
+        ),
+        'D' => 
+        array (
+            'DASPRiD\\Enum\\' => 13,
         ),
         'C' => 
         array (
@@ -119,6 +124,10 @@ class ComposerStaticInit3390516bac5a61e995266df63e47519c
             'Cache\\Bridge\\SimpleCache\\' => 25,
             'Cache\\Adapter\\Redis\\' => 20,
             'Cache\\Adapter\\Common\\' => 21,
+        ),
+        'B' => 
+        array (
+            'BaconQrCode\\' => 12,
         ),
     );
 
@@ -297,6 +306,10 @@ class ComposerStaticInit3390516bac5a61e995266df63e47519c
         array (
             0 => __DIR__ . '/..' . '/guzzlehttp/guzzle/src',
         ),
+        'Endroid\\QrCode\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/endroid/qr-code/src',
+        ),
         'EasyWeChat\\' => 
         array (
             0 => __DIR__ . '/..' . '/overtrue/wechat/src',
@@ -304,6 +317,10 @@ class ComposerStaticInit3390516bac5a61e995266df63e47519c
         'EasyWeChatComposer\\' => 
         array (
             0 => __DIR__ . '/..' . '/easywechat-composer/easywechat-composer/src',
+        ),
+        'DASPRiD\\Enum\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/dasprid/enum/src',
         ),
         'Complex\\' => 
         array (
@@ -337,6 +354,10 @@ class ComposerStaticInit3390516bac5a61e995266df63e47519c
         array (
             0 => __DIR__ . '/..' . '/cache/adapter-common',
         ),
+        'BaconQrCode\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/bacon/bacon-qr-code/src',
+        ),
     );
 
     public static $prefixesPsr0 = array (
@@ -345,6 +366,10 @@ class ComposerStaticInit3390516bac5a61e995266df63e47519c
             'Pimple' => 
             array (
                 0 => __DIR__ . '/..' . '/pimple/pimple/src',
+            ),
+            'PHPQRCode' => 
+            array (
+                0 => __DIR__ . '/..' . '/aferrandini/phpqrcode/lib',
             ),
         ),
         'H' => 

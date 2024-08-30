@@ -5,6 +5,7 @@ namespace app\admin\controller;
 use app\admin\BaseController;
 use app\common\model\UserChannel as Model;
 use app\common\annotation\Permission;
+use PHPQRCode\QRcode;
 
 
 class UserChannel extends BaseController
@@ -36,7 +37,23 @@ class UserChannel extends BaseController
     #[Permission(title: '添加渠道')]
     public function add(): void
     {
-        $this->mAdd(Model::class);
+        $param = $this->request->param();
+
+        $info =  [
+            'status' =>1,
+            'created_at'=>time(),
+            'title' => $param['title'],
+        ];
+        $obj = Model::create($info);
+        if(empty($obj) ) {
+            $this->error('生成失败');
+        }
+
+        $res = QRcode::png("https://psychology.xuanzeti.top?channel_id=1045", './qrcode/'.$obj->id.'.png');
+        $obj->img_url = 'https://psychology.xuanzeti.top/qrcode/'.$obj->id.'.png';
+        $obj->save();
+        $this->success('操作成功');
+
     }
 
     #[Permission(title: '删除渠道')]
@@ -67,13 +84,19 @@ class UserChannel extends BaseController
         ]);
     }
 
+    public function dealImg() {
+
+        $res = QRcode::png("https://psychology.xuanzeti.top?channel_id=1045", './qrcode/1045.png');
+        $this->success('二维码生成成功!');
+
+    }
     public function columns(): array
     {
         return [
             ['v' => 'id', 'label' => 'ID', 'searchType' => 'match', 'sort' => 'id'],
             ['v' => 'title', 'label' => '渠道名称'],
             ['v' => 'link', 'label' => '链接'],
-//            ['v' => 'img_url', 'label' => '二维码', "render"=>"image"],
+            ['v' => 'img_url', 'label' => '二维码', "render"=>"image"],
             ['v' => 'status', 'label' => '是否启用', 'render' => 'status', 'sort' => 'status'],
             ['v' => 'created_at', 'label' => '日期', 'searchType' => 'number', 'sort' => 'created_at'],
         ];
