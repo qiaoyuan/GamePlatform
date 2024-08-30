@@ -19,7 +19,7 @@ class UserChannel extends BaseController
 
         if (!is_numeric($lists)) {
             $lists->each(function ($item) {
-                $item->link = "https://psychology.xuanzeti.top?channel_id=" . $item->id;
+                $item->link = fullDomain('api').'?channel_id=' . $item->id;
             });
         }
         $this->success('', [
@@ -49,8 +49,8 @@ class UserChannel extends BaseController
             $this->error('生成失败');
         }
 
-        QRcode::png("https://psychology.xuanzeti.top?channel_id=".$obj->id, app()->getRootPath().'public/image/qrcode/'.$obj->id.'.png');
-        $obj->img_url = 'https://psychology.xuanzeti.top/image/qrcode/'.$obj->id.'.png';
+        QRcode::png(fullDomain('api').'?channel_id='.$obj->id, app()->getRootPath().'public/image/qrcode/'.$obj->id.'.png');
+        $obj->img_url = fullDomain('api').'/image/qrcode/'.$obj->id.'.png';
         $obj->save();
         $this->success('操作成功');
 
@@ -98,10 +98,10 @@ class UserChannel extends BaseController
             mkdir(app()->getRootPath() . 'public/image/qrcode');
         }
 
-        $res = QRcode::png("https://psychology.xuanzeti.top?channel_id=".$param['id'], app()->getRootPath().'public/image/qrcode/'.$param['id'].'.png');
-        Model::update( ['img_url' => 'https://psychology.xuanzeti.top/image/qrcode/'.$param['id'].'.png'], ['id' => $param['id']]);
+        $res = QRcode::png(fullDomain('api').'?channel_id='.$param['id'], app()->getRootPath().'public/image/qrcode/'.$param['id'].'.png');
+        Model::update( ['img_url' => fullDomain('api').'/image/qrcode/'.$param['id'].'.png'], ['id' => $param['id']]);
 
-        $this->success('二维码生成成功!', 'https://psychology.xuanzeti.top/image/qrcode/'.$param['id'].'.png');
+        $this->success('二维码生成成功!', fullDomain('api').'/image/qrcode/'.$param['id'].'.png');
 
     }
     public function columns(): array
