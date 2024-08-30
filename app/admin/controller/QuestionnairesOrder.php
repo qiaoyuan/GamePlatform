@@ -16,8 +16,8 @@ class QuestionnairesOrder extends BaseController
         $param = $this->request->param();
 
         $uids = [];
-        if(!empty($param['channel_id'])) {
-            $uids = \app\common\model\User::where('channel_id', $param['channel_id'])->column('id');
+        if(!empty($param['channel_id_match'])) {
+            $uids = \app\common\model\User::where('channel_id', $param['channel_id_match'])->column('id');
         }
 
         $link = $this->tableList(Model::class, ['created_at' => 'DESC']);
