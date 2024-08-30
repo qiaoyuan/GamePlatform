@@ -49,8 +49,8 @@ class UserChannel extends BaseController
             $this->error('生成失败');
         }
 
-        $res = QRcode::png("https://psychology.xuanzeti.top?channel_id=1045", './qrcode/'.$obj->id.'.png');
-        $obj->img_url = 'https://psychology.xuanzeti.top/qrcode/'.$obj->id.'.png';
+        QRcode::png("https://psychology.xuanzeti.top?channel_id=1045", app()->getRootPath().'public/image/qrcode/'.$obj->id.'.png');
+        $obj->img_url = 'https://psychology.xuanzeti.top/image/qrcode/'.$obj->id.'.png';
         $obj->save();
         $this->success('操作成功');
 
@@ -86,8 +86,11 @@ class UserChannel extends BaseController
 
     public function dealImg() {
 
-        $res = QRcode::png("https://psychology.xuanzeti.top?channel_id=1045", './qrcode/1045.png');
-        $this->success('二维码生成成功!');
+        if(!is_dir(app()->getRootPath().'public/image/qrcode')) {
+            mkdir(app()->getRootPath() . 'public/image/qrcode');
+        }
+        $res = QRcode::png("https://psychology.xuanzeti.top?channel_id=1045", app()->getRootPath().'public/image/qrcode/1045.png');
+        $this->success('二维码生成成功!', app()->getRootPath().'public/image/qrcode/');
 
     }
     public function columns(): array
