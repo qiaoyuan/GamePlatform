@@ -5,6 +5,7 @@
 config.yaml
 public/storage/
 public/upload/
+public/image/
 runtime/
 node_modules
 .phpunit.result.cache
