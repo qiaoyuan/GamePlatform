@@ -13,19 +13,37 @@ class QuestionnairesOrder extends BaseController
     #[Permission(title: '订单列表', isMenu: 1, parentUrl: 'order', isHideSub: 1)]
     public function index(): void
     {
-        $lists = $this->tableList(Model::class, ['created_at' => 'DESC'])->with(['questionnaire','user'])
-            ->selectData();
+        $param = $this->request->param();
 
-        if(!is_numeric($lists)) {
-            $lists->each(function (Model $item)  {
+        $uids = [];
+        if(!empty($param['channel_id'])) {
+            $uids = \app\common\model\User::where('channel_id', $param['channel_id'])->column('id');
+        }
+
+        $link = $this->tableList(Model::class, ['created_at' => 'DESC']);
+        if(!empty($uids)) {
+            $link->whereIn('uid', $uids);
+        }
+
+        $lists = $link->with(['questionnaire', 'user' => function ($query){
+            return $query->with('channel');
+        }])->selectData();
+
+        if (!is_numeric($lists)) {
+            $lists->each(function (Model $item) {
                 $payMap = Model::$PAY_MAP;
                 $statusMap = Model::$statusMap;
                 $item->pay_status_name = $payMap[$item->pay_status];
                 $item->status_name = $statusMap[$item->status];
                 $item->channel_id = 0;
-                if(!empty($item->user)) {
-                   $item->channel_id = $item->user->channel_id;
+                $item->channel_name = "无";
+                if (!empty($item->user)) {
+                    $item->channel_id = $item->user->channel_id;
+                    if(!empty($item->user->channel)) {
+                        $item->channel_name = $item->user->channel->title;
+                    }
                 }
+
             });
         }
 
@@ -85,12 +103,13 @@ class QuestionnairesOrder extends BaseController
                 'label' => '订单号',
                 'sort' => 'order_id',
             ],
-            ['v' => 'uid', 'label' => '微信用户ID', 'searchType' => 'number', 'sort' => 'uid'],
-            ['v' => 'channel_id', 'label' => '渠道ID', 'searchType' => 'number', 'sort' => 'channel_id'],
+            ['v' => 'uid', 'label' => '微信用户ID', 'searchType' => 'match', 'sort' => 'uid'],
+            ['v' => 'channel_id', 'label' => '渠道ID', 'searchType' => 'match', 'sort' => 'channel_id'],
+            ['v' => 'channel_name', 'label' => '渠道名称', 'searchType' => false, 'search'=>false, 'sort' => 'channel_id'],
             ['v' => 'created_at', 'label' => '创建时间', 'searchType' => 'number', 'sort' => 'created_at'],
             ['v' => 'price', 'label' => '订单价格', 'searchType' => 'number', 'sort' => 'price'],
-            ['v' => 'status_name', 'search'=>'status', 'label' => '订单状态', 'searchType' => 'multiple', 'searchList' => Model::getStatusList()],
-            ['v' => 'pay_status_name', 'search'=>'pay_status', 'label' => '支付状态', 'searchType' => 'multiple', 'searchList' => Model::getPayStatusList()],
+            ['v' => 'status_name', 'search' => 'status', 'label' => '订单状态', 'searchType' => 'multiple', 'searchList' => Model::getStatusList()],
+            ['v' => 'pay_status_name', 'search' => 'pay_status', 'label' => '支付状态', 'searchType' => 'multiple', 'searchList' => Model::getPayStatusList()],
         ];
     }
 }
