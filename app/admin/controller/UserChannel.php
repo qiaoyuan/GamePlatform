@@ -91,11 +91,17 @@ class UserChannel extends BaseController
             $this->error("参数缺少id");
         }
 
+//        $obj->img_url = 'https://psychology.xuanzeti.top/image/qrcode/'.$obj->id.'.png';
+
+
         if(!is_dir(app()->getRootPath().'public/image/qrcode')) {
             mkdir(app()->getRootPath() . 'public/image/qrcode');
         }
+
         $res = QRcode::png("https://psychology.xuanzeti.top?channel_id=".$param['id'], app()->getRootPath().'public/image/qrcode/'.$param['id'].'.png');
-        $this->success('二维码生成成功!', app()->getRootPath().'public/image/qrcode/'.$param['id'].'.png');
+        Model::update( ['img_url' => 'https://psychology.xuanzeti.top/image/qrcode/'.$param['id'].'.png'], ['id' => $param['id']]);
+
+        $this->success('二维码生成成功!', 'https://psychology.xuanzeti.top/image/qrcode/'.$param['id'].'.png');
 
     }
     public function columns(): array
