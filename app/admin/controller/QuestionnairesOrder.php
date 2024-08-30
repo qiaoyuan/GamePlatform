@@ -13,7 +13,7 @@ class QuestionnairesOrder extends BaseController
     #[Permission(title: '订单列表', isMenu: 1, parentUrl: 'order', isHideSub: 1)]
     public function index(): void
     {
-        $lists = $this->tableList(Model::class, ['created_at' => 'DESC'])->with('questionnaire')
+        $lists = $this->tableList(Model::class, ['created_at' => 'DESC'])->with(['questionnaire','user'])
             ->selectData();
 
         if(!is_numeric($lists)) {
@@ -22,6 +22,10 @@ class QuestionnairesOrder extends BaseController
                 $statusMap = Model::$statusMap;
                 $item->pay_status_name = $payMap[$item->pay_status];
                 $item->status_name = $statusMap[$item->status];
+                $item->channel_id = 0;
+                if(!empty($item->user)) {
+                   $item->channel_id = $item->user->channel_id;
+                }
             });
         }
 
@@ -81,7 +85,8 @@ class QuestionnairesOrder extends BaseController
                 'label' => '订单号',
                 'sort' => 'order_id',
             ],
-            ['v' => 'uid', 'label' => '用户', 'searchType' => 'number', 'sort' => 'uid'],
+            ['v' => 'uid', 'label' => '微信用户ID', 'searchType' => 'number', 'sort' => 'uid'],
+            ['v' => 'channel_id', 'label' => '渠道ID', 'searchType' => 'number', 'sort' => 'channel_id'],
             ['v' => 'created_at', 'label' => '创建时间', 'searchType' => 'number', 'sort' => 'created_at'],
             ['v' => 'price', 'label' => '订单价格', 'searchType' => 'number', 'sort' => 'price'],
             ['v' => 'status_name', 'search'=>'status', 'label' => '订单状态', 'searchType' => 'multiple', 'searchList' => Model::getStatusList()],

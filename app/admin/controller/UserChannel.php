@@ -11,7 +11,7 @@ use PHPQRCode\QRcode;
 class UserChannel extends BaseController
 {
 
-    #[Permission(title: '渠道列表', isMenu: 1, parentUrl: 'article', isHideSub: 1)]
+    #[Permission(title: '渠道列表', isMenu: 1, parentUrl: 'channel', isHideSub: 1)]
     public function index(): void
     {
         $lists = $this->tableList(Model::class, ['id' => 'DESC'], ['title'])

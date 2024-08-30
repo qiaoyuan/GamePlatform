@@ -76,4 +76,8 @@ class QuestionnairesOrder extends Base
         ];
     }
 
+    public function user(): BelongsTo {
+        return $this->belongsTo(User::class, 'uid', 'id');
+    }
+
 }
