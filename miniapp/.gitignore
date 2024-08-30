@@ -1,9 +1,8 @@
 # 忽略以下文件和目录
 node_modules/
-/dist/
-/unpackage/
-/dev/
-/.DS_Store
+.project
+unpackage/
+.DS_Store
  
 # 忽略UniApp编译生成的小程序相关目录
 /unpackage/
