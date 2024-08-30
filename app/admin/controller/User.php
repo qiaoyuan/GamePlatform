@@ -13,7 +13,7 @@ class User extends BaseController
     #[Permission(title: '微信会员', isMenu: 1, parentUrl: 'article', isHideSub: 1)]
     public function index()
     {
-        $lists = $this->tableList(Model::class, ['id' => 'DESC'], ['title', 'description'])->selectData();
+        $lists = $this->tableList(Model::class, ['id' => 'DESC'], ['title', 'description'])->with('channel')->selectData();
         $this->success('', [
             'list' => $lists,
         ]);
@@ -76,13 +76,20 @@ class User extends BaseController
     public function columns(): array
     {
         return [
-            ['v' => 'id', 'label' => 'ID', 'searchType' => 'match', 'sort' => 'id'],
+            ['v' => 'id', 'label' => 'uid', 'searchType' => 'match', 'sort' => 'id'],
+            [
+                'v' => 'channel.title',
+                'label' => '渠道',
+                'search' => 'channel_id',
+                'sort' => 'channel_id',
+                'searchType' => 'multiple',
+                'searchList' => '/userChannel/select',
+            ],
             ['v' => 'username', 'label' => '用户名'],
             ['v' => 'nickname', 'label' => '昵称'],
             ['v' => 'avatar', 'label' => '头像', 'render' => 'image', 'search' => false],
             ['v' => 'phone', 'label' => '电话'],
             ['v' => 'open_id', 'label' => '对于微信商家唯一标'],
-            ['v' => 'channel_id', 'label' => '渠道id'],
         ];
     }
 }

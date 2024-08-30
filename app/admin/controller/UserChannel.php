@@ -9,14 +9,14 @@ use app\common\annotation\Permission;
 
 class UserChannel extends BaseController
 {
-    
+
     #[Permission(title: '渠道列表', isMenu: 1, parentUrl: 'article', isHideSub: 1)]
     public function index(): void
     {
         $lists = $this->tableList(Model::class, ['id' => 'DESC'], ['title'])
             ->selectData();
 
-        if(!is_numeric($lists)) {
+        if (!is_numeric($lists)) {
             $lists->each(function ($item) {
                 $item->link = "https://psychology.xuanzeti.top?channel_id=" . $item->id;
             });

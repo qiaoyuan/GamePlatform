@@ -11,6 +11,7 @@ use Lcobucci\JWT\Signer\Key\InMemory;
 use Lcobucci\JWT\Token\Builder;
 use Lcobucci\JWT\Validation\Constraint\SignedWith;
 use Lcobucci\JWT\Validation\Constraint\StrictValidAt;
+use think\model\relation\BelongsTo;
 
 /**
  * @property int $id
@@ -79,12 +80,12 @@ class User extends Base
      * @param string $name
      * @return string $token
      */
-    public static function getToken($code, $uid) :string
+    public static function getToken($code, $uid): string
     {
         $tokenBuilder = (new Builder(new JoseEncoder(), ChainedFormatter::default()));
-        $algorithm    = new Sha256();
-        $signingKey   = InMemory::plainText(config('jwt.key'));
-        $now   = new \DateTimeImmutable();
+        $algorithm = new Sha256();
+        $signingKey = InMemory::plainText(config('jwt.key'));
+        $now = new \DateTimeImmutable();
         $token = $tokenBuilder
             // Configures the subject of the token (sub claim)
             ->relatedTo('admin')
@@ -100,13 +101,14 @@ class User extends Base
             ->getToken($algorithm, $signingKey);
         return $token->toString();
     }
+
     /**
      * @param string $token
      * @return array
      */
-    public static function verifyToken(string $token) :array
+    public static function verifyToken(string $token): array
     {
-        $signingKey   = InMemory::plainText(config('jwt.key'));
+        $signingKey = InMemory::plainText(config('jwt.key'));
 
         try {
             $token = (new JwtFacade())->parse($token, new SignedWith(new Sha256(), $signingKey), new StrictValidAt(SystemClock::fromSystemTimezone()));
@@ -117,5 +119,10 @@ class User extends Base
         } catch (\Exception $e) {
             return [];
         }
+    }
+
+    public function channel(): BelongsTo
+    {
+        return $this->belongsTo(UserChannel::class, 'channel_id', 'id');
     }
 }
