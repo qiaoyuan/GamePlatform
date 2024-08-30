@@ -8,5 +8,6 @@ public/upload/
 runtime/
 node_modules
 public/image/
+public/qrcode/
 .phpunit.result.cache
 admin/.env.development
