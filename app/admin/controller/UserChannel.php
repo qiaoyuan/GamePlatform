@@ -97,7 +97,6 @@ class UserChannel extends BaseController
             ['v' => 'title', 'label' => '渠道名称'],
             ['v' => 'link', 'label' => '链接'],
             ['v' => 'img_url', 'label' => '二维码', "render"=>"image"],
-            ['v' => 'status', 'label' => '是否启用', 'render' => 'status', 'sort' => 'status'],
             ['v' => 'created_at', 'label' => '日期', 'searchType' => 'number', 'sort' => 'created_at'],
         ];
     }
