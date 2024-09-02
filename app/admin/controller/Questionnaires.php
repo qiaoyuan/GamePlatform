@@ -68,11 +68,11 @@ class Questionnaires extends BaseController
             $this->error("id异常，没有找到相应的问卷");
         }
 
-        $arr [] = ['label' => '全部', 'value' => 0];
+        $arr [] = ['label' => '全部（所有题目）', 'value' => 0];
         if(!empty($obj->group_conf)) {
             $count = count($obj->group_conf);
-            for ($i = 0; $i <= $count; $i++) {
-                $arr[] = ['label' => '阶段' . $i.'('.$obj->group_conf['start'].'-'.$obj->group_conf['end'].'题)', 'value' => $i+1];
+            for ($i = 0; $i < $count; $i++) {
+                $arr[] = ['label' => '阶段' . ($i+1).'（'.$obj->group_conf[$i]['start'].'-'.$obj->group_conf[$i]['end'].'题）', 'value' => $i+1];
             }
         }
 
