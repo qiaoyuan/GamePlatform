@@ -71,8 +71,8 @@ class Questionnaires extends BaseController
         $arr [] = ['label' => '全部', 'value' => 0];
         if(!empty($obj->group_conf)) {
             $count = count($obj->group_conf);
-            for ($i = 1; $i <= $count; $i++) {
-                $arr[] = ['label' => '阶段' . $i, 'value' => $i];
+            for ($i = 0; $i <= $count; $i++) {
+                $arr[] = ['label' => '阶段' . $i.'('.$obj->group_conf['start'].'-'.$obj->group_conf['end'].')', 'value' => $i+1];
             }
         }
 
