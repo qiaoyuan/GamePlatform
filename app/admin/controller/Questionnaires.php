@@ -72,7 +72,7 @@ class Questionnaires extends BaseController
         if(!empty($obj->group_conf)) {
             $count = count($obj->group_conf);
             for ($i = 0; $i <= $count; $i++) {
-                $arr[] = ['label' => '阶段' . $i.'('.$obj->group_conf['start'].'-'.$obj->group_conf['end'].')', 'value' => $i+1];
+                $arr[] = ['label' => '阶段' . $i.'('.$obj->group_conf['start'].'-'.$obj->group_conf['end'].'题)', 'value' => $i+1];
             }
         }
 
