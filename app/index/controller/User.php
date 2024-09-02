@@ -286,7 +286,7 @@ class User extends BaseController
             }
         }
 
-        $questionAnswer = QuestionAnswer::where($where)->with(['questionnaire' => function ($query) {
+        $questionAnswer = QuestionAnswer::where($where)->group("questionnaire_id")->with(['questionnaire' => function ($query) {
             $query->with(['articleCategorys']);
         }])->select();
         $this->success("", ['list' => $questionAnswer]);
