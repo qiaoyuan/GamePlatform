@@ -14,7 +14,11 @@ class QuestionResponse extends BaseController
     public function index(): void
     {
         $lists = $this->tableList(Model::class, ['id' => 'DESC'], ['text'])->with(['questionnaire'])
-            ->selectData();
+            ->selectData()->toArray();
+
+        foreach($lists['data'] as &$item)  {
+            $item['group_name'] = ($item['group_index'] == 0) ? '全部' : '阶段'.$item['group_index'];
+        }
         $this->success('', [
             'list' => $lists,
         ]);
@@ -64,6 +68,7 @@ class QuestionResponse extends BaseController
                 'searchType' => 'multiple',
                 'searchList' => '/questionnaires/select',
             ],
+            ['v'=>'group_name', 'label' => '阶段名称'],
             ['v' => 'text', 'label' => '配置内容'],
             ['v' => 'start', 'label' => '起始值', 'searchType' => 'number', 'sort' => 'start'],
             ['v' => 'lt', 'label' => '小于等于', 'searchType' => 'number', 'sort' => 'lt'],

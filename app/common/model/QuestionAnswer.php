@@ -13,6 +13,7 @@ use think\model\relation\BelongsTo;
  * @property int $questionnaire_id 问卷ID
  * @property float $score 得分
  * @property int $response_id 报告id
+ * @property int $group_index 每阶段
  */
 class QuestionAnswer extends Base
 {
@@ -29,6 +30,7 @@ class QuestionAnswer extends Base
         'questionnaire_id',
         'score',
         'response_id',
+        'group_index',
     ];
     protected $type = [];
 
