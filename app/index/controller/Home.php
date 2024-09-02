@@ -15,7 +15,7 @@ class Home extends BaseController
         $articleCategoryIds = \app\common\model\Questionnaires::where(['status'=>1])->group('article_category_id')->having('count(id) >= 1')->select()->column('article_category_id');
         $home_list = [];
         if($articleCategoryIds) {
-            $home_list = ArticleCategory::whereIn('id', $articleCategoryIds)->order(['sort' => 'ASC'])->with(['questionnaires'=>function ($query) {
+            $home_list = ArticleCategory::whereIn('id', $articleCategoryIds)->where('deleted_at', 0)->order(['sort' => 'ASC'])->with(['questionnaires'=>function ($query) {
                 $query->field('id, title, img_url, article_category_id, price, description')->limit(3); // 只选择指定字段并限制数量
             }])->select();
         }
