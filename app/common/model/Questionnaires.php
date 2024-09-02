@@ -19,6 +19,7 @@ use think\model\relation\BelongsTo;
  * @property string $description 问卷简述
  * @property string $content 问卷内容
  * @property float $price 问卷价格
+ * @property string $group_conf
  */
 class Questionnaires extends Base
 {
@@ -42,6 +43,7 @@ class Questionnaires extends Base
         'description',
         'content',
         'price',
+        'group_conf',
     ];
     protected $type = [];
 

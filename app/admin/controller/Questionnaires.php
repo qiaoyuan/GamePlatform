@@ -60,6 +60,28 @@ class Questionnaires extends BaseController
         ]);
     }
 
+    public function groupList() {
+
+        $param = $this->request->param();
+        $obj = Model::find($param['id']);
+        if(empty($obj)) {
+            $this->error("id异常，没有找到相应的问卷");
+        }
+
+        $arr [] = ['label' => '全部', 'value' => 0];
+        if(!empty($obj->group_conf)) {
+            $count = count(json_decode($obj->group_conf, true));
+            for ($i = 1; $i <= $count; $i++) {
+                $arr[] = ['label' => '阶段' . $i, 'value' => $i];
+            }
+        }
+
+        $this->success('', [
+            'list' => $arr
+        ]);
+
+    }
+
     public function columns(): array
     {
         return [
