@@ -23,7 +23,7 @@ class Questionnaires extends BaseController
     public function catList()
     {
         $where = [
-            'status' => 1,
+            'deleted_at' => null,
         ];
         $list = (new AtricleCategory())->getList($where, ['id', 'title', 'sort'], ['sort' => 'ASC']);
 
