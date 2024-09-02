@@ -45,10 +45,19 @@ export default {
       this.$refs.wTable.getList()
     },
     onEdit(row) {
+      if(!row.group_conf) {
+        row.group_conf = [{
+          start: '', end: ''
+        }]
+      }
       this.$refs.questionnairesAddDialog.open(row)
     },
     onAdd() {
-      this.$refs.questionnairesAddDialog.open({})
+      this.$refs.questionnairesAddDialog.open({
+        group_conf:[{
+          start: '', end: ''
+        }]
+      })
     },
     openDialogQuestion(row) {
       this.$refs.questionsAddDialog.open({
