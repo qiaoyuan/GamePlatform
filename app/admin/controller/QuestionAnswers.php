@@ -13,6 +13,7 @@ class QuestionAnswers extends BaseController
     #[Permission(title: '回答列表', isMenu: 1, parentUrl: 'article', isHideSub: 1)]
     public function index(): void
     {
+
         $lists = $this->tableList(Model::class, ['id' => 'DESC'], ['answer_text'])
             ->with(['questions', 'user', 'questionnaire', 'questionOptions'])
             ->selectData();

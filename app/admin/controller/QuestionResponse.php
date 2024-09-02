@@ -14,11 +14,18 @@ class QuestionResponse extends BaseController
     public function index(): void
     {
         $lists = $this->tableList(Model::class, ['id' => 'DESC'], ['text'])->with(['questionnaire'])
-            ->selectData()->toArray();
-
-        foreach($lists['data'] as &$item)  {
-            $item['group_name'] = ($item['group_index'] == 0) ? '全部' : '阶段'.$item['group_index'];
+            ->selectData();
+        if(input('_summary')) {
+            $this->success('', [
+                'count' => (new Model())->count(),
+            ]);
         }
+
+        $lists->each(function (&$item){
+            $item->group_name = ($item['group_index'] == 0) ? '全部' : '阶段'.$item['group_index'];
+
+        });
+        
         $this->success('', [
             'list' => $lists,
         ]);
