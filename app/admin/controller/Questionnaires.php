@@ -23,7 +23,6 @@ class Questionnaires extends BaseController
     #[Permission(title: '修改问卷')]
     public function edit(): void
     {
-        $param = $this->request->param();
         $this->mEdit(Model::class);
     }
 
@@ -71,7 +70,7 @@ class Questionnaires extends BaseController
 
         $arr [] = ['label' => '全部', 'value' => 0];
         if(!empty($obj->group_conf)) {
-            $count = count(json_decode($obj->group_conf, true));
+            $count = count($obj->group_conf);
             for ($i = 1; $i <= $count; $i++) {
                 $arr[] = ['label' => '阶段' . $i, 'value' => $i];
             }
