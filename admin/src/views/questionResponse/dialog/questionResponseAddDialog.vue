@@ -8,8 +8,8 @@
     @done="v => $emit('done', v)"
   >
     <template #groupIndex="{item, model, options}">
-       <el-form-item  :prop="item.group_index">
-        <el-select v-model="item.group_index" placeholder="请选择"  style="width: 100%" @change="changeIndex">
+       <el-form-item  prop="group_index">
+        <el-select v-model="model.group_index" placeholder="请选择"  style="width: 100%" @change="changeIndex">
           <el-option
             style="width: 100%"
             v-for="item in groupIndex"
@@ -48,7 +48,7 @@ export default {
     async setForm({ id, lt, start, questionnaire_id, text, group_index }) {
       var that = this
       that.questionnaire_id = questionnaire_id
-      that.group_index = group_index
+        that.group_index = group_index
       if(questionnaire_id){
         const a =  await that.$w_fun.post('questionnaires/groupList', {id: questionnaire_id})
         that.groupIndex = a.data.list
