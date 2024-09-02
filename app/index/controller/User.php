@@ -93,7 +93,7 @@ class User extends BaseController
             ['start', '<=', $scoreSum],
             ['lt', '>=', $scoreSum],
             ['questionnaire_id', '=', $questionnaireId],
-            ['group_index','=', $groupIndex]
+            ['group_index', '=', $groupIndex]
         ];
         $questionResponse = QuestionResponse::where($where)->find();
         if (empty($questionResponse)) {
@@ -118,7 +118,7 @@ class User extends BaseController
         if (!empty($questionnairesObj->group_conf)) {
             $levelArr[] = []; //占位符
             foreach ($questionnairesObj->group_conf as $groupConf) {
-                $levelArr[] = array_slice($param['options'], $groupConf['start']-1, $groupConf['end']);
+                $levelArr[] = array_slice($param['options'], $groupConf['start'] - 1, $groupConf['end']);
             }
 
         } else {
@@ -126,8 +126,8 @@ class User extends BaseController
         }
 
         //生成报告
-        foreach ($levelArr as $group_index=>$level) {
-            if(empty($level)) {
+        foreach ($levelArr as $group_index => $level) {
+            if (empty($level)) {
                 continue;
             }
 
@@ -138,6 +138,10 @@ class User extends BaseController
             //生成用户报告
             //uid questionnaire_id 分数对应报告
             $questionAnswer = $this->saveAnswer($uid, $param['questionnaire_id'], $scoreSum, $questionResponse->id, $level, $group_index);
+            QuestionAnswer::where([
+                'response_id' => 0,
+                'uid' => $uid,
+                'questionnaire_id' => $questionnairesObj->id])->delete();
 
         }
 
@@ -146,7 +150,7 @@ class User extends BaseController
     }
 
 
-    public function saveAnswer($uid, $questionnaireId, $scoreSum, $questionResponseId, $option,$groupIndex)
+    public function saveAnswer($uid, $questionnaireId, $scoreSum, $questionResponseId, $option, $groupIndex)
     {
 
         //去重判断
@@ -183,6 +187,7 @@ class User extends BaseController
             ];
 
             $questionAnswer = QuestionAnswer::create($questionAnswer);
+
             if ($questionAnswer->isEmpty()) {
                 $this->error("问卷({$questionnaireId})阶段({$groupIndex})生成报告失败");
             }
@@ -211,9 +216,9 @@ class User extends BaseController
         }
 
         $where = [
-            ['start', '<=', $scoreSum],
-            ['lt', '>=', $scoreSum],
-            ['questionnaire_id', '=', $param['questionnaire_id']],
+            ['start', ' <= ', $scoreSum],
+            ['lt', ' >= ', $scoreSum],
+            ['questionnaire_id', ' = ', $param['questionnaire_id']],
         ];
         $questionResponse = QuestionResponse::where($where)->find();
         if (empty($questionResponse)) {
@@ -275,14 +280,14 @@ class User extends BaseController
     {
         $param = $this->request->param();
 
-        $where[] = ['uid', '=', $this->getUid()];
+        $where[] = ['uid', ' = ', $this->getUid()];
 
         //未完成报告
         if (!empty($param['is_ok'])) {
             if ($param['is_ok'] == 2) {
-                $where[] = ['response_id', '=', 0];
+                $where[] = ['response_id', ' = ', 0];
             } else if ($param['is_ok'] == 1) {
-                $where[] = ['response_id', '>', 0];
+                $where[] = ['response_id', ' > ', 0];
             }
         }
 
