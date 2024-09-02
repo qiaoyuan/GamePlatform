@@ -23,6 +23,7 @@ class Questionnaires extends BaseController
     #[Permission(title: '修改问卷')]
     public function edit(): void
     {
+        $param = $this->request->param();
         $this->mEdit(Model::class);
     }
 

@@ -45,7 +45,10 @@ class Questionnaires extends Base
         'price',
         'group_conf',
     ];
-    protected $type = [];
+
+    protected $type = [
+        'group_conf' => 'json',
+    ];
 
     public function articleCategorys() :BelongsTo
     {
