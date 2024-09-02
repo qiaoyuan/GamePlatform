@@ -70,7 +70,7 @@ class User extends BaseController
         \app\common\model\User::where('open_id', $openId)->update(['token' => $token]);
 
         //然后直接返回token
-        $this->success('登录成功', ['token' => $token, 'open_id' => $openId] );
+        $this->success('登录成功', ['token' => $token, 'open_id' => $openId]);
 
     }
 
@@ -82,8 +82,120 @@ class User extends BaseController
 
     }
 
-    //创建报告
+    public function selectResponse($scoreSum, $questionnaireId, $groupIndex)
+    {
+
+        if ($scoreSum == 0) {
+            $this->error("提交数据异常");
+        }
+
+        $where = [
+            ['start', '<=', $scoreSum],
+            ['lt', '>=', $scoreSum],
+            ['questionnaire_id', '=', $questionnaireId],
+            ['group_index','=', $groupIndex]
+        ];
+        $questionResponse = QuestionResponse::where($where)->find();
+        if (empty($questionResponse)) {
+            $this->error("联系管理员,得分({$scoreSum})生成问卷({$questionnaireId}-{$groupIndex})报告异常");
+        }
+        return $questionResponse;
+    }
+
+    //批量创建报告
     public function createRes()
+    {
+        $uid = $this->getUid();
+        $param = $this->request->param();
+
+        if (empty($param['options']) || empty($param['questionnaire_id'])) {
+            $this->error("参数缺少");
+        }
+
+        $levelArr = [];
+        //查看报告
+        $questionnairesObj = \app\common\model\Questionnaires::find($param['questionnaire_id']);
+        if (!empty($questionnairesObj->group_conf)) {
+            $levelArr[] = []; //占位符
+            foreach ($questionnairesObj->group_conf as $groupConf) {
+                $levelArr[] = array_slice($param['options'], $groupConf['start']-1, $groupConf['end']);
+            }
+
+        } else {
+            $levelArr[] = $param['options'];
+        }
+
+        //生成报告
+        foreach ($levelArr as $group_index=>$level) {
+            if(empty($level)) {
+                continue;
+            }
+
+            $scoreSum = array_sum(array_column($level, 'score'));
+            //选择报告
+            $questionResponse = $this->selectResponse($scoreSum, $param['questionnaire_id'], $group_index);
+
+            //生成用户报告
+            //uid questionnaire_id 分数对应报告
+            $questionAnswer = $this->saveAnswer($uid, $param['questionnaire_id'], $scoreSum, $questionResponse->id, $level, $group_index);
+
+        }
+
+        $this->success("生成报告成功");
+
+    }
+
+
+    public function saveAnswer($uid, $questionnaireId, $scoreSum, $questionResponseId, $option,$groupIndex)
+    {
+
+        //去重判断
+        $where = [
+            'uid' => $uid,
+            'questionnaire_id' => $questionnaireId,
+            'group_index' => $groupIndex,
+        ];
+        $questionAnswer = QuestionAnswer::where($where)->find();
+        //判断1、存在未完成报告 2、已完成报告 3、用户没有该问卷报告
+        if (!empty($questionAnswer)) {
+
+            //2、已完成报告
+            if ($questionAnswer->response_id == $questionResponseId) {
+                return 0;
+            }
+
+            //1、存在未完成报告
+            $questionAnswer->score = $scoreSum;
+            $questionAnswer->response_id = $questionResponseId;
+            $questionAnswer->updated_at = time();
+            $questionAnswer->save();
+
+        } else { //3 用户没有该问卷报告
+
+            $questionAnswer = [
+                'json' => json_encode($option ?? ''),
+                'created_at' => time(),
+                'uid' => $this->getUid(),
+                'questionnaire_id' => $questionnaireId,
+                'score' => $scoreSum,
+                'response_id' => $questionResponseId,
+                'group_index' => $groupIndex ?? 0,
+            ];
+
+            $questionAnswer = QuestionAnswer::create($questionAnswer);
+            if ($questionAnswer->isEmpty()) {
+                $this->error("问卷({$questionnaireId})阶段({$groupIndex})生成报告失败");
+            }
+
+        }
+
+        return $questionAnswer;
+
+    }
+
+
+    //创建报告
+    public function createOldRes()
     {
         $uid = $this->getUid();
 
@@ -184,15 +296,15 @@ class User extends BaseController
     {
         $param = $this->request->param();
 
-        if (empty($param['id'])) {
+        if (empty($param['questionnaire_id'])) {
             $this->error("参数异常!");
         }
-        $id = QuestionAnswer::where('id', $param['id'])->value('response_id');
-        if (empty($id)) {
-            $this->error("报告不存在");
+        $ids = QuestionAnswer::where(['questionnaire_id' => $param['questionnaire_id'], 'uid' => $this->getUid()])->column('response_id');
+        if (empty($ids)) {
+            $this->error("未生成报告");
         }
-        $res = QuestionResponse::where('id', $id)->find();
-        $this->success("", ['info' => $res]);
+        $list = QuestionResponse::whereIn('id', $ids)->select();
+        $this->success("", ['info' => $list]);
 
     }
 
