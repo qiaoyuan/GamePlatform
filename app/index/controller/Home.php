@@ -18,7 +18,7 @@ class Home extends BaseController
         }])->select();
         $this->success('', [
             'recommend' => \app\common\model\Questionnaires::getList(['status'=>1], ['id', 'title', 'img_url'], ['sort' => 'DESC'], 0, 4),
-            'icon_list' => (new ArticleCategory())->getList(['status' => 1], ['id', 'title', 'icon_url'], ['sort' => 'ASC'], 0, 5),
+            'icon_list' => (new ArticleCategory())->getList(['deleted_at' => null], ['id', 'title', 'icon_url'], ['sort' => 'ASC'], 0, 5),
             'home_list' => $home_list,
         ]);
 
