@@ -38,7 +38,8 @@ export default {
       this.$refs.wTable.getList()
     },
     onEdit(row) {
-      this.$refs.questionResponseAddDialog.open(row)
+      let a = JSON.parse(JSON.stringify(row))
+      this.$refs.questionResponseAddDialog.open(a)
     },
     onAdd() {
       this.$refs.questionResponseAddDialog.open({})
