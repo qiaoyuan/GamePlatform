@@ -10,15 +10,13 @@ use think\model\relation\HasMany;
  * @property int $questionnaire_id 问卷id
  * @property string $title 问题名称
  * @property int $question_type 问题类型
- * @property string $created_at
- * @property string $updated_at
  * @property int $status 状态
  * @property int $sort 排序或者题号
+ * @property string $created_at
+ * @property string $updated_at
 * // */
 class Questions extends Base
 {
-
-    protected $autoWriteTimestamp = true;
 
     protected $table = 'questions';
     protected $pk = 'id';
@@ -27,10 +25,10 @@ class Questions extends Base
         'questionnaire_id',
         'title',
         'question_type',
-        'created_at',
-        'updated_at',
         'status',
         'sort',
+        'created_at',
+        'updated_at',
     ];
     protected $type = [];
 

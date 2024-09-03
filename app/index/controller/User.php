@@ -32,6 +32,9 @@ class User extends BaseController
                 'file' => __DIR__ . '/wechat.log',
             ],
         ];
+        if(empty($param['code'])) {
+            $this->error('code参数必传');
+        }
 
         try {
 

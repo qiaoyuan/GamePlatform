@@ -32,8 +32,6 @@ use think\model\relation\BelongsTo;
  */
 class User extends Base
 {
-    protected $autoWriteTimestamp = true;
-
     protected $table = 'user';
     protected $pk = 'id';
     protected $field = [

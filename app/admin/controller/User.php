@@ -89,7 +89,9 @@ class User extends BaseController
             ['v' => 'nickname', 'label' => '昵称'],
             ['v' => 'avatar', 'label' => '头像', 'render' => 'image', 'search' => false],
             ['v' => 'phone', 'label' => '电话'],
-            ['v' => 'open_id', 'label' => '对于微信商家唯一标'],
+            ['v' => 'open_id', 'label' => '商家唯一标'],
+            ['v' => 'created_at', 'label' => '创建时间', 'searchType' => 'daterange', 'sort' => 'created_at'],
+
         ];
     }
 }
