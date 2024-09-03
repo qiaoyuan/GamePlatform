@@ -117,14 +117,30 @@
 				listData: [],
 				hotListData: [],
 				token: '',
-				channelId: 0
+				channelId: 0,
+				provider: ''
 			}
 		},
 		onShow() {
 			this.token = uni.getStorageSync("token")
 			if (!this.token) {
-				// 获取用户code
-				this.getUserCode()
+				uni.getProvider({
+					service: 'oauth',
+						success: function (res) {
+							this.provider = res.provider // 获取使用该小程序的平台
+							// 获取用户code
+							// #ifdef MP-WEIXIN
+							//该代码仅在微信小程序中生效
+								 this.getUserCode(this.provider)
+							// #endif
+							
+							// #ifdef MP-TOUTIAO
+							 //该代码仅在抖音、头条小程序中生效
+								this.getUserCode(this.provider)
+							// #endif
+						}
+				})
+				
 			}
 		},
 		onLoad(options) {
@@ -138,7 +154,7 @@
 				mask: true,
 				icon: 'loading'
 			})
-			this.getUserCode()
+			this.getUserCode(this.provider)
 			getHomeInfo().then(res => {
 				this.bannerList = res.data.recommend
 				this.listData = res.data.icon_list
@@ -146,15 +162,15 @@
 			})
 		},
 		onPullDownRefresh() {
-			this.getUserCode()
+			this.getUserCode(this.provider)
 		},
 		methods: {
-			async getUserCode() {
+			async getUserCode(provider) {
 				const loginRes = await uni.login({
-					provider: 'weixin'
+					provider: provider
 				});
 				const userInfoRes = await uni.getUserInfo({
-					provider: 'weixin'
+					provider: provider
 				});
 				// 获取到用户信息
 				const userInfo = userInfoRes.userInfo;
@@ -162,7 +178,7 @@
 			},
 			login() {
 				uni.login({
-					provider: 'weixin',
+					provider: this.provider,
 					success: (loginRes) => {
 						// 登录成功，获取用户code
 						const {
@@ -269,8 +285,8 @@
 			align-items: center;
 
 			.logo {
-				width: 40rpx;
-				height: 40rpx;
+				width: 140rpx;
+				height: 60rpx;
 			}
 
 			.text {
@@ -299,6 +315,7 @@
 		display: flex;
 		justify-content: space-around;
 		align-items: center;
+		background-color: #ffffff;
 	}
 
 	.list-text {
@@ -325,6 +342,13 @@
 				.title {
 					font-size: 1rem;
 					font-weight: 600;
+					width: calc(100% - 20rpx);
+					white-space: nowrap;
+					/* 强制不换行 */
+					text-overflow: ellipsis;
+					/* 超过部分省略号代替 */
+					overflow: hidden;
+					/* 必须同时设置overflow:hidden才能生效 */
 				}
 
 				.text {
@@ -357,6 +381,13 @@
 					.title {
 						font-size: 1rem;
 						font-weight: 400;
+						width: calc(100% - 20rpx);
+						white-space: nowrap;
+						/* 强制不换行 */
+						text-overflow: ellipsis;
+						/* 超过部分省略号代替 */
+						overflow: hidden;
+						/* 必须同时设置overflow:hidden才能生效 */
 					}
 
 					.text {
@@ -432,13 +463,20 @@
 							font-size: 1rem;
 							font-weight: 400;
 							margin-top: 10rpx;
+							width: calc(100% - 20rpx);
+							white-space: nowrap;
+							/* 强制不换行 */
+							text-overflow: ellipsis;
+							/* 超过部分省略号代替 */
+							overflow: hidden;
+							/* 必须同时设置overflow:hidden才能生效 */
 						}
 
 						.text {
 							font-size: 0.75rem;
 							color: #4b4a4a;
 							margin: 10rpx 0;
-							width: calc(80% - 20rpx);
+							width: calc(60% - 20rpx);
 							white-space: nowrap;
 							/* 强制不换行 */
 							text-overflow: ellipsis;

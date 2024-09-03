@@ -259,14 +259,23 @@ var _default = {
       listData: [],
       hotListData: [],
       token: '',
-      channelId: 0
+      channelId: 0,
+      provider: ''
     };
   },
   onShow: function onShow() {
     this.token = uni.getStorageSync("token");
     if (!this.token) {
-      // 获取用户code
-      this.getUserCode();
+      uni.getProvider({
+        service: 'oauth',
+        success: function success(res) {
+          this.provider = res.provider; // 获取使用该小程序的平台
+          // 获取用户code
+
+          //该代码仅在微信小程序中生效
+          this.getUserCode(this.provider);
+        }
+      });
     }
   },
   onLoad: function onLoad(options) {
@@ -280,7 +289,7 @@ var _default = {
       mask: true,
       icon: 'loading'
     });
-    this.getUserCode();
+    this.getUserCode(this.provider);
     (0, _index.getHomeInfo)().then(function (res) {
       _this.bannerList = res.data.recommend;
       _this.listData = res.data.icon_list;
@@ -288,10 +297,10 @@ var _default = {
     });
   },
   onPullDownRefresh: function onPullDownRefresh() {
-    this.getUserCode();
+    this.getUserCode(this.provider);
   },
   methods: {
-    getUserCode: function getUserCode() {
+    getUserCode: function getUserCode(provider) {
       var _this2 = this;
       return (0, _asyncToGenerator2.default)( /*#__PURE__*/_regenerator.default.mark(function _callee() {
         var loginRes, userInfoRes, userInfo;
@@ -301,13 +310,13 @@ var _default = {
               case 0:
                 _context.next = 2;
                 return uni.login({
-                  provider: 'weixin'
+                  provider: provider
                 });
               case 2:
                 loginRes = _context.sent;
                 _context.next = 5;
                 return uni.getUserInfo({
-                  provider: 'weixin'
+                  provider: provider
                 });
               case 5:
                 userInfoRes = _context.sent;
@@ -325,7 +334,7 @@ var _default = {
     login: function login() {
       var _this3 = this;
       uni.login({
-        provider: 'weixin',
+        provider: this.provider,
         success: function success(loginRes) {
           // 登录成功，获取用户code
           var code = loginRes.code;

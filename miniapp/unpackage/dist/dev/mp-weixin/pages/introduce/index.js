@@ -204,9 +204,10 @@ var _default = {
                       _this2.wxPay(res); // 微信支付
                     } else if (res.code == 3001) {
                       // 已支付，已生成报告  查看报告
+                      console.log(res);
                       uni.hideLoading();
                       uni.navigateTo({
-                        url: "/pages/report/index?id=".concat(res.data.info.id)
+                        url: "/pages/report/index?surveryId=".concat(res.data.info.questionnaire_id)
                       });
                     } else if (res.code == 3002) {
                       // 已支付，未生成报告  进入答题页

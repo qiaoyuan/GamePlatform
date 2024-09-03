@@ -39,8 +39,8 @@
   align-items: center;
 }
 .home .topBar .logo.data-v-57280228 {
-  width: 40rpx;
-  height: 40rpx;
+  width: 140rpx;
+  height: 60rpx;
 }
 .home .topBar .text.data-v-57280228 {
   background-color: azure;
@@ -62,6 +62,7 @@
   display: flex;
   justify-content: space-around;
   align-items: center;
+  background-color: #ffffff;
 }
 .list-text.data-v-57280228 {
   text-align: center;
@@ -85,6 +86,13 @@
 .hotTest .content .top .title.data-v-57280228 {
   font-size: 1rem;
   font-weight: 600;
+  width: calc(100% - 20rpx);
+  white-space: nowrap;
+  /* 强制不换行 */
+  text-overflow: ellipsis;
+  /* 超过部分省略号代替 */
+  overflow: hidden;
+  /* 必须同时设置overflow:hidden才能生效 */
 }
 .hotTest .content .top .text.data-v-57280228 {
   font-size: 0.75rem;
@@ -113,6 +121,13 @@
 .hotTest .content .middle .middle-left .title.data-v-57280228 {
   font-size: 1rem;
   font-weight: 400;
+  width: calc(100% - 20rpx);
+  white-space: nowrap;
+  /* 强制不换行 */
+  text-overflow: ellipsis;
+  /* 超过部分省略号代替 */
+  overflow: hidden;
+  /* 必须同时设置overflow:hidden才能生效 */
 }
 .hotTest .content .middle .middle-left .text.data-v-57280228 {
   font-size: 0.75rem;
@@ -180,13 +195,20 @@
   font-size: 1rem;
   font-weight: 400;
   margin-top: 10rpx;
+  width: calc(100% - 20rpx);
+  white-space: nowrap;
+  /* 强制不换行 */
+  text-overflow: ellipsis;
+  /* 超过部分省略号代替 */
+  overflow: hidden;
+  /* 必须同时设置overflow:hidden才能生效 */
 }
 .hotTest .content .bottom .bottom-left .top .text.data-v-57280228,
 .hotTest .content .bottom .bottom-right .top .text.data-v-57280228 {
   font-size: 0.75rem;
   color: #4b4a4a;
   margin: 10rpx 0;
-  width: calc(80% - 20rpx);
+  width: calc(60% - 20rpx);
   white-space: nowrap;
   /* 强制不换行 */
   text-overflow: ellipsis;

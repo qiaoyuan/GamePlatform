@@ -9,8 +9,9 @@
 			</view>
 		</scroll-view>
 		<!-- 右侧图片区域 -->
-		<scroll-view class="right" scroll-y @scrolltolower="lower" @refresherrefresh="refresherrefresh"
-			refresher-enabled="true" :refresher-triggered="triggered" @refresherrestore="onRestore">
+		<!-- -->
+		<scroll-view class="right" scroll-y @scrolltolower="lower" @refresherrefresh="refresherrefresh"  @refresherrestore="onRestore"
+			refresher-enabled="true" :refresher-triggered="triggered" >
 			<template v-if="secondData.length>0">
 				<view class="item" v-for="item in secondData" :key="item.id" @click="clickTest(item)">
 					<view class="main">
@@ -61,7 +62,7 @@
 				catagoryList: [],
 				page: {
 					pageNum: 1,
-					limit: 5,
+					limit: 10,
 					total: ''
 				},
 				categoryId: '',
@@ -109,6 +110,7 @@
 			leftClickHandle(id, index) {
 				this.categoryId = id
 				this.categoryIndex = index
+				this.page.pageNum = 1
 				this.actives = index
 				uni.setStorageSync('categoryId', id)
 				uni.setStorageSync('categoryIndex', index)
@@ -125,7 +127,7 @@
 				getCategoryList(params).then(res => {
 					uni.hideToast()
 					this.secondData = res.data.list.data
-					this.page.total = res.data.list.last_page
+					this.page.totloadingal = res.data.list.last_page
 				})
 			},
 			// 下拉触底加载数据
@@ -142,6 +144,11 @@
 					if (Math.ceil(this.page.total / 10) == this.page.pageNum) {
 						this.status = 'nomore'
 					}
+				}else {
+					uni.showToast({
+						title: '暂无更多数据',
+						icon:"none"
+					})
 				}
 
 			},

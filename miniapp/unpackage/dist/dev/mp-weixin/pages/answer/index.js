@@ -367,34 +367,30 @@ var _default = {
      * 点击提交答案方法
      */
     onClickSubmit: function onClickSubmit() {
+      var _this2 = this;
       this.questionList = uni.getStorageSync("questionList");
       var options = [];
       for (var i = 0; i < this.questionList.length; i++) {
         options.push({
           question_id: this.questionList[i].questionId,
           score: this.questionList[i].currentScore,
-          option_id: this.questionList[i].selectId
+          option_id: this.questionList[i].selectId,
+          question_num: i + 1
         });
       }
       var params = {
         questionnaire_id: this.surveryId,
         options: options
       };
-      console.log(params);
       uni.showModal({
         content: '是否确定提交答案？',
         success: function success(res) {
           if (res.cancel) return;
           //调取接口
           (0, _index.submitAnswer)(params).then(function (res) {
-            // uni.setStorageSync("reportContent", res.data.info)
-            // reportInfo(res.data.info.id).then(res => {
-            // 	uni.setStorageSync('reportContent', res.data.info.text)
-            // })
-            // uni.removeStorageSync('optionsList')
             uni.removeStorageSync("questionList");
             uni.navigateTo({
-              url: "/pages/report/index?id=".concat(res.data.info.id)
+              url: "/pages/report/index?surveryId=".concat(_this2.surveryId)
             });
           });
         }

@@ -205,6 +205,7 @@ var _index = __webpack_require__(/*! @/api/index.js */ 43);
 //
 //
 //
+//
 var _default = {
   data: function data() {
     return {
@@ -213,7 +214,7 @@ var _default = {
       catagoryList: [],
       page: {
         pageNum: 1,
-        limit: 5,
+        limit: 10,
         total: ''
       },
       categoryId: '',
@@ -262,6 +263,7 @@ var _default = {
     leftClickHandle: function leftClickHandle(id, index) {
       this.categoryId = id;
       this.categoryIndex = index;
+      this.page.pageNum = 1;
       this.actives = index;
       uni.setStorageSync('categoryId', id);
       uni.setStorageSync('categoryIndex', index);
@@ -279,7 +281,7 @@ var _default = {
       (0, _index.getCategoryList)(params).then(function (res) {
         uni.hideToast();
         _this2.secondData = res.data.list.data;
-        _this2.page.total = res.data.list.last_page;
+        _this2.page.totloadingal = res.data.list.last_page;
       });
     },
     // 下拉触底加载数据
@@ -292,7 +294,7 @@ var _default = {
             switch (_context.prev = _context.next) {
               case 0:
                 if (!(_this3.page.pageNum <= _this3.page.total)) {
-                  _context.next = 8;
+                  _context.next = 10;
                   break;
                 }
                 _this3.page.pageNum += 1;
@@ -309,7 +311,14 @@ var _default = {
                 if (Math.ceil(_this3.page.total / 10) == _this3.page.pageNum) {
                   _this3.status = 'nomore';
                 }
-              case 8:
+                _context.next = 11;
+                break;
+              case 10:
+                uni.showToast({
+                  title: '暂无更多数据',
+                  icon: "none"
+                });
+              case 11:
               case "end":
                 return _context.stop();
             }

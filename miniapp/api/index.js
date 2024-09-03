@@ -78,7 +78,7 @@ export function submitAnswer(data) {
  */
 export function reportInfo(id){
 	return request({
-		url: `/index/user/report?id=${id}`,
+		url: `/index/user/report?questionnaire_id=${id}`,
 		method: 'POST'
 	})
 }

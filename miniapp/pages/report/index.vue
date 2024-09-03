@@ -11,12 +11,9 @@
 	import { reportInfo } from '@/api/index.js'
 	export default {
 		 onUnload() {// 页面销毁返回首页
-		  // 如果多端发布的话判断一下当前操作的客户端 
-			//#ifdef MP-WEIXIN
 			uni.switchTab({
 				url: '/pages/index/index'
 			})
-			//#endif
 		},
 		onLoad(options) {
 			uni.showToast({
@@ -24,9 +21,15 @@
 				mask:true,
 				icon: 'loading'
 			})
-			reportInfo(options.id).then(res => {
-				const htmlString = res.data.info.text || null
-				this.ReportObj = res.data.info.text || null
+			console.log(options)
+			this.surveryId = options.surveryId
+			reportInfo(this.surveryId).then(res => {
+				const htmlStringArray = res.data.info
+				this.ReportObj = ''
+				for(let i = 0; i < htmlStringArray.length; i++) {
+					this.ReportObj += htmlStringArray[i].text
+				}
+				// this.ReportObj = res.data.info.text || null
 				uni.hideToast()
 				
 			})
@@ -34,7 +37,8 @@
 		data() {
 			return {
 				ReportObj: null,
-				navTitle: '报告内容'
+				navTitle: '报告内容',
+				surveryId: '', // 问卷id
 			}
 		},
 		methods: {

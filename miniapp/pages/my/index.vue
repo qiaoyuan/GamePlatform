@@ -96,10 +96,6 @@
 				<button style="background: rgb(248, 229, 140);" @click="goHome">查看更多精彩测评</button>
 			</view>
 		</view>
-
-		<!-- <uni-popup style="width: 100%;height: 500px" ref="popup" type="center" :animation="false" :maskClick='false'>
-			<button class="loginBtn" @click="getUserInfo">一键登录</button>
-		</uni-popup> -->
 	</view>
 </template>
 
@@ -170,9 +166,8 @@
 			},
 			// 查看报告
 			lookReport(data) {
-				uni.setStorageSync('reportContent', data.questionnaire.content)
 				uni.navigateTo({
-					url: '/pages/result/index'
+					url: `/pages/report/index?surveryId=${data.questionnaire_id}`
 				})
 			},
 			//未完成进入答题
@@ -181,66 +176,7 @@
 						url: `/pages/selectSex/index?id=${id}`
 					})
 			},
-			// 登录
-			async getUserInfo() {
-				uni.showToast({
-					title: '登陆中',
-					mask: true,
-					icon: 'loading'
-				})
-				 const loginRes = await uni.login({ provider: 'weixin' });
-				const userInfoRes = await uni.getUserInfo({ provider: 'weixin' });
-				// 获取到用户信息
-				const userInfo = userInfoRes.userInfo;
-				this.login()
-			},
-			// 登录并获取用户信息
-			login() {
-				uni.login({
-					provider: 'weixin',
-					success: (loginRes) => {
-						// 登录成功，获取用户code
-						const {
-							code
-						} = loginRes;
-						// 发送code到后台换取openId, sessionKey, unionId
-						uni.request({
-							url: 'https://psychology.xuanzeti.top/index/user/login', // 你的登录API地址
-							method: 'POST',
-							data: {
-								code
-							},
-							success: (res) => {
-								if (res.data) {
-									uni.hideToast()
-									uni.setStorageSync('openId', res.data.data.open_id);
-									uni.setStorageSync('token', res.data.data.token);
-									this.$refs.popup.close()
-								} else {
-									uni.showToast({
-										title: '授权失败',
-										icon: 'none'
-									});
-								}
-							},
-							fail: () => {
-								uni.showToast({
-									title: '请求失败',
-									icon: 'none'
-								});
-							}
-						});
-					},
-					fail: (err) => {
-						console.log('uni.login 接口调用失败，将无法正常使用开放接口等服务', err);
-						uni.showToast({
-							title: '登录失败',
-							icon: 'none'
-						});
-					}
-				});
-			},
-		}
+			}
 	}
 </script>
 
