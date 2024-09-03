@@ -1557,7 +1557,7 @@ function initData(vueOptions, context) {
     try {
       data = data.call(context); // 支持 Vue.prototype 上挂的数据
     } catch (e) {
-      if (Object({"NODE_ENV":"development","VUE_APP_DARK_MODE":"false","VUE_APP_NAME":"Psychological","VUE_APP_PLATFORM":"mp-weixin","BASE_URL":"/"}).VUE_APP_DEBUG) {
+      if (Object({"VUE_APP_DARK_MODE":"false","VUE_APP_NAME":"Psychological","VUE_APP_PLATFORM":"mp-weixin","NODE_ENV":"development","BASE_URL":"/"}).VUE_APP_DEBUG) {
         console.warn('根据 Vue 的 data 函数初始化小程序 data 失败，请尽量确保 data 函数中不访问 vm 对象，否则可能影响首次数据渲染速度。', data);
       }
     }
@@ -8923,7 +8923,7 @@ function type(obj) {
 
 function flushCallbacks$1(vm) {
     if (vm.__next_tick_callbacks && vm.__next_tick_callbacks.length) {
-        if (Object({"NODE_ENV":"development","VUE_APP_DARK_MODE":"false","VUE_APP_NAME":"Psychological","VUE_APP_PLATFORM":"mp-weixin","BASE_URL":"/"}).VUE_APP_DEBUG) {
+        if (Object({"VUE_APP_DARK_MODE":"false","VUE_APP_NAME":"Psychological","VUE_APP_PLATFORM":"mp-weixin","NODE_ENV":"development","BASE_URL":"/"}).VUE_APP_DEBUG) {
             var mpInstance = vm.$scope;
             console.log('[' + (+new Date) + '][' + (mpInstance.is || mpInstance.route) + '][' + vm._uid +
                 ']:flushCallbacks[' + vm.__next_tick_callbacks.length + ']');
@@ -8944,14 +8944,14 @@ function nextTick$1(vm, cb) {
     //1.nextTick 之前 已 setData 且 setData 还未回调完成
     //2.nextTick 之前存在 render watcher
     if (!vm.__next_tick_pending && !hasRenderWatcher(vm)) {
-        if(Object({"NODE_ENV":"development","VUE_APP_DARK_MODE":"false","VUE_APP_NAME":"Psychological","VUE_APP_PLATFORM":"mp-weixin","BASE_URL":"/"}).VUE_APP_DEBUG){
+        if(Object({"VUE_APP_DARK_MODE":"false","VUE_APP_NAME":"Psychological","VUE_APP_PLATFORM":"mp-weixin","NODE_ENV":"development","BASE_URL":"/"}).VUE_APP_DEBUG){
             var mpInstance = vm.$scope;
             console.log('[' + (+new Date) + '][' + (mpInstance.is || mpInstance.route) + '][' + vm._uid +
                 ']:nextVueTick');
         }
         return nextTick(cb, vm)
     }else{
-        if(Object({"NODE_ENV":"development","VUE_APP_DARK_MODE":"false","VUE_APP_NAME":"Psychological","VUE_APP_PLATFORM":"mp-weixin","BASE_URL":"/"}).VUE_APP_DEBUG){
+        if(Object({"VUE_APP_DARK_MODE":"false","VUE_APP_NAME":"Psychological","VUE_APP_PLATFORM":"mp-weixin","NODE_ENV":"development","BASE_URL":"/"}).VUE_APP_DEBUG){
             var mpInstance$1 = vm.$scope;
             console.log('[' + (+new Date) + '][' + (mpInstance$1.is || mpInstance$1.route) + '][' + vm._uid +
                 ']:nextMPTick');
@@ -9047,7 +9047,7 @@ var patch = function(oldVnode, vnode) {
     });
     var diffData = this.$shouldDiffData === false ? data : diff(data, mpData);
     if (Object.keys(diffData).length) {
-      if (Object({"NODE_ENV":"development","VUE_APP_DARK_MODE":"false","VUE_APP_NAME":"Psychological","VUE_APP_PLATFORM":"mp-weixin","BASE_URL":"/"}).VUE_APP_DEBUG) {
+      if (Object({"VUE_APP_DARK_MODE":"false","VUE_APP_NAME":"Psychological","VUE_APP_PLATFORM":"mp-weixin","NODE_ENV":"development","BASE_URL":"/"}).VUE_APP_DEBUG) {
         console.log('[' + (+new Date) + '][' + (mpInstance.is || mpInstance.route) + '][' + this._uid +
           ']差量更新',
           JSON.stringify(diffData));
@@ -10117,7 +10117,7 @@ function submitAnswer(data) {
  */
 function reportInfo(id) {
   return (0, _request.default)({
-    url: "/index/user/report?id=".concat(id),
+    url: "/index/user/report?questionnaire_id=".concat(id),
     method: 'POST'
   });
 }
@@ -10554,13 +10554,14 @@ var AnsweringQuestions = /*#__PURE__*/function () {
       // 设置我的答案和正确答案初始值为 Set 集合，阻止元素重复记录
       topicInfoObj.myAnswer = new Set();
       topicInfoObj.correctAnswer = new Set();
-      topicInfoObj.myAnswer = (topicInfoObj === null || topicInfoObj === void 0 ? void 0 : topicInfoObj.myAnswer) || new Set();
+      topicInfoObj.myAnswer = (topicInfoObj === null || topicInfoObj === void 0 ? void 0 : topicInfoObj.myAnswer) || new Set(); // 我的答案
       // topicInfoObj.correctAnswer = topicInfoObj?.correctAnswer || new Set()
-      topicInfoObj.correctAnswer = (topicInfoObj === null || topicInfoObj === void 0 ? void 0 : topicInfoObj.myAnswer) || new Set();
-      topicInfoObj.currentScore = optionsList[currentOptionIndex].score;
-      topicInfoObj.questionId = topicInfoObj.id;
-      topicInfoObj.selectId = optionsList[currentOptionIndex].id;
-      topicInfoObj.currentOptionIndex = currentOptionIndex;
+      topicInfoObj.correctAnswer = (topicInfoObj === null || topicInfoObj === void 0 ? void 0 : topicInfoObj.myAnswer) || new Set(); // 正确答案
+      topicInfoObj.currentScore = optionsList[currentOptionIndex].score; // 所选分数
+      topicInfoObj.questionId = topicInfoObj.id; // 问题id
+      topicInfoObj.selectId = optionsList[currentOptionIndex].id; // 选项id
+      topicInfoObj.currentOptionIndex = currentOptionIndex; // 选项索引
+
       // 单题选项点击设置 checked 点击样式，点击其他选项并取消上一个选项的 checked 点击样式，点击自身不做操作
       if (topicInfoObj.myAnswer.size) {
         var oldIndex = optionsMarkList.indexOf(_toConsumableArray(topicInfoObj.myAnswer)[0]);

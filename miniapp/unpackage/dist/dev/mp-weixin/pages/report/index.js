@@ -154,8 +154,6 @@ var _index = __webpack_require__(/*! @/api/index.js */ 43);
 var _default = {
   onUnload: function onUnload() {
     // 页面销毁返回首页
-    // 如果多端发布的话判断一下当前操作的客户端 
-
     uni.switchTab({
       url: '/pages/index/index'
     });
@@ -167,18 +165,26 @@ var _default = {
       mask: true,
       icon: 'loading'
     });
-    (0, _index.reportInfo)(options.id).then(function (res) {
-      var htmlString = res.data.info.text || null;
-      _this.ReportObj = res.data.info.text || null;
+    console.log(options);
+    this.surveryId = options.surveryId;
+    (0, _index.reportInfo)(this.surveryId).then(function (res) {
+      var htmlStringArray = res.data.info;
+      _this.ReportObj = '';
+      for (var i = 0; i < htmlStringArray.length; i++) {
+        _this.ReportObj += htmlStringArray[i].text;
+      }
+      // this.ReportObj = res.data.info.text || null
       uni.hideToast();
     });
   },
   data: function data() {
     return {
       ReportObj: null,
-      navTitle: '报告内容'
+      navTitle: '报告内容',
+      surveryId: '' // 问卷id
     };
   },
+
   methods: {
     onClickBack: function onClickBack() {
       uni.switchTab({

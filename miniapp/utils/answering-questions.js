@@ -14,13 +14,14 @@ class AnsweringQuestions {
     // 设置我的答案和正确答案初始值为 Set 集合，阻止元素重复记录
     topicInfoObj.myAnswer =  new Set()
 	topicInfoObj.correctAnswer = new Set ()
-	 topicInfoObj.myAnswer = topicInfoObj?.myAnswer || new Set()
+	 topicInfoObj.myAnswer = topicInfoObj?.myAnswer || new Set()  // 我的答案
     // topicInfoObj.correctAnswer = topicInfoObj?.correctAnswer || new Set()
-	topicInfoObj.correctAnswer = topicInfoObj?.myAnswer || new Set()
-	topicInfoObj.currentScore = optionsList[currentOptionIndex].score
-	topicInfoObj.questionId = topicInfoObj.id
-	topicInfoObj.selectId = optionsList[currentOptionIndex].id
-	topicInfoObj.currentOptionIndex = currentOptionIndex
+	topicInfoObj.correctAnswer = topicInfoObj?.myAnswer || new Set() // 正确答案
+	topicInfoObj.currentScore = optionsList[currentOptionIndex].score // 所选分数
+	topicInfoObj.questionId = topicInfoObj.id  // 问题id
+	topicInfoObj.selectId = optionsList[currentOptionIndex].id  // 选项id
+	topicInfoObj.currentOptionIndex = currentOptionIndex // 选项索引
+	
     // 单题选项点击设置 checked 点击样式，点击其他选项并取消上一个选项的 checked 点击样式，点击自身不做操作
     if (topicInfoObj.myAnswer.size) {
       const oldIndex = optionsMarkList.indexOf([...topicInfoObj.myAnswer][0])

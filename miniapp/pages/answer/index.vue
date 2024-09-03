@@ -192,28 +192,23 @@ import { getQusetionList, submitAnswer, reportInfo } from '@/api/index.js'
 					options.push({
 						question_id: this.questionList[i].questionId,
 						score: this.questionList[i].currentScore,
-						option_id: this.questionList[i].selectId
+						option_id: this.questionList[i].selectId,
+						question_num: i+1
 					})
 				}
 				var params = { 
 					questionnaire_id: this.surveryId,
 					options,
 				}
-				console.log(params)
 				uni.showModal({
 					content: '是否确定提交答案？',
 					success: res => {
 					  if (res.cancel) return
 						//调取接口
 						submitAnswer(params).then(res => {
-							// uni.setStorageSync("reportContent", res.data.info)
-							// reportInfo(res.data.info.id).then(res => {
-							// 	uni.setStorageSync('reportContent', res.data.info.text)
-							// })
-							// uni.removeStorageSync('optionsList')
 							uni.removeStorageSync("questionList")
 							uni.navigateTo({
-								url: `/pages/report/index?id=${res.data.info.id}`
+								url: `/pages/report/index?surveryId=${this.surveryId}`
 							})
 						})
 					},

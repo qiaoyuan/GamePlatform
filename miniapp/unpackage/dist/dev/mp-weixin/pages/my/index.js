@@ -176,18 +176,11 @@ __webpack_require__.r(__webpack_exports__);
 "use strict";
 /* WEBPACK VAR INJECTION */(function(uni) {
 
-var _interopRequireDefault = __webpack_require__(/*! @babel/runtime/helpers/interopRequireDefault */ 4);
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
 exports.default = void 0;
-var _regenerator = _interopRequireDefault(__webpack_require__(/*! @babel/runtime/regenerator */ 40));
-var _asyncToGenerator2 = _interopRequireDefault(__webpack_require__(/*! @babel/runtime/helpers/asyncToGenerator */ 42));
 var _index = __webpack_require__(/*! @/api/index.js */ 43);
-//
-//
-//
-//
 //
 //
 //
@@ -358,98 +351,14 @@ var _default = {
     },
     // 查看报告
     lookReport: function lookReport(data) {
-      uni.setStorageSync('reportContent', data.questionnaire.content);
       uni.navigateTo({
-        url: '/pages/result/index'
+        url: "/pages/report/index?surveryId=".concat(data.questionnaire_id)
       });
     },
     //未完成进入答题
     toAnswer: function toAnswer(id) {
       uni.navigateTo({
         url: "/pages/selectSex/index?id=".concat(id)
-      });
-    },
-    // 登录
-    getUserInfo: function getUserInfo() {
-      var _this2 = this;
-      return (0, _asyncToGenerator2.default)( /*#__PURE__*/_regenerator.default.mark(function _callee() {
-        var loginRes, userInfoRes, userInfo;
-        return _regenerator.default.wrap(function _callee$(_context) {
-          while (1) {
-            switch (_context.prev = _context.next) {
-              case 0:
-                uni.showToast({
-                  title: '登陆中',
-                  mask: true,
-                  icon: 'loading'
-                });
-                _context.next = 3;
-                return uni.login({
-                  provider: 'weixin'
-                });
-              case 3:
-                loginRes = _context.sent;
-                _context.next = 6;
-                return uni.getUserInfo({
-                  provider: 'weixin'
-                });
-              case 6:
-                userInfoRes = _context.sent;
-                // 获取到用户信息
-                userInfo = userInfoRes.userInfo;
-                _this2.login();
-              case 9:
-              case "end":
-                return _context.stop();
-            }
-          }
-        }, _callee);
-      }))();
-    },
-    // 登录并获取用户信息
-    login: function login() {
-      var _this3 = this;
-      uni.login({
-        provider: 'weixin',
-        success: function success(loginRes) {
-          // 登录成功，获取用户code
-          var code = loginRes.code;
-          // 发送code到后台换取openId, sessionKey, unionId
-          uni.request({
-            url: 'https://psychology.xuanzeti.top/index/user/login',
-            // 你的登录API地址
-            method: 'POST',
-            data: {
-              code: code
-            },
-            success: function success(res) {
-              if (res.data) {
-                uni.hideToast();
-                uni.setStorageSync('openId', res.data.data.open_id);
-                uni.setStorageSync('token', res.data.data.token);
-                _this3.$refs.popup.close();
-              } else {
-                uni.showToast({
-                  title: '授权失败',
-                  icon: 'none'
-                });
-              }
-            },
-            fail: function fail() {
-              uni.showToast({
-                title: '请求失败',
-                icon: 'none'
-              });
-            }
-          });
-        },
-        fail: function fail(err) {
-          console.log('uni.login 接口调用失败，将无法正常使用开放接口等服务', err);
-          uni.showToast({
-            title: '登录失败',
-            icon: 'none'
-          });
-        }
       });
     }
   }
