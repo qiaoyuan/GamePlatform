@@ -77,7 +77,7 @@ class ArticleCategory extends BaseController
             ['v' => 'icon_url', 'label' => 'icon', "render"=>"image"],
             ['v' => 'title', 'label' => '分类名称'],
             ['v' => 'description', 'label' => '简述'],
-            ['v' => 'created_at', 'label' => '日期', 'searchType' => 'daterange', 'sort' => 'created_at'],
+            ['v' => 'created_at', 'label' => '日期', 'searchType' => 'date', 'sort' => 'created_at'],
             ['v' => 'status', 'label' => '状态', 'render' => 'status', 'sort' => 'status'],
             ['v' => 'sort', 'label' => '排序', 'searchType' => 'number', 'sort' => 'sort'],
         ];

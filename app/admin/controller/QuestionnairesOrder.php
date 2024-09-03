@@ -109,7 +109,7 @@ class QuestionnairesOrder extends BaseController
             ['v' => 'uid', 'label' => '微信用户ID', 'searchType' => 'match', 'sort' => 'uid'],
             ['v' => 'channel_id', 'label' => '渠道ID', 'searchType' => 'match', 'sort' => 'channel_id'],
             ['v' => 'channel_name', 'label' => '渠道名称', 'searchType' => false, 'search'=>false, 'sort' => 'channel_id'],
-            ['v' => 'created_at', 'label' => '创建时间', 'searchType' => 'number', 'sort' => 'created_at'],
+            ['v' => 'created_at', 'label' => '创建时间', 'searchType' => 'daterange', 'sort' => 'created_at'],
             ['v' => 'price', 'label' => '订单价格', 'searchType' => 'number', 'sort' => 'price'],
             ['v' => 'status_name', 'search' => 'status', 'label' => '订单状态', 'searchType' => 'multiple', 'searchList' => Model::getStatusList()],
             ['v' => 'pay_status_name', 'search' => 'pay_status', 'label' => '支付状态', 'searchType' => 'multiple', 'searchList' => Model::getPayStatusList()],
