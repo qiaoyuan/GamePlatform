@@ -27,7 +27,6 @@ class Order extends BaseController
 
         $order = QuestionnairesOrder::where(['uid' => $this->getUid(), 'questionnaire_id' => $param['questionnaire_id'], 'status' => 1])->find();
         if(!empty($order) && $order->price != $questionnairesObj->price) {
-            $order->updated_at = time();
             $order->status = 0;
             $order->save();
             $order = null;
@@ -52,8 +51,6 @@ class Order extends BaseController
             $orderInfo = [
                 'questionnaire_id' => $param['questionnaire_id'],
                 'uid' => $this->getUid(),
-                'created_at' => $time,
-                'updated_at' => $time,
                 'input_data' => json_encode($param),
                 'price' => $questionnairesObj->price,
                 'pay_status' => QuestionnairesOrder::PAY_UNPAID_STATUS,
@@ -140,14 +137,12 @@ class Order extends BaseController
             $order = $message['out_trade_no'];
             $orderObj = QuestionnairesOrder::where('order_id', $order)->find();
             $orderObj->pay_status = QuestionnairesOrder::PAY_PAID_STATUS;
-            $orderObj->updated_at = time();
             $orderObj->save();
 
             $answer = QuestionAnswer::where('uid', $orderObj->uid)->where('questionnaire_id', $orderObj->questionnaire_id)->find();
             if (empty($answer)) {
                 $questionAnswer = [
                     'json' => '',
-                    'created_at' => time(),
                     'uid' => $orderObj->uid,
                     'questionnaire_id' => $orderObj->questionnaire_id,
                     'score' => 0,
