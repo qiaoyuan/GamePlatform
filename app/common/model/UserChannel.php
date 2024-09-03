@@ -10,6 +10,7 @@ namespace app\common\model;
  * @property string $title
  * @property string $img_url
  * @property string $link
+ * @property string $remark
  */
 class UserChannel extends Base
 {
@@ -25,6 +26,7 @@ class UserChannel extends Base
         'title',
         'img_url',
         'link',
+        'remark',
     ];
     protected $type = [];
 }

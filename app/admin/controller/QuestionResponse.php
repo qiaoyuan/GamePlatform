@@ -25,7 +25,7 @@ class QuestionResponse extends BaseController
             $item->group_name = ($item['group_index'] == 0) ? '全部' : '阶段'.$item['group_index'];
 
         });
-        
+
         $this->success('', [
             'list' => $lists,
         ]);
