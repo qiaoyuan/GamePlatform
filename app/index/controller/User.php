@@ -67,7 +67,7 @@ class User extends BaseController
                 'code' => $param['code'], // 用户授权码，用户同意授权后，开发者可获取
                 'appid' => $appId,
                 'secret' => $appSecret,
-//                'grant_type' => 'authorization_code',
+                'anonymous_code' => ''
             ];
 
 
@@ -75,7 +75,7 @@ class User extends BaseController
                 'headers' => [
                     'content-type' => 'content-type: application/json',
                 ],
-                'form_params' => $body,
+                'json' => $body,
             ]);
 
             $res = $response->getBody();
