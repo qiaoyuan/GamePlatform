@@ -8,9 +8,13 @@ use app\common\model\QuestionAnswers;
 use app\common\model\QuestionResponse;
 use app\index\BaseController;
 use EasyWeChat\Factory;
+use GuzzleHttp\Client;
 
 class User extends BaseController
 {
+
+    private Client $client;
+
 
     public function login()
     {
@@ -45,51 +49,45 @@ class User extends BaseController
                 $this->error($e->getMessage());
             }
 
+            //判断是否是老用户
+            $openId = $res['openid'];
+
         } else {
 
             $appId = config('douyin.app_id'); // 替换为你的应用ID
             $appSecret = config('douyin.secret'); // 替换为你的应用密钥
 
-            // 登录接口地址
-            $url = "https://open.douyin.com/oauth/access_token/";
+            $this->client = new Client([
+                'timeout' => 30,
+                'verify' => false,
+                'base_uri' => 'https://open.douyin.com'
+            ]);
 
-            // 初始化cURL会话
-            $ch = curl_init();
-
-            // 设置cURL选项
-            curl_setopt($ch, CURLOPT_URL, $url);
-            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-            curl_setopt($ch, CURLOPT_POST, true);
-            curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query([
+            $body = [
                 'code' => $param['code'], // 用户授权码，用户同意授权后，开发者可获取
-                'app_id' => $appId,
-                'app_secret' => $appSecret
-            ]));
+                'client_key' => $appId,
+                'client_secret' => $appSecret,
+                'grant_type' => 'authorization_code',
+            ];
 
-            // 执行cURL会话
-            $response = curl_exec($ch);
+            $response = $this->client->post('/oauth/access_token/', [
+                'headers' => [
+                    'content-type' => 'application/x-www-form-urlencoded',
+                ],
+                'form_params' => $body,
+            ]);
 
-            // 关闭cURL会话
-            curl_close($ch);
-
-            echo $response;
-            die;
-            // 处理响应数据
-            $result = json_decode($response, true);
-            die;
-
-            if (json_last_error() === JSON_ERROR_NONE) {
-                // 业务逻辑处理，例如保存$result中的access_token等
-                // ...
-            } else {
-                // JSON解析错误处理
-                // ...
+            $res = $response->getBody();
+            $response = json_decode($res, true);
+            if($response['message']  == 'error') {
+                $this->error('抖音接口异常, '.$response['data']['description'], $response);
             }
+
+            //判断是否是老用户
+            $openId = $response['data']['open_id'];
 
         }
 
-        //判断是否是老用户
-        $openId = $res['openid'];
         $usrObj = \app\common\model\User::where('open_id', $openId)->find();
 
         //新用户注册
