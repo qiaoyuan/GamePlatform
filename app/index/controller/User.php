@@ -16,36 +16,77 @@ class User extends BaseController
     {
 
         $param = $this->request->param();
+        $param['platform'] = $param['platform'] ?? 1;
+
         $content = json_encode($param);
 
-        //判断是否是老用户
-        $config = [
-            'app_id' => config('wechat.app_id'),
-            'secret' => config('wechat.secret'),
+        if ($param['platform'] == 1) {
+            //判断是否是老用户
+            $config = [
+                'app_id' => config('wechat.app_id'),
+                'secret' => config('wechat.secret'),
+                'response_type' => 'array',
+                'log' => [
+                    'level' => 'debug',
+                    'file' => __DIR__ . '/wechat.log',
+                ],
+            ];
 
-            // 下面为可选项
-            // 指定 API 调用返回结果的类型：array(default)/collection/object/raw/自定义类名
-            'response_type' => 'array',
+            if (empty($param['code'])) {
+                $this->error('code参数必传');
+            }
 
-            'log' => [
-                'level' => 'debug',
-                'file' => __DIR__ . '/wechat.log',
-            ],
-        ];
-        if(empty($param['code'])) {
-            $this->error('code参数必传');
+            try {
+
+                $app = Factory::miniProgram($config);
+                $res = $app->auth->session($param['code']);
+
+            } catch (\Exception $e) {
+                $this->error($e->getMessage());
+            }
+
+        } else {
+
+            $appId = config('douyin.app_id'); // 替换为你的应用ID
+            $appSecret = config('douyin.secret'); // 替换为你的应用密钥
+
+            // 登录接口地址
+            $url = "https://open.douyin.com/oauth/access_token/";
+
+            // 初始化cURL会话
+            $ch = curl_init();
+
+            // 设置cURL选项
+            curl_setopt($ch, CURLOPT_URL, $url);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_POST, true);
+            curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query([
+                'code' => $param['code'], // 用户授权码，用户同意授权后，开发者可获取
+                'app_id' => $appId,
+                'app_secret' => $appSecret
+            ]));
+
+            // 执行cURL会话
+            $response = curl_exec($ch);
+
+            // 关闭cURL会话
+            curl_close($ch);
+
+            echo $response;
+            die;
+            // 处理响应数据
+            $result = json_decode($response, true);
+            die;
+
+            if (json_last_error() === JSON_ERROR_NONE) {
+                // 业务逻辑处理，例如保存$result中的access_token等
+                // ...
+            } else {
+                // JSON解析错误处理
+                // ...
+            }
+
         }
-
-        try {
-
-            $app = Factory::miniProgram($config);
-
-            $res = $app->auth->session($param['code']);
-
-        } catch (\Exception $e) {
-            $this->error($e->getMessage());
-        }
-//        $res = ['openid'=>'oJ6ds7ZAo-Lgjc8987HC7QcWuNEI'];
 
         //判断是否是老用户
         $openId = $res['openid'];
