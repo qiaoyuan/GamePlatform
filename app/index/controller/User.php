@@ -60,31 +60,32 @@ class User extends BaseController
             $this->client = new Client([
                 'timeout' => 30,
                 'verify' => false,
-                'base_uri' => 'https://open.douyin.com'
+                'base_uri' => 'https://developer.toutiao.com'
             ]);
 
             $body = [
                 'code' => $param['code'], // 用户授权码，用户同意授权后，开发者可获取
-                'client_key' => $appId,
-                'client_secret' => $appSecret,
-                'grant_type' => 'authorization_code',
+                'appid' => $appId,
+                'secret' => $appSecret,
+//                'grant_type' => 'authorization_code',
             ];
 
-            $response = $this->client->post('/oauth/access_token/', [
+
+            $response = $this->client->post('/api/apps/v2/jscode2session', [
                 'headers' => [
-                    'content-type' => 'application/x-www-form-urlencoded',
+                    'content-type' => 'content-type: application/json',
                 ],
                 'form_params' => $body,
             ]);
 
             $res = $response->getBody();
-            $response = json_decode($res, true);
-            if($response['message']  == 'error') {
-                $this->error('抖音接口异常, '.$response['data']['description'], $response);
+            $res = json_decode($res, true);
+            if(!empty($res['err_no']) ) {
+                $this->error('抖音接口异常', $res);
             }
 
             //判断是否是老用户
-            $openId = $response['data']['open_id'];
+            $openId = $res['openid'];
 
         }
 
@@ -112,7 +113,7 @@ class User extends BaseController
         \app\common\model\User::where('open_id', $openId)->update(['token' => $token]);
 
         //然后直接返回token
-        $this->success('登录成功', ['token' => $token, 'open_id' => $openId]);
+        $this->success('登录成功', ['token' => $token, 'open_id' => $openId, 'api'=>$res]);
 
     }
 

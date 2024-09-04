@@ -2,7 +2,7 @@
 
 return [
     'app_id' => 'ttbe29c894211ef88a01',
-    'secret' => 'p6ojSPxAGbltLvbpbTFOgSJyXLNQRJNT',
+    'secret' => '5c8dace40efb2acd643ff2ebe414547dafc86ef0',
     'mch_id' => '74102363375610288790',
     'key' => 'DsW2K1NxRKSA6LKDw4MI0v236XZh3yNC',
     'notify_url' => 'https://psychology.xuanzeti.top/index/order/callback',
