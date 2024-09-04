@@ -85,7 +85,7 @@ class User extends BaseController
             }
 
             //判断是否是老用户
-            $openId = $res['openid'];
+            $openId = $res['data']['openid'];
 
         }
 
