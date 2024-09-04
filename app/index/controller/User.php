@@ -80,7 +80,7 @@ class User extends BaseController
 
             $res = $response->getBody();
             $res = json_decode($res, true);
-            if(!empty($res['err_no']) ) {
+            if(!empty($res['err_no']) && $res['err_no'] != 0 ) {
                 $this->error('抖音接口异常', $res);
             }
 
