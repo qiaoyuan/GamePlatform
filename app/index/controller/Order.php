@@ -249,6 +249,18 @@ class Order extends BaseController
             $orderObj = QuestionnairesOrder::where('order_id', $orderRes['cp_orderno'])->find();
             $orderObj->pay_status = QuestionnairesOrder::PAY_PAID_STATUS;
             $orderObj->save();
+
+            $answer = QuestionAnswer::where('uid', $orderObj->uid)->where('questionnaire_id', $orderObj->questionnaire_id)->find();
+            if (empty($answer)) {
+                $questionAnswer = [
+                    'json' => '',
+                    'uid' => $orderObj->uid,
+                    'questionnaire_id' => $orderObj->questionnaire_id,
+                    'score' => 0,
+                    'response_id' => 0,
+                ];
+                QuestionAnswer::create($questionAnswer);
+            }
         }
 
         return \Yansongda\Pay\Pay::douyin()->success();
