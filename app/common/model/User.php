@@ -29,6 +29,7 @@ use think\model\relation\BelongsTo;
  * @property string $token token
  * @property string $created_at
  * @property string $updated_at
+ * @property string $platform 1：wechat，2: Byte
  */
 class User extends Base
 {
@@ -50,11 +51,15 @@ class User extends Base
         'token',
         'created_at',
         'updated_at',
+        'platform',
     ];
     protected $type = [
         'amount' => 'float',
         'frozen_amount' => 'float',
     ];
+
+    const WX_PLATFORM = 1;
+    const DOUYIN_PLATFORM = 2;
 
     public function info()
     {
@@ -78,7 +83,7 @@ class User extends Base
      * @param string $name
      * @return string $token
      */
-    public static function getToken($code, $uid): string
+    public static function getToken($code, $uid, $platform): string
     {
         $tokenBuilder = (new Builder(new JoseEncoder(), ChainedFormatter::default()));
         $algorithm = new Sha256();
@@ -95,6 +100,7 @@ class User extends Base
             // Configures a new claim, called "uid"
             ->withClaim('open_id', $code)
             ->withClaim('uid', $uid)
+            ->withClaim('platform', $platform)
             // Builds a new token
             ->getToken($algorithm, $signingKey);
         return $token->toString();
@@ -113,6 +119,7 @@ class User extends Base
             return [
                 'open_id' => $token->claims()->get('open_id'),
                 'uid' => $token->claims()->get('uid'),
+                'platform' => $token->claims()->get('platform'),
             ];
         } catch (\Exception $e) {
             return [];

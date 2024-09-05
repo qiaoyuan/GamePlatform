@@ -54,7 +54,7 @@ class User extends BaseController
 
         } else {
 
-            $appId = config('douyin.app_id'); // 替换为你的应用ID
+            $appId = config('douyin.mini_app_id'); // 替换为你的应用ID
             $appSecret = config('douyin.secret'); // 替换为你的应用密钥
 
             $this->client = new Client([
@@ -94,18 +94,20 @@ class User extends BaseController
         //新用户注册
         if (empty($usrObj)) {
 
+            $platform =$param['platform'] ?? \app\common\model\User::WX_PLATFORM;
             $data = [
                 'username' => '',
                 'nickname' => '',
                 'open_id' => $openId,
                 'content' => $content,
                 'channel_id' => $param['channel_id'] ?? 0,
+                'platform' => $platform,
             ];
             $usrObj = \app\common\model\User::create($data);
 
         }
 
-        $token = \app\common\model\User::getToken($openId, $usrObj->id);
+        $token = \app\common\model\User::getToken($openId, $usrObj->id, $platform);
 //        $user = \app\common\model\User::verifyToken($this->request->header(config('jwt.field'), ''));
 //        var_dump($user);
 

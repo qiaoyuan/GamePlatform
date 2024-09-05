@@ -20,6 +20,13 @@ class BaseController extends \app\common\BaseController
 //        $uid = 999;
 //        return $uid;
     }
+
+    public function getPlatform()
+    {
+        return $this->request->platform?? 2;
+//        $uid = 999;
+//        return $uid;
+    }
     protected function getResponseType(): string
     {
         return 'json';

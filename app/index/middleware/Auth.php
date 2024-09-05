@@ -31,6 +31,7 @@ class Auth
             if ($user) {
                 $request->uid = $user['uid'];
                 $request->open_id = $user['open_id'];
+                $request->platform = $user['platform'];
             } else {
                 $this->error('登录失效', '', 401);
             }
