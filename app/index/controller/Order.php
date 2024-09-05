@@ -244,6 +244,12 @@ class Order extends BaseController
         $result = \Yansongda\Pay\Pay::douyin()->callback();
         $calObj->res = json_encode($result);
         $calObj->save();
+        if($result['type'] == 'payment') {
+            $orderRes = json_decode($result['msg'], true);
+            $orderObj = QuestionnairesOrder::where('order_id', $orderRes['cp_orderno'])->find();
+            $orderObj->pay_status = QuestionnairesOrder::PAY_PAID_STATUS;
+            $orderObj->save();
+        }
 
         return \Yansongda\Pay\Pay::douyin()->success();
 
