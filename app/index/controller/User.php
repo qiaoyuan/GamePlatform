@@ -86,6 +86,7 @@ class User extends BaseController
 
             //判断是否是老用户
             $openId = $res['data']['openid'];
+//            $openId = "_00035otK4yAB-Cq1IedDZ-uMBr6-zYfCOMz";
 
         }
 
@@ -107,9 +108,10 @@ class User extends BaseController
 
         }
 
-        $token = \app\common\model\User::getToken($openId, $usrObj->id, $platform);
-//        $user = \app\common\model\User::verifyToken($this->request->header(config('jwt.field'), ''));
+        $token = \app\common\model\User::getToken($openId, $usrObj->id, $usrObj->platform);
+//        $user = \app\common\model\User::verifyToken($token);
 //        var_dump($user);
+//        die;
 
 
         \app\common\model\User::where('open_id', $openId)->update(['token' => $token]);
