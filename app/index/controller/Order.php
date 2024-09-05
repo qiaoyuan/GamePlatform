@@ -92,7 +92,7 @@ class Order extends BaseController
                 ],
                 'logger' => [
                     'enable' => false,
-                    'file' => './logs/pay.log',
+                    'file' => './paylogs/pay.log',
                     'level' => 'info', // 建议生产环境等级调整为 info，开发环境为 debug
                     'type' => 'single', // optional, 可选 daily.
                     'max_file' => 30, // optional, 当 type 为 daily 时有效，默认 30 天
@@ -184,7 +184,8 @@ class Order extends BaseController
     {
         $input['head'] = $this->request->header();
         $input['param'] = $this->request->param();
-        QuestionnairesOrderCallback::create(['input_data' => json_encode($input), 'created_at' => time()]);
+        QuestionnairesOrderCallback::create(['input_data' => json_encode($input), 'created_at' => time(), 'platform'=>1]);
+
 
         $config = [
             // 必要配置
@@ -224,94 +225,50 @@ class Order extends BaseController
 
     }
 
-    //amount金额  subject标题 body详情  out_trade_no订单号  notify_url回调地址
-    public function pay($amount,$subject,$body,$out_trade_no)
+
+
+    //回调支付
+    public function dycallback()
     {
-        $site=config('douyin');
+        $input['head'] = $this->request->header();
+        $input['param'] = $this->request->param();
+        $calObj = QuestionnairesOrderCallback::create(['input_data' => json_encode($input), 'created_at' => time(), 'platform'=>2]);
 
-        if($amount<=0){
-            $this->error(__('金额不对'));
-        }
-
-        $amount=$amount*100;
-        $url = 'https://developer.toutiao.com/api/apps/ecpay/v1/create_order';
-        $data = [
-            "app_id" => $site['douyin']['appid'],
-            "out_order_no" =>$out_trade_no,
-            "total_amount" => $amount,
-            "subject" => $subject,
-            "body" => $body,
-            "valid_time" => 180,
-            "cp_extra" =>$subject,
-            "notify_url" => config('douyin.notify_url'),
+        $config = [
+            'douyin' => [
+                'default' => [
+                    'mch_id' => config('douyin.mch_id'),
+                    'mch_secret_token' => config('douyin.mch_secret_token'),
+                    'mch_secret_salt' => config('douyin.mch_secret_salt'),
+                    'mini_app_id' => config('douyin.mini_app_id'),
+                    'thirdparty_id' => '',
+                    'notify_url' => config('douyin.notify_url'),
+                ],
+            ],
+            'logger' => [
+                'enable' => false,
+                'file' => './paylogs/pay.log',
+                'level' => 'info', // 建议生产环境等级调整为 info，开发环境为 debug
+                'type' => 'single', // optional, 可选 daily.
+                'max_file' => 30, // optional, 当 type 为 daily 时有效，默认 30 天
+            ],
+//                'http' => [ // optional
+//                    'timeout' => 5.0,
+//                    'connect_timeout' => 5.0,
+//                    // 更多配置项请参考 [Guzzle](https://guzzle-cn.readthedocs.io/zh_CN/latest/request-options.html)
+//                ],
         ];
-        $data['sign']= $this->sign($data,$site['douyin']['salt']);
-        $res= $this->jsonPost($url,$data);
-        $res=json_decode($res,true);
-        if(!is_array($res)){
-            $this->error($res);
-        }
-        if($res['err_no']!=0){
-            $this->error($res['err_tips']);
-        }
-        $payData=$res['data'];
-        $this->success('订单提交成功 正在跳转支付',$payData);
-    }
+
+        \Yansongda\Pay\Pay::config($config);
 
 
-    //支付签名
-    function sign($map,$salt) {
-        $rList = [];
-        foreach($map as $k =>$v) {
-            if ($k == "other_settle_params" || $k == "app_id" || $k == "sign" || $k == "thirdparty_id")
-                continue;
+        // 是的，你没有看错，就是这么简单！
+        $result = \Yansongda\Pay\Pay::douyin()->callback();
+        $calObj->res = json_encode($result);
+        $calObj->save();
 
-            $value = trim(strval($v));
-            if (is_array($v)) {
-                $value = arrayToStr($v);
-            }
+        return \Yansongda\Pay\Pay::douyin()->success();
 
-            $len = strlen($value);
-            if ($len > 1 && substr($value, 0,1)=="\"" && substr($value, $len-1)=="\"")
-                $value = substr($value,1, $len-1);
-            $value = trim($value);
-            if ($value == "" || $value == "null")
-                continue;
-            $rList[] = $value;
-        }
-        $rList[] =$salt;
-        sort($rList, SORT_STRING);
-        return md5(implode('&', $rList));
-    }
-
-
-    function jsonPost($url, $postData, $customHeaders = []) {
-        // 初始化curl
-        $ch = curl_init($url);
-
-        // 设置curl选项
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false); // 注意：不推荐在生产环境中禁用SSL验证
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true); // 返回结果而不是直接输出
-        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true); // 跟随重定向
-        curl_setopt($ch, CURLOPT_POST, true); // 发送POST请求
-        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($postData)); // JSON格式数据
-        // 设置HTTP头
-        curl_setopt($ch, CURLOPT_HTTPHEADER, $customHeaders);
-
-        // 执行请求
-        $response = curl_exec($ch);
-
-        // 检查是否有错误发生
-        if (curl_errno($ch)) {
-            $error = 'Curl error: ' . curl_error($ch);
-            curl_close($ch); // 关闭curl资源
-            return $error; // 返回错误信息
-        }
-
-        curl_close($ch); // 关闭curl资源
-
-        // 直接返回原始响应，不进行json_decode
-        return $response;
     }
 
 }
