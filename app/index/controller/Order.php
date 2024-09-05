@@ -16,7 +16,6 @@ class Order extends BaseController
     {
         $param = $this->request->param();
 
-        $time = time();
 
         $questionnairesObj = \app\common\model\Questionnaires::where(['id' => $param['questionnaire_id'], 'status' => 1])->find();
         if (empty($questionnairesObj)) {
@@ -122,7 +121,7 @@ class Order extends BaseController
             $order->pay_extent = json_encode($result);
             $order->save();
 
-            $this->success('创建订单成功', ['info' => $result, 'pay_data' => $config ]);
+            $this->success('创建订单成功', ['info' => $result ]);
 
         } else {
 

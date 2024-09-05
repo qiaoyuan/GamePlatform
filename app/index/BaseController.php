@@ -23,7 +23,7 @@ class BaseController extends \app\common\BaseController
 
     public function getPlatform()
     {
-        return $this->request->platform?? 2;
+        return $this->request->platform?? 1;
 //        $uid = 999;
 //        return $uid;
     }
