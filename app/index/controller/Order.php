@@ -181,6 +181,7 @@ class Order extends BaseController
             $order = $message['out_trade_no'];
             $orderObj = QuestionnairesOrder::where('order_id', $order)->find();
             $orderObj->pay_status = QuestionnairesOrder::PAY_PAID_STATUS;
+            $orderObj->pay_type = QuestionnairesOrder::PAY_TYPE_WX;
             $orderObj->save();
 
             $answer = QuestionAnswer::where('uid', $orderObj->uid)->where('questionnaire_id', $orderObj->questionnaire_id)->find();
@@ -248,6 +249,14 @@ class Order extends BaseController
             $orderRes = json_decode($result['msg'], true);
             $orderObj = QuestionnairesOrder::where('order_id', $orderRes['cp_orderno'])->find();
             $orderObj->pay_status = QuestionnairesOrder::PAY_PAID_STATUS;
+
+            if($orderRes['way'] == "1") {
+                $orderObj->pay_type = QuestionnairesOrder::PAY_TYPE_DY_WX;
+            } else if($orderRes['way'] == "2") {
+                $orderObj->pay_type = QuestionnairesOrder::PAY_TYPE_DY_ALIPAY;
+            } else {
+                $orderObj->pay_type = QuestionnairesOrder::PAY_TYPE_DY_PAY;
+            }
             $orderObj->save();
 
             $answer = QuestionAnswer::where('uid', $orderObj->uid)->where('questionnaire_id', $orderObj->questionnaire_id)->find();

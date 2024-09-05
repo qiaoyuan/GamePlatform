@@ -16,6 +16,7 @@ use think\model\relation\BelongsTo;
  * @property string $pay_extent 支付请求数据
  * @property string $created_at
  * @property string $updated_at
+ * @property int $pay_type 1 微信支付， 2、抖音-支付3、抖音-微信4、抖音-支付宝
  */
 class QuestionnairesOrder extends Base
 {
@@ -34,6 +35,7 @@ class QuestionnairesOrder extends Base
         'pay_extent',
         'created_at',
         'updated_at',
+        'pay_type',
     ];
     protected $type = [
         'price' => 'float',
@@ -78,5 +80,17 @@ class QuestionnairesOrder extends Base
     public function user(): BelongsTo {
         return $this->belongsTo(User::class, 'uid', 'id');
     }
+
+    const PAY_TYPE_WX = 1;
+    const PAY_TYPE_DY_PAY = 2;
+    const PAY_TYPE_DY_WX = 3;
+    const PAY_TYPE_DY_ALIPAY = 4;
+
+    public static $PAY_TYPE_MAP = [
+        self::PAY_TYPE_WX => '微信支付',
+        self::PAY_TYPE_DY_PAY => '抖音支付',
+        self::PAY_TYPE_DY_WX => '抖音微信',
+        self::PAY_TYPE_DY_ALIPAY => '抖音支付宝',
+    ];
 
 }
