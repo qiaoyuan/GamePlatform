@@ -61,6 +61,20 @@ class User extends Base
     const WX_PLATFORM = 1;
     const DOUYIN_PLATFORM = 2;
 
+    public static $PLATFORM_MAP = [
+        self::WX_PLATFORM => '微信小程序',
+        self::DOUYIN_PLATFORM => '抖音小程序',
+    ];
+
+    public static function getPlatformList()
+    {
+        return [
+            ['label' => self::$PLATFORM_MAP[self::WX_PLATFORM], 'value' => self::WX_PLATFORM],
+            ['label' => self::$PLATFORM_MAP[self::DOUYIN_PLATFORM], 'value' => self::DOUYIN_PLATFORM]
+        ];
+
+    }
+
     public function info()
     {
         return $this->hasOne(UserInfo::class, 'user_id', 'id');
@@ -130,4 +144,5 @@ class User extends Base
     {
         return $this->belongsTo(UserChannel::class, 'channel_id', 'id');
     }
+
 }

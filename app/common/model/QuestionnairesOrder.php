@@ -69,6 +69,16 @@ class QuestionnairesOrder extends Base
         ];
     }
 
+    public static function getPayTypeList()
+    {
+        return [
+            ['label' => self::$PAY_TYPE_MAP[self::PAY_TYPE_WX], 'value' =>self::PAY_TYPE_WX],
+            ['label' => self::$PAY_TYPE_MAP[self::PAY_TYPE_DY_PAY], 'value' => self::PAY_TYPE_DY_PAY],
+            ['label' => self::$PAY_TYPE_MAP[self::PAY_TYPE_DY_WX], 'value' => self::PAY_TYPE_DY_WX],
+            ['label' => self::$PAY_TYPE_MAP[self::PAY_TYPE_DY_ALIPAY], 'value' => self::PAY_TYPE_DY_ALIPAY],
+        ];
+    }
+
     public static function getStatusList()
     {
         return [

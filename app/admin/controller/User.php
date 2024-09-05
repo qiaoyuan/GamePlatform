@@ -14,6 +14,14 @@ class User extends BaseController
     public function index()
     {
         $lists = $this->tableList(Model::class, ['id' => 'DESC'], ['title', 'description'])->with('channel')->selectData();
+
+        if (!is_numeric($lists)) {
+            $lists->each(function (Model $item) {
+                $item->channel_name = $item->channel->title ?? '';
+                $item->platform_name = Model::$PLATFORM_MAP[$item->platform];
+            });
+
+        }
         $this->success('', [
             'list' => $lists,
         ]);
@@ -78,13 +86,14 @@ class User extends BaseController
         return [
             ['v' => 'id', 'label' => 'uid', 'searchType' => 'match', 'sort' => 'id'],
             [
-                'v' => 'channel.title',
+                'v' => 'channel_name',
                 'label' => '渠道',
                 'search' => 'channel_id',
                 'sort' => 'channel_id',
                 'searchType' => 'multiple',
                 'searchList' => '/userChannel/select',
             ],
+            ['v' => 'platform_name', 'search'=>'platform', 'searchType' => 'multiple', 'label' => '平台', 'searchList' => Model::getPlatformList(), 'sort' => 'platform'],
             ['v' => 'username', 'label' => '用户名'],
             ['v' => 'nickname', 'label' => '昵称'],
             ['v' => 'avatar', 'label' => '头像', 'render' => 'image', 'search' => false],
