@@ -66,18 +66,6 @@ class Order extends BaseController
 
         if ($this->getPlatform() == \app\common\model\User::DOUYIN_PLATFORM) {
 
-//            $config = [
-//                'douyin' => [
-//                    'default' => [
-//                    'mch_id' => config('douyin.mch_id'),
-//                    'mch_secret_token' => config('douyin.mch_secret_token'),
-//                    'mch_secret_salt' => config('douyin.mch_secret_salt'),
-//                    'mini_app_id' => config('douyin.mini_app_id'),
-//                    'thirdparty_id' => '',
-//                    'notify_url' => config('douyin.notify_url'),
-//                    ],
-//                ],
-//            ];
             $config = [
                 'douyin' => [
                     'default' => [
@@ -96,22 +84,13 @@ class Order extends BaseController
                     'type' => 'single', // optional, 可选 daily.
                     'max_file' => 30, // optional, 当 type 为 daily 时有效，默认 30 天
                 ],
-//                'http' => [ // optional
-//                    'timeout' => 5.0,
-//                    'connect_timeout' => 5.0,
-//                    // 更多配置项请参考 [Guzzle](https://guzzle-cn.readthedocs.io/zh_CN/latest/request-options.html)
-//                ],
             ];
 
-//            var_dump($this->pay(1, $questionnairesObj->title,'body', $order->order_id));
-
             \Yansongda\Pay\Pay::config($config);
-            $no = date('YmdHis').rand(1000, 9999);
             $orderInput = [
                 'out_order_no' => $order->order_id.'',
-//                'out_order_no' => date('YmdHis').rand(1000, 9999),
-                'total_amount' => 100,
-                'subject' => "qy - test - subject - 01",
+                'total_amount' => $questionnairesObj->price * 100,
+                'subject' => $questionnairesObj->title,
                 'body' => "qy - test - body - 01",
                 'valid_time' => 600,
             ];
