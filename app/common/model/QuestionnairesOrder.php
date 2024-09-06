@@ -91,12 +91,14 @@ class QuestionnairesOrder extends Base
         return $this->belongsTo(User::class, 'uid', 'id');
     }
 
+    const PAY_TYPE = 0;
     const PAY_TYPE_WX = 1;
     const PAY_TYPE_DY_PAY = 2;
     const PAY_TYPE_DY_WX = 3;
     const PAY_TYPE_DY_ALIPAY = 4;
 
     public static $PAY_TYPE_MAP = [
+        self::PAY_TYPE => '未支付',
         self::PAY_TYPE_WX => '微信支付',
         self::PAY_TYPE_DY_PAY => '抖音支付',
         self::PAY_TYPE_DY_WX => '抖音微信',
