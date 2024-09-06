@@ -64,30 +64,30 @@ class QuestionnairesOrder extends Base
     public static function getPayStatusList()
     {
         return [
-            ['label' => self::$PAY_MAP[self::PAY_UNPAID_STATUS], 'value' =>self::PAY_UNPAID_STATUS],
+            ['label' => self::$PAY_MAP[self::PAY_UNPAID_STATUS], 'value' => self::PAY_UNPAID_STATUS],
             ['label' => self::$PAY_MAP[self::PAY_PAID_STATUS], 'value' => self::PAY_PAID_STATUS],
         ];
     }
 
     public static function getPayTypeList()
     {
-        return [
-            ['label' => self::$PAY_TYPE_MAP[self::PAY_TYPE_WX], 'value' =>self::PAY_TYPE_WX],
-            ['label' => self::$PAY_TYPE_MAP[self::PAY_TYPE_DY_PAY], 'value' => self::PAY_TYPE_DY_PAY],
-            ['label' => self::$PAY_TYPE_MAP[self::PAY_TYPE_DY_WX], 'value' => self::PAY_TYPE_DY_WX],
-            ['label' => self::$PAY_TYPE_MAP[self::PAY_TYPE_DY_ALIPAY], 'value' => self::PAY_TYPE_DY_ALIPAY],
-        ];
+        $arr = [];
+        foreach (self::$PAY_TYPE_MAP as $k => $v) {
+            $arr[] = ['label' => $v, 'value' => $k];
+        }
+        return $arr;
     }
 
     public static function getStatusList()
     {
         return [
-            ['label' => '正常', 'value' =>1],
+            ['label' => '正常', 'value' => 1],
             ['label' => '删除', 'value' => 0],
         ];
     }
 
-    public function user(): BelongsTo {
+    public function user(): BelongsTo
+    {
         return $this->belongsTo(User::class, 'uid', 'id');
     }
 
