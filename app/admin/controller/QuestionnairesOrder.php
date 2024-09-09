@@ -15,12 +15,15 @@ class QuestionnairesOrder extends BaseController
     {
         $param = $this->request->param();
 
+
+        $where = [];
         $uids = [];
         if(!empty($param['channel_id_match'])) {
             $uids = \app\common\model\User::where('channel_id', $param['channel_id_match'])->column('id');
             if(empty($uids)) {
                 $this->success('', ['list'=>[]]);
             }
+            $where[] = ['uid','in', $uids];
         }
 
         if(!empty($param['platform_multiple'])) {
@@ -28,16 +31,13 @@ class QuestionnairesOrder extends BaseController
             if(empty($uids)) {
                 $this->success('', ['list'=>[]]);
             }
+            $where[] = ['uid','in',  $uids];
         }
 
-        $link = $this->tableList(Model::class, ['created_at' => 'DESC']);
-        if(!empty($uids)) {
-            $link->whereIn('uid', $uids);
-        }
-
-        $lists = $link->with(['questionnaire', 'user' => function ($query){
+        $lists = $this->tableList(Model::class, ['created_at' => 'DESC'])->where($where)->with(['questionnaire', 'user' => function ($query){
             return $query->with('channel');
         }])->selectData();
+
 
         if (!is_numeric($lists)) {
             $lists->each(function (Model $item) {
@@ -62,9 +62,18 @@ class QuestionnairesOrder extends BaseController
             });
         }
 
+        $summaryRes = Model::where($where)->field("count(order_id) order_id, sum(price) price")->select();
+        $summary = [];
+        if(!empty($summaryRes)) {
+            $summary = [
+                'order_id' => $summaryRes[0]['order_id'],
+                'price' => $summaryRes[0]['price']
+            ];
+        }
 
         $this->success('', [
             'list' => $lists,
+            'summary' => $summary
         ]);
 
     }
