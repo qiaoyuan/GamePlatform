@@ -177,7 +177,7 @@ class Questions extends BaseController
 //                'searchList' => Model::getQuestionType(),
 //            ],
             ['v' => 'sort', 'label' => '排序', 'searchType' => 'number', 'sort' => 'sort'],
-            ['v' => 'created_at', 'label' => '日期', 'search' => 'created_at', 'searchType' => 'date_range', 'sort' => 'created_at'],
+            ['v' => 'created_at', 'label' => '日期', 'search' => 'created_at', 'searchType' => 'daterange', 'sort' => 'created_at'],
 
         ];
     }

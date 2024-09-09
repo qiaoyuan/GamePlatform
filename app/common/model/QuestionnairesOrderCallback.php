@@ -8,6 +8,8 @@ namespace app\common\model;
  * @property int $status 1：正常订单
  * @property string $input_data 请求订单数据
  * @property string $updated_at
+ * @property int $platform 平台
+ * @property string $res 返回值
  */
 class QuestionnairesOrderCallback extends Base
 {
@@ -23,6 +25,8 @@ class QuestionnairesOrderCallback extends Base
         'status',
         'input_data',
         'updated_at',
+        'platform',
+        'res',
     ];
     protected $type = [];
 }

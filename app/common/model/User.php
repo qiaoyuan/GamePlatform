@@ -29,11 +29,10 @@ use think\model\relation\BelongsTo;
  * @property string $token token
  * @property string $created_at
  * @property string $updated_at
+ * @property string $platform 1：wechat，2: Byte
  */
 class User extends Base
 {
-    protected $autoWriteTimestamp = true;
-
     protected $table = 'user';
     protected $pk = 'id';
     protected $field = [
@@ -52,11 +51,29 @@ class User extends Base
         'token',
         'created_at',
         'updated_at',
+        'platform',
     ];
     protected $type = [
         'amount' => 'float',
         'frozen_amount' => 'float',
     ];
+
+    const WX_PLATFORM = 1;
+    const DOUYIN_PLATFORM = 2;
+
+    public static $PLATFORM_MAP = [
+        self::WX_PLATFORM => '微信小程序',
+        self::DOUYIN_PLATFORM => '抖音小程序',
+    ];
+
+    public static function getPlatformList()
+    {
+        return [
+            ['label' => self::$PLATFORM_MAP[self::WX_PLATFORM], 'value' => self::WX_PLATFORM],
+            ['label' => self::$PLATFORM_MAP[self::DOUYIN_PLATFORM], 'value' => self::DOUYIN_PLATFORM]
+        ];
+
+    }
 
     public function info()
     {
@@ -80,7 +97,7 @@ class User extends Base
      * @param string $name
      * @return string $token
      */
-    public static function getToken($code, $uid): string
+    public static function getToken($code, $uid, $platform): string
     {
         $tokenBuilder = (new Builder(new JoseEncoder(), ChainedFormatter::default()));
         $algorithm = new Sha256();
@@ -97,6 +114,7 @@ class User extends Base
             // Configures a new claim, called "uid"
             ->withClaim('open_id', $code)
             ->withClaim('uid', $uid)
+            ->withClaim('platform', $platform)
             // Builds a new token
             ->getToken($algorithm, $signingKey);
         return $token->toString();
@@ -115,6 +133,7 @@ class User extends Base
             return [
                 'open_id' => $token->claims()->get('open_id'),
                 'uid' => $token->claims()->get('uid'),
+                'platform' => $token->claims()->get('platform'),
             ];
         } catch (\Exception $e) {
             return [];
@@ -125,4 +144,5 @@ class User extends Base
     {
         return $this->belongsTo(UserChannel::class, 'channel_id', 'id');
     }
+
 }

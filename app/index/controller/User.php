@@ -8,69 +8,116 @@ use app\common\model\QuestionAnswers;
 use app\common\model\QuestionResponse;
 use app\index\BaseController;
 use EasyWeChat\Factory;
+use GuzzleHttp\Client;
 
 class User extends BaseController
 {
+
+    private Client $client;
+
 
     public function login()
     {
 
         $param = $this->request->param();
+        $param['platform'] = $param['platform'] ?? 1;
+
         $content = json_encode($param);
 
-        //判断是否是老用户
-        $config = [
-            'app_id' => config('wechat.app_id'),
-            'secret' => config('wechat.secret'),
+        if ($param['platform'] == 1) {
+            //判断是否是老用户
+            $config = [
+                'app_id' => config('wechat.app_id'),
+                'secret' => config('wechat.secret'),
+                'response_type' => 'array',
+                'log' => [
+                    'level' => 'debug',
+                    'file' => __DIR__ . '/wechat.log',
+                ],
+            ];
 
-            // 下面为可选项
-            // 指定 API 调用返回结果的类型：array(default)/collection/object/raw/自定义类名
-            'response_type' => 'array',
+            if (empty($param['code'])) {
+                $this->error('code参数必传');
+            }
 
-            'log' => [
-                'level' => 'debug',
-                'file' => __DIR__ . '/wechat.log',
-            ],
-        ];
+            try {
 
-        try {
+                $app = Factory::miniProgram($config);
+                $res = $app->auth->session($param['code']);
 
-            $app = Factory::miniProgram($config);
+            } catch (\Exception $e) {
+                $this->error($e->getMessage());
+            }
 
-            $res = $app->auth->session($param['code']);
+            //判断是否是老用户
+            $openId = $res['openid'];
 
-        } catch (\Exception $e) {
-            $this->error($e->getMessage());
+        } else {
+
+            $appId = config('douyin.mini_app_id'); // 替换为你的应用ID
+            $appSecret = config('douyin.secret'); // 替换为你的应用密钥
+
+            $this->client = new Client([
+                'timeout' => 30,
+                'verify' => false,
+                'base_uri' => 'https://developer.toutiao.com'
+            ]);
+
+            $body = [
+                'code' => $param['code'], // 用户授权码，用户同意授权后，开发者可获取
+                'appid' => $appId,
+                'secret' => $appSecret,
+                'anonymous_code' => ''
+            ];
+
+
+            $response = $this->client->post('/api/apps/v2/jscode2session', [
+                'headers' => [
+                    'content-type' => 'content-type: application/json',
+                ],
+                'json' => $body,
+            ]);
+
+            $res = $response->getBody();
+            $res = json_decode($res, true);
+            if(!empty($res['err_no']) && $res['err_no'] != 0 ) {
+                $this->error('抖音接口异常', $res);
+            }
+
+            //判断是否是老用户
+            $openId = $res['data']['openid'];
+//            $openId = "_00035otK4yAB-Cq1IedDZ-uMBr6-zYfCOMz";
+
         }
-//        $res = ['openid'=>'oJ6ds7ZAo-Lgjc8987HC7QcWuNEI'];
 
-        //判断是否是老用户
-        $openId = $res['openid'];
         $usrObj = \app\common\model\User::where('open_id', $openId)->find();
 
         //新用户注册
         if (empty($usrObj)) {
 
+            $platform =$param['platform'] ?? \app\common\model\User::WX_PLATFORM;
             $data = [
                 'username' => '',
                 'nickname' => '',
                 'open_id' => $openId,
                 'content' => $content,
                 'channel_id' => $param['channel_id'] ?? 0,
+                'platform' => $platform,
             ];
             $usrObj = \app\common\model\User::create($data);
 
         }
 
-        $token = \app\common\model\User::getToken($openId, $usrObj->id);
-//        $user = \app\common\model\User::verifyToken($this->request->header(config('jwt.field'), ''));
+        $token = \app\common\model\User::getToken($openId, $usrObj->id, $usrObj->platform);
+//        $user = \app\common\model\User::verifyToken($token);
 //        var_dump($user);
+//        die;
 
 
         \app\common\model\User::where('open_id', $openId)->update(['token' => $token]);
 
         //然后直接返回token
-        $this->success('登录成功', ['token' => $token, 'open_id' => $openId]);
+        $this->success('登录成功', ['token' => $token, 'open_id' => $openId, 'api'=>$res]);
 
     }
 

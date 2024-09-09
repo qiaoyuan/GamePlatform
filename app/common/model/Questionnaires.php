@@ -7,8 +7,6 @@ use think\model\relation\BelongsTo;
 /**
  * @property int $id
  * @property string $title 测试名称
- * @property string $created_at
- * @property string $updated_at
  * @property int $status
  * @property string $img_url 封面图片
  * @property int $article_category_id 类型
@@ -20,19 +18,16 @@ use think\model\relation\BelongsTo;
  * @property string $content 问卷内容
  * @property float $price 问卷价格
  * @property string $group_conf
+ * @property string $created_at
+ * @property string $updated_at
  */
 class Questionnaires extends Base
 {
-    protected $autoWriteTimestamp = true;
-
-
     protected $table = 'questionnaires';
     protected $pk = 'id';
     protected $field = [
         'id',
         'title',
-        'created_at',
-        'updated_at',
         'status',
         'img_url',
         'article_category_id',
@@ -44,6 +39,8 @@ class Questionnaires extends Base
         'content',
         'price',
         'group_conf',
+        'created_at',
+        'updated_at',
     ];
 
     protected $type = [

@@ -21,7 +21,7 @@ class Auth
      */
     public function handle(Request $request, \Closure $next) :Response
     {
-        if (!Str::contains($request->pathinfo(), ['user/login', 'home/', 'order/callback'])) {
+        if (!Str::contains($request->pathinfo(), ['user/login', 'home/', 'order/callback', 'order/dycallback'])) {
 
             $user = User::verifyToken($request->header(config('jwt.field'), ''));
 
@@ -31,6 +31,7 @@ class Auth
             if ($user) {
                 $request->uid = $user['uid'];
                 $request->open_id = $user['open_id'];
+                $request->platform = $user['platform'];
             } else {
                 $this->error('登录失效', '', 401);
             }

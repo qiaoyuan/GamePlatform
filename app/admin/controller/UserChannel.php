@@ -20,6 +20,7 @@ class UserChannel extends BaseController
         if (!is_numeric($lists)) {
             $lists->each(function ($item) {
                 $item->link = fullDomain('api').'?channel_id=' . $item->id;
+                $item->platform_name = \app\common\model\User::$PLATFORM_MAP[$item->platform];
             });
         }
         $this->success('', [
@@ -108,6 +109,7 @@ class UserChannel extends BaseController
     {
         return [
             ['v' => 'id', 'label' => 'ID', 'searchType' => 'match', 'sort' => 'id'],
+            ['v' => 'platform_name', 'search'=>'platform', 'searchType' => 'multiple', 'label' => '平台', 'searchList' => \app\common\model\User::getPlatformList(), 'sort' => 'platform'],
             ['v' => 'title', 'label' => '渠道名称'],
             ['v' => 'link', 'label' => '链接'],
             ['v' => 'img_url', 'label' => '二维码', "render"=>"image"],

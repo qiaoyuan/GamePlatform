@@ -11,6 +11,7 @@ namespace app\common\model;
  * @property string $img_url
  * @property string $link
  * @property string $remark
+ * @property int $platform 1:wx;2:douyin
  */
 class UserChannel extends Base
 {
@@ -27,6 +28,7 @@ class UserChannel extends Base
         'img_url',
         'link',
         'remark',
+        'platform',
     ];
     protected $type = [];
 }

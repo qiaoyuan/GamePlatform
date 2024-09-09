@@ -1,3 +1,42 @@
+## v3.7.9
+
+### added
+
+- feat: 新增抖音支付(#1014)
+
+## v3.7.8
+
+### added
+
+- feat: 新增 v3 付款码服务商模式(#1010)
+
+## v3.7.7
+
+### added
+
+- feat: 新增江苏银行e融支付(#1002)
+
+## v3.7.6
+
+### fixed
+
+- fix: 微信关闭订单报解包错误的问题(#1000, #1001)
+
+## v3.7.5
+
+### fixed
+
+- fix: 支付宝响应空签名时签名验证逻辑错误的问题(#998)
+
+### optimized
+
+- optimize: 优化微信 `ResponsePlugin` 插件去除不必要的返回参数(#996)
+
+### deprecated
+
+- deprecate: 微信 `StartPlugin` 改为使用 `yansongda/artful` 中的插件(#993)
+- deprecate: `get_wechat_config`, `get_alipay_config`, `get_unipay_config` 方法已废弃，使用 `get_provider_config` 方法代替(#994)
+
 ## v3.7.4
 
 ### optimized
