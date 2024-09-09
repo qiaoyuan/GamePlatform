@@ -38,6 +38,9 @@
 				"navigationStyle": "custom",
 				"disableScroll": true
 			}
+			// "style": {
+			// 	"navigationBarTitleText": "完善个人资料"
+			// }
 		},
 		{
 			"path": "pages/result/index",

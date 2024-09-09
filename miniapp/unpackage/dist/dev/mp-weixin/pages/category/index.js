@@ -209,7 +209,7 @@ var _index = __webpack_require__(/*! @/api/index.js */ 43);
 var _default = {
   data: function data() {
     return {
-      actives: '0',
+      actives: 0,
       secondData: [],
       catagoryList: [],
       page: {

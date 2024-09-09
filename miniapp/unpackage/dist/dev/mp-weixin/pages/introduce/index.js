@@ -201,10 +201,10 @@ var _default = {
                     if (res.code == 0) {
                       // 订单调取成功，查看是否支付，第一次直接支付；若已经支付查看是否完成答题，
                       // 未完成答题则开始答题，已完成答题直接进入报告页
+
                       _this2.wxPay(res); // 微信支付
                     } else if (res.code == 3001) {
                       // 已支付，已生成报告  查看报告
-                      console.log(res);
                       uni.hideLoading();
                       uni.navigateTo({
                         url: "/pages/report/index?surveryId=".concat(res.data.info.questionnaire_id)
@@ -218,7 +218,6 @@ var _default = {
                     }
                   });
                 } catch (e) {
-                  console.log(e);
                   uni.showModal({
                     content: e.message,
                     showCancel: false
@@ -261,7 +260,6 @@ var _default = {
       }, orderData), {}, {
         success: function success(res) {
           uni.hideLoading();
-          // console.log(res)
           // 进入答题页答题
           uni.navigateTo({
             url: "/pages/selectSex/index?id=".concat(this.currentId)
@@ -293,9 +291,56 @@ var _default = {
         }
       }));
     },
-    // 获取当前时间戳 转为字符串
-    getTimeStamp: function getTimeStamp() {
-      return Math.round(new Date().getTime() / 1000).toString();
+    // 抖音支付
+    ttPay: function ttPay(data) {
+      var _this3 = this;
+      var orderInfo = data.data;
+      // uni.requestPayment({
+      // 	provider: "toutiao",
+      // 	orderInfo: orderInfo,
+      // 	service: 5,
+      // 	success: (res) => {
+      // 		that.getOrderInfo()
+      // 	},
+      // 	fail: (e) => {
+      // 		that.getOrderInfo()
+      // 	}
+      // })
+      uni.requestPayment({
+        provider: "toutiao",
+        orderInfo: {
+          order_id: orderInfo.info.data.order_id,
+          order_token: orderInfo.info.data.order_token
+        },
+        service: 5,
+        success: function success(res) {
+          if (res.code == 0) {
+            // 支付成功的逻辑，只有res.code=0时，才表示支付成功
+            uni.hideLoading();
+            // 进入答题页答题
+            uni.navigateTo({
+              url: "/pages/selectSex/index?id=".concat(_this3.currentId)
+            });
+          } else {
+            uni.showToast({
+              title: '取消支付',
+              icon: 'none',
+              mask: true
+            });
+          }
+          resolve(res);
+        },
+        fail: function fail(error) {
+          uni.showToast({
+            title: JSON.stringify(error),
+            icon: 'none',
+            mask: true
+          });
+          uni.hideLoading();
+          console.log(error);
+          reject(error);
+        }
+      });
     },
     goSelectSex: function goSelectSex(currentId) {
       uni.navigateTo({

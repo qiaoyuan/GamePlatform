@@ -8,6 +8,7 @@
 		 <!-- 主内容区域 -->
 		 <view class="content-container">
 		   <SwiperLimitLoad
+				id="swiperLoad"
 		     ref="swiperRef"
 		     :current="initCurrentIndex"
 		     :duration="swiperDuration"
@@ -27,15 +28,23 @@
 		 <view class="button-container">
 		   <!-- 如果当前到达第一题则禁用上一题按钮 -->
 		   <button
+			 v-if="initCurrentIndex === 0"
 		     :disabled="initCurrentIndex === 0"
 		     @click="onClickPrevious">
 		     上一题
 		   </button>
+			 <button
+				 v-else
+			   style="background-color: #f40; color: #ffffff;"
+			   @click="onClickPrevious">
+			   上一题
+			 </button>
 		
 		   <!-- <button @click="onClickAnswerSheet">答题卡</button> -->
 		
 		   <!-- 如果当前到达最后一题则禁用下一题按钮 -->
 		   <button
+			 style="background-color: deepskyblue;color: #ffffff;"
 				v-if="initCurrentIndex !== resultObj.total - 1"
 		     @click="onClickNext">
 		     下一题
@@ -78,36 +87,36 @@ import { getQusetionList, submitAnswer, reportInfo } from '@/api/index.js'
 		 * 初始化生命周期方法
 		 * @param {Object} options 路由参数
 		 */
-		async onLoad(options) {
-			uni.showToast({
+		onLoad(options) {
+			uni.showLoading({
 				title: '加载中',
-				// mask: true,
+				mask: true,
 				icon: "loading"
 			})
 			this.surveryId = options.id
-			const questionList = await getQusetionList(options.id)
-			this.questionList = questionList.data.list
-			uni.hideToast()
+			// this.getQuestionList(options.id)
+			
+		},
+		async onReady() {
+			var questions = await getQusetionList(this.surveryId)
+			this.questionList = questions.data.list
+			uni.hideLoading()
 			if(this.questionList.length<=0) {
 				uni.showLoading({
 					title: '该问卷没有题目',
 					icon: 'errro',
 					mask: true
 				})
-				setTimeout(() => {
-					uni.hideLoading()
-				},2000)
 			}
-			uni.setStorageSync('questionList', [])
-			this.resultObj.total = this.questionList.length
-			
-			// 通过 ref 调用 swiper 组件中的 init 方法，进行数据的初始化
-			this.$refs.swiperRef.init(this.questionList, this.initCurrentIndex)
-			
-			// 设置导航栏题号信息
-			this.navTitle = `${this.initCurrentIndex + 1}/${this.resultObj.total}` + `答题中。。。`
+				uni.setStorageSync('questionList', [])
+				this.resultObj.total = this.questionList.length
+				// 通过 ref 调用 swiper 组件中的 init 方法，进行数据的初始化
+				// var aaa = document.getElementById("swiperLoad")
+				// console.log(aaa)
+				this.$refs.swiperRef.init(this.questionList, this.initCurrentIndex)
+				// 设置导航栏题号信息
+				this.navTitle = `${this.initCurrentIndex + 1}/${this.resultObj.total}` + `答题中`
 		},
-
 		filters: {
 			/**
 			 * 答题卡题号状态样式方法
@@ -127,6 +136,28 @@ import { getQusetionList, submitAnswer, reportInfo } from '@/api/index.js'
 		},
 
 		methods: {
+			async getQuestionList(id) {
+				let questions = await getQusetionList(id)
+				this.questionList = questions.data.list
+				uni.hideLoading()
+				if(this.questionList.length<=0) {
+					uni.showLoading({
+						title: '该问卷没有题目',
+						icon: 'errro',
+						mask: true
+					})
+				}
+					uni.setStorageSync('questionList', [])
+					this.resultObj.total = this.questionList.length
+					console.log(this.questionList, this.initCurrentIndex)
+					// 通过 ref 调用 swiper 组件中的 init 方法，进行数据的初始化
+					console.log(this.$refs.swiperRef)
+					this.$refs.swiperRef.init(this.questionList, this.initCurrentIndex)
+					
+					// 设置导航栏题号信息
+					this.navTitle = `${this.initCurrentIndex + 1}/${this.resultObj.total}` + `答题中`
+				// })
+			},
 			/**
 			 * 点击左上角返回图标方法
 			 */
@@ -135,7 +166,7 @@ import { getQusetionList, submitAnswer, reportInfo } from '@/api/index.js'
 					content: '是否确定要退出训练',
 					success: res => {
 						if (res.cancel) return
-						uni.switchTab({
+						uni.reLaunch({
 							url: '/pages/index/index',
 						})
 						uni.removeStorageSync("optionsList")
@@ -149,7 +180,7 @@ import { getQusetionList, submitAnswer, reportInfo } from '@/api/index.js'
 			 */
 			swiperChangeEvent(e) {
 				this.initCurrentIndex = e.current
-				this.navTitle = `${this.initCurrentIndex + 1}/${this.resultObj.total}` + `答题中。。。`
+				this.navTitle = `${this.initCurrentIndex + 1}/${this.resultObj.total}` + `答题中`
 			},
 
 			/**
@@ -239,7 +270,6 @@ import { getQusetionList, submitAnswer, reportInfo } from '@/api/index.js'
 				} else {
 					resultObj.wrong++
 				}
-
 				// 计算未做题目数量
 				resultObj.notDone = resultObj.total - (resultObj.correct + resultObj.wrong)
 

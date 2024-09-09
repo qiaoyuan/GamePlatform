@@ -123,20 +123,21 @@
 		},
 		onShow() {
 			this.token = uni.getStorageSync("token")
-			if (!this.token) {
+			var that = this
+			if (!that.token) {
 				uni.getProvider({
 					service: 'oauth',
 						success: function (res) {
-							this.provider = res.provider // 获取使用该小程序的平台
+							that.provider = res.provider[0] // 获取使用该小程序的平台 ["weixin"] 、["toutiao"]
 							// 获取用户code
 							// #ifdef MP-WEIXIN
 							//该代码仅在微信小程序中生效
-								 this.getUserCode(this.provider)
+								 that.getUserCode(that.provider)
 							// #endif
 							
 							// #ifdef MP-TOUTIAO
 							 //该代码仅在抖音、头条小程序中生效
-								this.getUserCode(this.provider)
+								that.getUserTTCode(that.provider)
 							// #endif
 						}
 				})
@@ -154,7 +155,14 @@
 				mask: true,
 				icon: 'loading'
 			})
-			this.getUserCode(this.provider)
+			// // #ifdef MP-WEIXIN
+			// this.getUserCode(this.provider)
+			// // #endif
+			
+			// // #ifdef MP-TOUTIAO
+			//  //该代码仅在抖音、头条小程序中生效
+			// 	this.getUserTTCode(this.provider)
+			// // #endif
 			getHomeInfo().then(res => {
 				this.bannerList = res.data.recommend
 				this.listData = res.data.icon_list
@@ -162,7 +170,14 @@
 			})
 		},
 		onPullDownRefresh() {
+			// #ifdef MP-WEIXIN
 			this.getUserCode(this.provider)
+			// #endif
+			
+			// #ifdef MP-TOUTIAO
+			 //该代码仅在抖音、头条小程序中生效
+				this.getUserTTCode(this.provider)
+			// #endif
 		},
 		methods: {
 			async getUserCode(provider) {
@@ -190,7 +205,8 @@
 							method: 'POST',
 							data: {
 								code: code,
-								channel_id: this.channelId
+								channel_id: this.channelId,
+								platform: this.provider
 							},
 							success: (res) => {
 								if (res.data) {
@@ -215,6 +231,59 @@
 						console.log('uni.login 接口调用失败，将无法正常使用开放接口等服务', err);
 						uni.showToast({
 							title: '登录失败',
+							icon: 'none'
+						});
+					}
+				});
+			},
+			getUserTTCode(provider){
+				var that = this
+				// uni.login({
+				// 	provider: 'toutiao',
+				// 	success: function(res) {
+				// 		console.log(res);
+				// 		// that.loginTT(res.code)
+				// 		},
+				// 	fail(res) {
+				// 			console.log(`login 调用失败`);
+				// 		},
+				// })
+				tt.login({
+				  force: true,
+				  success(res) {
+				    // console.log(`login 调用成功${res.code} ${res.anonymousCode}`);
+						that.loginTT(res.code)
+				  },
+				  fail(res) {
+				    console.log(`login 调用失败`);
+				  },
+				});
+
+			},
+			loginTT(code) {
+				// 抖音小程序 获取接口登录
+				uni.request({
+					url: 'https://psychology.xuanzeti.top/index/user/login', // 你的登录API地址
+					method: 'POST',
+					data: {
+						code: code,
+						channel_id: this.channelId,
+						platform: 2, // 抖音平台
+					},
+					success: (res) => {
+						if (res.data) {
+							uni.setStorageSync('openId', res.data.data.open_id);
+							uni.setStorageSync('token', res.data.data.token);
+						} else {
+							uni.showToast({
+								title: '授权失败',
+								icon: 'none'
+							});
+						}
+					},
+					fail: () => {
+						uni.showToast({
+							title: '请求失败',
 							icon: 'none'
 						});
 					}
@@ -276,6 +345,7 @@
 		.swiper {
 			padding: 20rpx;
 			border-radius: 60rpx;
+			background-color: #ffffff;
 		}
 
 		.topBar {
@@ -283,7 +353,7 @@
 			display: flex;
 			justify-content: space-between;
 			align-items: center;
-
+			background-color: #ffffff;
 			.logo {
 				width: 140rpx;
 				height: 60rpx;

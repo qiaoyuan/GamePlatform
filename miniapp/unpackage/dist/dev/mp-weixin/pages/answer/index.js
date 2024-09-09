@@ -227,6 +227,15 @@ var _index = __webpack_require__(/*! @/api/index.js */ 43);
 //
 //
 //
+//
+//
+//
+//
+//
+//
+//
+//
+//
 // 导入请求方法
 var _default = {
   data: function data() {
@@ -252,44 +261,44 @@ var _default = {
    * @param {Object} options 路由参数
    */
   onLoad: function onLoad(options) {
+    uni.showLoading({
+      title: '加载中',
+      mask: true,
+      icon: "loading"
+    });
+    this.surveryId = options.id;
+    // this.getQuestionList(options.id)
+  },
+  onReady: function onReady() {
     var _this = this;
     return (0, _asyncToGenerator2.default)( /*#__PURE__*/_regenerator.default.mark(function _callee() {
-      var questionList;
+      var questions;
       return _regenerator.default.wrap(function _callee$(_context) {
         while (1) {
           switch (_context.prev = _context.next) {
             case 0:
-              uni.showToast({
-                title: '加载中',
-                // mask: true,
-                icon: "loading"
-              });
-              _this.surveryId = options.id;
-              _context.next = 4;
-              return (0, _index.getQusetionList)(options.id);
-            case 4:
-              questionList = _context.sent;
-              _this.questionList = questionList.data.list;
-              uni.hideToast();
+              _context.next = 2;
+              return (0, _index.getQusetionList)(_this.surveryId);
+            case 2:
+              questions = _context.sent;
+              _this.questionList = questions.data.list;
+              uni.hideLoading();
               if (_this.questionList.length <= 0) {
                 uni.showLoading({
                   title: '该问卷没有题目',
                   icon: 'errro',
                   mask: true
                 });
-                setTimeout(function () {
-                  uni.hideLoading();
-                }, 2000);
               }
               uni.setStorageSync('questionList', []);
               _this.resultObj.total = _this.questionList.length;
-
               // 通过 ref 调用 swiper 组件中的 init 方法，进行数据的初始化
+              // var aaa = document.getElementById("swiperLoad")
+              // console.log(aaa)
               _this.$refs.swiperRef.init(_this.questionList, _this.initCurrentIndex);
-
               // 设置导航栏题号信息
-              _this.navTitle = "".concat(_this.initCurrentIndex + 1, "/").concat(_this.resultObj.total) + "\u7B54\u9898\u4E2D\u3002\u3002\u3002";
-            case 12:
+              _this.navTitle = "".concat(_this.initCurrentIndex + 1, "/").concat(_this.resultObj.total) + "\u7B54\u9898\u4E2D";
+            case 10:
             case "end":
               return _context.stop();
           }
@@ -313,6 +322,45 @@ var _default = {
     }
   },
   methods: {
+    getQuestionList: function getQuestionList(id) {
+      var _this2 = this;
+      return (0, _asyncToGenerator2.default)( /*#__PURE__*/_regenerator.default.mark(function _callee2() {
+        var questions;
+        return _regenerator.default.wrap(function _callee2$(_context2) {
+          while (1) {
+            switch (_context2.prev = _context2.next) {
+              case 0:
+                _context2.next = 2;
+                return (0, _index.getQusetionList)(id);
+              case 2:
+                questions = _context2.sent;
+                _this2.questionList = questions.data.list;
+                uni.hideLoading();
+                if (_this2.questionList.length <= 0) {
+                  uni.showLoading({
+                    title: '该问卷没有题目',
+                    icon: 'errro',
+                    mask: true
+                  });
+                }
+                uni.setStorageSync('questionList', []);
+                _this2.resultObj.total = _this2.questionList.length;
+                console.log(_this2.questionList, _this2.initCurrentIndex);
+                // 通过 ref 调用 swiper 组件中的 init 方法，进行数据的初始化
+                console.log(_this2.$refs.swiperRef);
+                _this2.$refs.swiperRef.init(_this2.questionList, _this2.initCurrentIndex);
+
+                // 设置导航栏题号信息
+                _this2.navTitle = "".concat(_this2.initCurrentIndex + 1, "/").concat(_this2.resultObj.total) + "\u7B54\u9898\u4E2D";
+                // })
+              case 12:
+              case "end":
+                return _context2.stop();
+            }
+          }
+        }, _callee2);
+      }))();
+    },
     /**
      * 点击左上角返回图标方法
      */
@@ -321,7 +369,7 @@ var _default = {
         content: '是否确定要退出训练',
         success: function success(res) {
           if (res.cancel) return;
-          uni.switchTab({
+          uni.reLaunch({
             url: '/pages/index/index'
           });
           uni.removeStorageSync("optionsList");
@@ -334,7 +382,7 @@ var _default = {
      */
     swiperChangeEvent: function swiperChangeEvent(e) {
       this.initCurrentIndex = e.current;
-      this.navTitle = "".concat(this.initCurrentIndex + 1, "/").concat(this.resultObj.total) + "\u7B54\u9898\u4E2D\u3002\u3002\u3002";
+      this.navTitle = "".concat(this.initCurrentIndex + 1, "/").concat(this.resultObj.total) + "\u7B54\u9898\u4E2D";
     },
     /**
      * 点击上一题方法
@@ -367,7 +415,7 @@ var _default = {
      * 点击提交答案方法
      */
     onClickSubmit: function onClickSubmit() {
-      var _this2 = this;
+      var _this3 = this;
       this.questionList = uni.getStorageSync("questionList");
       var options = [];
       for (var i = 0; i < this.questionList.length; i++) {
@@ -390,7 +438,7 @@ var _default = {
           (0, _index.submitAnswer)(params).then(function (res) {
             uni.removeStorageSync("questionList");
             uni.navigateTo({
-              url: "/pages/report/index?surveryId=".concat(_this2.surveryId)
+              url: "/pages/report/index?surveryId=".concat(_this3.surveryId)
             });
           });
         }
@@ -418,7 +466,6 @@ var _default = {
       } else {
         resultObj.wrong++;
       }
-
       // 计算未做题目数量
       resultObj.notDone = resultObj.total - (resultObj.correct + resultObj.wrong);
 

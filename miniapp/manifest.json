@@ -59,6 +59,9 @@
                         "__platform__" : [ "ios", "android" ],
                         "appid" : "wxc7f97127d4db121a",
                         "UniversalLinks" : ""
+                    },
+                    "alipay" : {
+                        "__platform__" : [ "ios", "android" ]
                     }
                 }
             }
@@ -70,7 +73,8 @@
     "mp-weixin" : {
         "appid" : "wxc7f97127d4db121a",
         "setting" : {
-            "urlCheck" : false
+            "urlCheck" : false,
+            "es6" : true
         },
         "usingComponents" : true
     },
@@ -81,7 +85,11 @@
         "usingComponents" : true
     },
     "mp-toutiao" : {
-        "usingComponents" : true
+        "usingComponents" : true,
+        "appid" : "ttbe29c894211ef88a01",
+        "setting" : {
+            "es6" : true
+        }
     },
     "uniStatistics" : {
         "enable" : false
