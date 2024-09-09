@@ -101,6 +101,7 @@ export default {
     init(allDataList, contentIndex) {
       this.allDataList = allDataList
       this.renderList = this.initSwiperList(allDataList, contentIndex)
+			console.log(this.renderList)
     },
 
     /**

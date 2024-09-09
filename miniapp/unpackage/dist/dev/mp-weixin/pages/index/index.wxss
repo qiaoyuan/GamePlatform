@@ -31,12 +31,14 @@
 .home .swiper.data-v-57280228 {
   padding: 20rpx;
   border-radius: 60rpx;
+  background-color: #ffffff;
 }
 .home .topBar.data-v-57280228 {
   padding: 20rpx 20rpx 0;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  background-color: #ffffff;
 }
 .home .topBar .logo.data-v-57280228 {
   width: 140rpx;

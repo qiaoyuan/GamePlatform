@@ -5,7 +5,7 @@
     class="topic-info-container">
     <!-- 题目区域 -->
     <view class="topic-container">
-      <text>
+      <text style="font-weight: 800;font-size: 20px;">
         <!-- <em class="topic-icon">单选题</em> -->
         {{topicInfoObj._tid}}、{{ topicInfoObj.title }}
       </text>
@@ -15,9 +15,8 @@
     <view class="options-container">
       <button
         class="options-item"
-        
+        :style="{border: optionItem.style ? '1px solid #f8df2d' : '' }"
         v-for="(optionItem, optionIndex) in topicInfoObj.options"
-		:style="{background: optionItem.style ? 'deepskyblue' : '' }"
         :key="optionIndex"
         :data-oid="optionIndex"
         @tap="onClickOption">
@@ -26,6 +25,9 @@
           >{{ optionsMarkList[optionIndex] }}</i
         >
         <text class="options-content">{{ optionItem.title }}</text>
+				<text style="width: 30rpx; height: 30rpx; border: 2px solid #f8df2d; border-radius: 50%; position: absolute; right: 30rpx; top: 20rpx;"
+				:style="{background: optionItem.style ? '#f8df2d' : '' }"
+				></text>
       </button>
     </view>
 
@@ -232,7 +234,7 @@ export default {
       background-color: transparent;
       font-size: 32rpx;
       line-height: 32rpx;
-
+			border: 1px solid #eee;
       // 取消按钮默认样式
       &::after {
         border: none;
@@ -245,7 +247,7 @@ export default {
         flex-shrink: 0;
         width: 40rpx;
         height: 40rpx;
-        border: 1px solid #ced6e0;
+        // border: 1px solid #ced6e0;
         border-radius: 40rpx;
         margin-right: 10rpx;
         font-size: 32rpx;

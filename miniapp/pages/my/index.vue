@@ -331,8 +331,14 @@
 		}
 
 		.img {
+			// #ifdef MP-WEIXIN
 			width: 6rem;
 			height: 4rem;
+			// #endif
+			// #ifdef MP-TOUTIAO
+			width: 5rem;
+			height: 3.5rem;
+			// #endif
 			position: absolute;
 			right: 20rpx;
 			bottom: 8rpx;

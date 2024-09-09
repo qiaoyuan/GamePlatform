@@ -57,7 +57,7 @@
 	export default {
 		data() {
 			return {
-				actives: '0',
+				actives: 0,
 				secondData: [],
 				catagoryList: [],
 				page: {
@@ -226,13 +226,26 @@
 				.main {
 					font-size: 0.75rem;
 					font-weight: 600;
-
+					width: calc(100% - 6rem);
+					white-space: nowrap;
+					/* 强制不换行 */
+					text-overflow: ellipsis;
+					/* 超过部分省略号代替 */
+					overflow: hidden;
+					/* 必须同时设置overflow:hidden才能生效 */
 				}
 
 				.text {
 					font-size: 16rpx;
 					color: gray;
 					margin: 12rpx 0;
+					width: calc(100% - 6rem);
+					white-space: nowrap;
+					/* 强制不换行 */
+					text-overflow: ellipsis;
+					/* 超过部分省略号代替 */
+					overflow: hidden;
+					/* 必须同时设置overflow:hidden才能生效 */
 				}
 
 				.price {
@@ -251,8 +264,14 @@
 				}
 
 				.img {
+					// #ifdef MP-WEIXIN
 					width: 6rem;
 					height: 4rem;
+					// #endif
+					// #ifdef MP-TOUTIAO
+					width: 5rem;
+					height: 3.5rem;
+					// #endif
 					position: absolute;
 					right: 20rpx;
 					bottom: 20rpx;
