@@ -148,6 +148,7 @@ class QuestionnairesOrder extends BaseController
             ['v' => 'price', 'label' => '订单价格', 'searchType' => 'number', 'sort' => 'price'],
             ['v' => 'status_name', 'search' => 'status', 'label' => '订单状态', 'searchType' => 'multiple', 'searchList' => Model::getStatusList()],
             ['v' => 'pay_status_name', 'search' => 'pay_status', 'label' => '支付状态', 'searchType' => 'multiple', 'searchList' => Model::getPayStatusList()],
+            ['v' => 'remark', 'search' => 'remark', 'label' => '备注', 'searchType' => 'like'],
         ];
     }
 }
