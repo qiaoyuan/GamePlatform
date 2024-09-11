@@ -1,7 +1,15 @@
 <template>
 	<view class="test-container">
 		<!-- 顶部导航区域 -->
-		
+		<view style="display: flex; justify-content: center;align-items: center;padding: 0 20rpx; margin-top: 15px">
+			<text ><text style="font-weight: 800;font-size: 1.25rem;">{{initCurrentIndex + 1}}</text>/{{resultObj.total}}</text>
+			<!-- #ifdef MP-WEIXIN -->
+			<progress style="width: calc(100% - 80px);margin-left: 5px;" :percent="precentData" stroke-width="10" border-radius='10' color="#f9df34" />
+			<!-- #endif -->
+			<!-- #ifdef MP-TOUTIAO -->
+			<progress style="width: calc(100% - 80px);margin-left: 5px;border-radius: 10px;" :percent="precentData" stroke-width="10" active-color="#f9df34" background-color="#ebebeb" />
+			<!-- #endif -->
+		</view>
 		<NavBar
 				v-if="weixinbar"
 		   :title="navTitle"
@@ -85,7 +93,12 @@ import { getQusetionList, submitAnswer, reportInfo } from '@/api/index.js'
 				weixinbar: true
 			}
 		},
-
+		computed: {
+			precentData() {
+				var precent = ((this.initCurrentIndex + 1)/this.resultObj.total) * 100
+				return precent.toFixed(0)
+			},
+		},
 		/**
 		 * 初始化生命周期方法
 		 * @param {Object} options 路由参数

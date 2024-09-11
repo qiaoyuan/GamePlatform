@@ -238,6 +238,14 @@ var _index = __webpack_require__(/*! @/api/index.js */ 43);
 //
 //
 //
+//
+//
+//
+//
+//
+//
+//
+//
 // 导入请求方法
 var _default = {
   data: function data() {
@@ -258,6 +266,12 @@ var _default = {
       },
       weixinbar: true
     };
+  },
+  computed: {
+    precentData: function precentData() {
+      var precent = (this.initCurrentIndex + 1) / this.resultObj.total * 100;
+      return precent.toFixed(0);
+    }
   },
   /**
    * 初始化生命周期方法
