@@ -17,6 +17,7 @@ use think\model\relation\BelongsTo;
  * @property string $created_at
  * @property string $updated_at
  * @property int $pay_type 1 微信支付， 2、抖音-支付3、抖音-微信4、抖音-支付宝
+ * @property string $remark
  */
 class QuestionnairesOrder extends Base
 {
@@ -36,6 +37,7 @@ class QuestionnairesOrder extends Base
         'created_at',
         'updated_at',
         'pay_type',
+        'remark',
     ];
     protected $type = [
         'price' => 'float',

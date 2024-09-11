@@ -26,6 +26,18 @@ class QuestionnairesOrder extends BaseController
             $where[] = ['uid','in', $uids];
         }
 
+        if(!empty($param['channel_name_like'])) {
+            $channelIds = \app\common\model\UserChannel::where('title','like', '%'.$param['channel_name_like'].'%')->column('id');
+            if(empty($channelIds)) {
+                $this->success('', ['list'=>[]]);
+            }
+            $uids = \app\common\model\User::whereIn('channel_id', $channelIds)->column('id');
+            if(empty($uids)) {
+                $this->success('', ['list'=>[]]);
+            }
+            $where[] = ['uid','in', $uids];
+        }
+
         if(!empty($param['platform_multiple'])) {
             $uids = \app\common\model\User::whereIn('platform', $param['platform_multiple'])->column('id');
             if(empty($uids)) {
@@ -131,11 +143,12 @@ class QuestionnairesOrder extends BaseController
             ['v' => 'platform_name', 'search'=>'platform', 'label' => '平台', 'searchType' => 'multiple', 'searchList' => \app\common\model\User::getPlatformList(), 'sort' => 'platform'],
             ['v' => 'pay_type_name','search'=>'pay_type', 'label' => '支付方式', 'searchType' => 'multiple', 'searchList' => Model::getPayTypeList(), 'sort' => 'pay_type'],
             ['v' => 'channel_id', 'label' => '渠道ID', 'searchType' => 'match', 'sort' => 'channel_id'],
-            ['v' => 'channel_name', 'label' => '渠道名称', 'searchType' => false, 'search'=>false, 'sort' => 'channel_id'],
+            ['v' => 'channel_name', 'label' => '渠道名称', 'searchType' => 'like', 'sort' => 'channel_id'],
             ['v' => 'created_at', 'label' => '创建时间', 'searchType' => 'daterange', 'sort' => 'created_at'],
             ['v' => 'price', 'label' => '订单价格', 'searchType' => 'number', 'sort' => 'price'],
             ['v' => 'status_name', 'search' => 'status', 'label' => '订单状态', 'searchType' => 'multiple', 'searchList' => Model::getStatusList()],
             ['v' => 'pay_status_name', 'search' => 'pay_status', 'label' => '支付状态', 'searchType' => 'multiple', 'searchList' => Model::getPayStatusList()],
+            ['v' => 'remark', 'search' => 'remark', 'label' => '备注', 'searchType' => 'like'],
         ];
     }
 }

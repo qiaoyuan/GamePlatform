@@ -22,12 +22,24 @@ class Order extends BaseController
             $this->error('问卷不存在');
         }
 
-        $order = QuestionnairesOrder::where(['uid' => $this->getUid(), 'questionnaire_id' => $param['questionnaire_id'], 'status' => 1])->find();
+        if (!empty($param['order_timeout'])){
+            $order = QuestionnairesOrder::where('order_id', $param['order_timeout'])->find();
+            $order->status = 0;
+            $order->remark = '订单超时.';
+            $order->save();
+            $order = null;
+        } else {
+
+            $order = QuestionnairesOrder::where(['uid' => $this->getUid(), 'questionnaire_id' => $param['questionnaire_id'], 'status' => 1])->find();
+        }
+
+
 
 
         if (!empty($order) && $order->price != $questionnairesObj->price) {
             $order->status = 0;
             $order->save();
+            $order->remark = '产品价格改变.';
             $order = null;
         }
 
@@ -96,11 +108,11 @@ class Order extends BaseController
             ];
 
             $result =  \Yansongda\Pay\Pay::douyin()->mini($orderInput);
-
             $order->pay_extent = json_encode($result);
             $order->save();
 
-            $this->success('创建订单成功', ['info' => $result ]);
+            $result['self_order'] = $order->order_id;
+            $this->success('创建订单成功', ['info' => $result]);
 
         } else {
 
@@ -149,7 +161,7 @@ class Order extends BaseController
 
             $order->pay_extent = json_encode($res);
             $order->save();
-
+            $result['self_order'] = $order->order_id;
             $this->success('创建订单成功', ['info' => $res, 'pay_data' => $payData]);
 
         }
