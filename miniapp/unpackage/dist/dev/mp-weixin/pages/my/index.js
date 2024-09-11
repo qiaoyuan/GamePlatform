@@ -101,7 +101,7 @@ var components
 try {
   components = {
     uniSegmentedControl: function () {
-      return __webpack_require__.e(/*! import() | uni_modules/uni-segmented-control/components/uni-segmented-control/uni-segmented-control */ "uni_modules/uni-segmented-control/components/uni-segmented-control/uni-segmented-control").then(__webpack_require__.bind(null, /*! @/uni_modules/uni-segmented-control/components/uni-segmented-control/uni-segmented-control.vue */ 108))
+      return __webpack_require__.e(/*! import() | uni_modules/uni-segmented-control/components/uni-segmented-control/uni-segmented-control */ "uni_modules/uni-segmented-control/components/uni-segmented-control/uni-segmented-control").then(__webpack_require__.bind(null, /*! @/uni_modules/uni-segmented-control/components/uni-segmented-control/uni-segmented-control.vue */ 116))
     },
   }
 } catch (e) {
@@ -343,7 +343,7 @@ var _default = {
     goAllTest: function goAllTest(all) {
       if (!all.response_id) {
         // 前往答题
-        this.toAnswer(all.questionnaire_id);
+        this.toAnswer(all);
       } else {
         // 查看报告
         this.lookReport(all);
@@ -356,9 +356,10 @@ var _default = {
       });
     },
     //未完成进入答题
-    toAnswer: function toAnswer(id) {
+    toAnswer: function toAnswer(data) {
+      console.log(data);
       uni.navigateTo({
-        url: "/pages/selectSex/index?id=".concat(id)
+        url: "/pages/selectSex/index?id=".concat(data.questionnaire_id, "&title=").concat(data.questionnaire.title)
       });
     }
   }

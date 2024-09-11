@@ -231,7 +231,7 @@ var _default = {
     categoryId: {
       handler: function handler(n) {
         uni.showToast({
-          titel: '加载中',
+          title: '加载中',
           mask: true,
           icon: 'loading'
         });
@@ -350,8 +350,9 @@ var _default = {
     },
     // 点击进入测评页面
     clickTest: function clickTest(data) {
+      var questionId = data.id;
       uni.navigateTo({
-        url: "/pages/introduce/index?id=".concat(data.id)
+        url: "/pages/introduce/index?id=".concat(questionId)
       });
     }
   }

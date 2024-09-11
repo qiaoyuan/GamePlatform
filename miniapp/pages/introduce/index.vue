@@ -118,16 +118,15 @@
 					}
 					// 调取订单接口
 					getOrderInfo(params).then(res => {
-						console.log(res)
 						if (res.code == 0) {
 							// 订单调取成功，查看是否支付，第一次直接支付；若已经支付查看是否完成答题，
 							// 未完成答题则开始答题，已完成答题直接进入报告页
 							// #ifdef MP-WEIXIN
-							this.wxPay(res) // 微信支付
+							this.wxPay(res, this.currentId, this.introduceInfo.title) // 微信支付
 							// #endif
 
 							// #ifdef MP-TOUTIAO
-							this.ttPay(res)
+							this.ttPay(res, this.currentId, this.introduceInfo.title)
 							// #endif
 
 						} else if (res.code == 3001) { // 已支付，已生成报告  查看报告
@@ -138,7 +137,7 @@
 						} else if (res.code == 3002) { // 已支付，未生成报告  进入答题页
 							uni.hideLoading()
 							uni.navigateTo({
-								url: `/pages/selectSex/index?id=${this.currentId}`
+								url: `/pages/selectSex/index?id=${this.currentId}&title=${this.introduceInfo.title}`
 							})
 						}
 					})
@@ -152,7 +151,7 @@
 				// 	uni.hideLoading()
 				// }
 			},
-			wxPay(data) {
+			wxPay(data, currentId, title) {
 				let orderInfo = data.data
 				let orderData = {
 					// "appid": orderInfo.info.appid,  // 微信开放平台 - 应用 - AppId，注意和微信小程序、公众号 AppId 可能不一致
@@ -175,7 +174,7 @@
 						uni.hideLoading()
 						// 进入答题页答题
 						uni.navigateTo({
-							url: `/pages/selectSex/index?id=${this.currentId}`
+							url: `/pages/selectSex/index?id=${currentId}&title=${title}`
 						})
 					},
 					fail: function(err) {
@@ -205,8 +204,8 @@
 				});
 			},
 			// 抖音支付
-			ttPay(data) {
-				let orderInfo = data.data
+			ttPay(data, currentId, title) {
+				let orderInfos = data.data
 				// uni.requestPayment({
 				// 	provider: "toutiao",
 				// 	orderInfo: orderInfo,
@@ -218,11 +217,12 @@
 				// 		that.getOrderInfo()
 				// 	}
 				// })
+				// uni.requestPayment
 				uni.requestPayment({
 						provider: "toutiao",
 						orderInfo: {
-							order_id: orderInfo.info.data.order_id,
-							order_token: orderInfo.info.data.order_token,
+							order_id: orderInfos.info.data.order_id,
+							order_token: orderInfos.info.data.order_token,
 						},
 						service: 5,
 						success: (res) => {
@@ -231,7 +231,7 @@
 								uni.hideLoading()
 								// 进入答题页答题
 								uni.navigateTo({
-									url: `/pages/selectSex/index?id=${this.currentId}`
+									url: `/pages/selectSex/index?id=${currentId}&title=${title}`
 								})
 							}else {
 								uni.showToast({
@@ -243,14 +243,54 @@
 							resolve(res)
 						},
 						fail: (error) => {
-							uni.showToast({
-								title: JSON.stringify(error),
-								icon: 'none',
-								mask: true
-							})
-							uni.hideLoading()
-							console.log(error)
-							reject(error)
+							if(error.data.code == 10003){
+								uni.hideLoading()
+								// uni.showToast({
+								// 	title: '订单已超时，请重新下单',
+								// 	icon: 'none',
+								// 	mask: true
+								// })
+								// 删除之前的超时订单
+								var selefOrder = orderInfos.info.self_order
+								getOrderInfo({
+									questionnaire_id: this.currentId,
+									order_timeout: selefOrder
+								}).then(res => {
+									if (res.code == 0) {
+										// 订单调取成功，查看是否支付，第一次直接支付；若已经支付查看是否完成答题，
+										// 未完成答题则开始答题，已完成答题直接进入报告页
+										// #ifdef MP-WEIXIN
+										this.wxPay(res, this.currentId, this.introduceInfo.title) // 微信支付
+										// #endif
+									
+										// #ifdef MP-TOUTIAO
+										this.ttPay(res, this.currentId, this.introduceInfo.title)
+										// #endif
+									
+									} else if (res.code == 3001) { // 已支付，已生成报告  查看报告
+										uni.hideLoading()
+										uni.navigateTo({
+											url: `/pages/report/index?surveryId=${res.data.info.questionnaire_id}`
+										})
+									} else if (res.code == 3002) { // 已支付，未生成报告  进入答题页
+										uni.hideLoading()
+										uni.navigateTo({
+											url: `/pages/selectSex/index?id=${this.currentId}&title=${this.introduceInfo.title}`
+										})
+									}
+								})
+								
+							}else {
+								uni.hideLoading()
+								uni.showToast({
+									title: JSON.stringify(error.errMsg),
+									icon: 'none',
+									mask: true
+								})
+							}
+							
+							// console.log(error)
+							// reject(error.errMsg)
 						}
 				})
 		},
@@ -395,7 +435,8 @@
 		right: var(--window-right);
 		/* #endif */
 		bottom: 0;
-
+		padding-bottom: 30rpx;
+		background-color: #ffffff;
 		.bottom {
 			width: 100%;
 			height: 100%;

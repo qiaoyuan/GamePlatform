@@ -47,7 +47,7 @@
 					<view class="title">{{item.title}}</view>
 					<view class="text">{{item.description}}</view>
 				</view>
-				<view class="middle" @click="reviewDetail(item.questionnaires[0].id)">
+				<view class="middle" @click="reviewDetail(item.questionnaires[0].id ? item.questionnaires[0].id : '')">
 					<view class="middle-left">
 						<view class="title">{{item.questionnaires[0].title}}</view>
 						<view class="text">{{item.questionnaires[0].description}}</view>
@@ -206,7 +206,7 @@
 							data: {
 								code: code,
 								channel_id: this.channelId,
-								platform: this.provider
+								platform: 1, // 微信平台
 							},
 							success: (res) => {
 								if (res.data) {

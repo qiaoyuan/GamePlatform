@@ -10,7 +10,7 @@
 					Hi!
 				</view>
 				<view class="bottom">
-					欢迎回来，微信用户
+					欢迎回来
 				</view>
 			</view>
 		</view>
@@ -67,7 +67,7 @@
 				</view>
 				<view v-else-if="current === 2" style="width: 100%;height: 100%; min-height: 600rpx;">
 					<view v-if='inFinishTest.length>0' style="width: 100%;height: 100%;">
-						<view class="item" v-for="(item,index) in inFinishTest" :key="index" @click="toAnswer(item.questionnaire_id)">
+						<view class="item" v-for="(item,index) in inFinishTest" :key="index" @click="toAnswer(item)">
 							<view class="main">
 								{{item.questionnaire.title}}
 							</view>
@@ -123,11 +123,11 @@
 			// }
 		},
 		onLoad() {
-				uni.showToast({
-					title: '加载中',
-					icon: 'loading',
-					mask:true
-				})
+			uni.showToast({
+				title: '加载中',
+				icon: 'loading',
+				mask:true
+			})
 		},
 		methods: {
 			onClickItem(e) {
@@ -159,7 +159,7 @@
 			},
 			goAllTest(all) {
 					if(!all.response_id) { // 前往答题
-						this.toAnswer(all.questionnaire_id)
+						this.toAnswer(all)
 					}else { // 查看报告
 						this.lookReport(all)
 					}
@@ -171,9 +171,10 @@
 				})
 			},
 			//未完成进入答题
-			toAnswer(id) {
+			toAnswer(data) {
+				console.log(data)
 					uni.navigateTo({
-						url: `/pages/selectSex/index?id=${id}`
+						url: `/pages/selectSex/index?id=${data.questionnaire_id}&title=${data.questionnaire.title}`
 					})
 			},
 			}
@@ -303,10 +304,17 @@
 		}
 
 		.text {
-			font-size: 16rpx;
+			font-size: 20rpx;
 			color: gray;
 			margin: 12rpx 0;
 			text-align: left;
+			width: calc(100% - 9rem);
+			white-space: nowrap;
+			/* 强制不换行 */
+			text-overflow: ellipsis;
+			/* 超过部分省略号代替 */
+			overflow: hidden;
+			/* 必须同时设置overflow:hidden才能生效 */
 		}
 
 		.price {

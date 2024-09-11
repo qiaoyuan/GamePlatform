@@ -6,6 +6,7 @@
     "pages/introduce/index",
     "pages/selectSex/index",
     "pages/answer/index",
+    "pages/dyAnswer/index",
     "pages/result/index",
     "pages/report/index"
   ],

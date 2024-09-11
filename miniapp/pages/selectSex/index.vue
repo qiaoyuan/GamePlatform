@@ -28,9 +28,9 @@
 
 <script>
 	export default{
-		onLoad(option) {
-			this.currentId = option.id
-			this.title = option.title
+		onLoad(options) {
+			this.currentId = options.id
+			this.title = options.title
 			
 		},
 		data() {
@@ -42,9 +42,17 @@
 		methods: {
 			goAnswer(sex) {
 				let id = this.currentId
+				uni.setStorageSync('currentQuestionId', this.currentId)
+					// #ifdef MP-WEIXIN
+				uni.navigateTo({
+					url: `/pages/dyAnswer/index?id=${id}&sex=${sex}`
+				})
+				// #endif
+					// #ifdef MP-TOUTIAO
 				uni.navigateTo({
 					url: `/pages/answer/index?id=${id}&sex=${sex}`
 				})
+				// #endif
 			},
 		}
 	}

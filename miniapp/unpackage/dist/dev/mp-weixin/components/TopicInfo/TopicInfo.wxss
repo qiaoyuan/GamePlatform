@@ -57,7 +57,7 @@
   display: flex;
   align-items: center;
   padding: 20rpx;
-  margin: 20rpx 40rpx;
+  margin: 10rpx 40rpx;
   background-color: transparent;
   font-size: 32rpx;
   line-height: 32rpx;

@@ -1,7 +1,5 @@
 {
-  "enablePullDownRefresh": false,
-  "navigationStyle": "custom",
-  "disableScroll": true,
+  "navigationBarTitleText": "答题页",
   "usingComponents": {
     "index-swiper-limit-load-content": "/pages/answer/index-swiper-limit-load-content",
     "nav-bar": "/components/NavBar/NavBar",

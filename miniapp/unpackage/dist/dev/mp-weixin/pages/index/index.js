@@ -352,8 +352,9 @@ var _default = {
             data: {
               code: code,
               channel_id: _this3.channelId,
-              platform: _this3.provider
+              platform: 1 // 微信平台
             },
+
             success: function success(res) {
               if (res.data) {
                 uni.setStorageSync('openId', res.data.data.open_id);

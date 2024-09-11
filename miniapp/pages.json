@@ -1,5 +1,5 @@
 {
-	"pages": [ //pages数组中第一项表示应用启动页，参考：https://uniapp.dcloud.io/collocation/pages
+	"pages": [
 		{
 			"path": "pages/index/index",
 			"style": {
@@ -34,13 +34,16 @@
 		{
 			"path": "pages/answer/index",
 			"style": {
+				"navigationBarTitleText": "答题页"
+			}
+		},
+		{
+			"path": "pages/dyAnswer/index",
+			"style": {
 				"enablePullDownRefresh": false,
 				"navigationStyle": "custom",
 				"disableScroll": true
 			}
-			// "style": {
-			// 	"navigationBarTitleText": "完善个人资料"
-			// }
 		},
 		{
 			"path": "pages/result/index",

@@ -25,9 +25,11 @@
           >{{ optionsMarkList[optionIndex] }}</i
         >
         <text class="options-content">{{ optionItem.title }}</text>
-				<text style="width: 30rpx; height: 30rpx; border: 2px solid #f8df2d; border-radius: 50%; position: absolute; right: 30rpx; top: 20rpx;"
-				:style="{background: optionItem.style ? '#f8df2d' : '' }"
-				></text>
+				<view style="width: 40rpx; height: 40rpx; position: absolute; right: 30rpx; top: 20rpx;"
+				>
+				<image v-if="optionItem.style" style="width: 100%; height: 100%;" src="../../static/radius-click.png" mode=""></image>
+				<image v-else style="width: 100%; height: 100%;" src="../../static/radiu-none.png" mode=""></image>
+				</view>
       </button>
     </view>
 
@@ -230,7 +232,7 @@ export default {
       display: flex;
       align-items: center;
       padding: 20rpx;
-      margin: 20rpx 40rpx;
+      margin: 10rpx 40rpx;
       background-color: transparent;
       font-size: 32rpx;
       line-height: 32rpx;

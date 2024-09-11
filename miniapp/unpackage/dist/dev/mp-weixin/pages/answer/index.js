@@ -101,13 +101,13 @@ var components
 try {
   components = {
     NavBar: function () {
-      return __webpack_require__.e(/*! import() | components/NavBar/NavBar */ "components/NavBar/NavBar").then(__webpack_require__.bind(null, /*! @/components/NavBar/NavBar.vue */ 115))
+      return __webpack_require__.e(/*! import() | components/NavBar/NavBar */ "components/NavBar/NavBar").then(__webpack_require__.bind(null, /*! @/components/NavBar/NavBar.vue */ 123))
     },
     SwiperLimitLoad: function () {
-      return __webpack_require__.e(/*! import() | components/SwiperLimitLoad/SwiperLimitLoad */ "components/SwiperLimitLoad/SwiperLimitLoad").then(__webpack_require__.bind(null, /*! @/components/SwiperLimitLoad/SwiperLimitLoad.vue */ 122))
+      return __webpack_require__.e(/*! import() | components/SwiperLimitLoad/SwiperLimitLoad */ "components/SwiperLimitLoad/SwiperLimitLoad").then(__webpack_require__.bind(null, /*! @/components/SwiperLimitLoad/SwiperLimitLoad.vue */ 130))
     },
     TopicInfo: function () {
-      return Promise.all(/*! import() | components/TopicInfo/TopicInfo */[__webpack_require__.e("common/vendor"), __webpack_require__.e("components/TopicInfo/TopicInfo")]).then(__webpack_require__.bind(null, /*! @/components/TopicInfo/TopicInfo.vue */ 129))
+      return Promise.all(/*! import() | components/TopicInfo/TopicInfo */[__webpack_require__.e("common/vendor"), __webpack_require__.e("components/TopicInfo/TopicInfo")]).then(__webpack_require__.bind(null, /*! @/components/TopicInfo/TopicInfo.vue */ 137))
     },
   }
 } catch (e) {
@@ -236,6 +236,8 @@ var _index = __webpack_require__(/*! @/api/index.js */ 43);
 //
 //
 //
+//
+//
 // 导入请求方法
 var _default = {
   data: function data() {
@@ -253,7 +255,8 @@ var _default = {
         time: '00:00:00',
         notDone: 0,
         total: 0
-      }
+      },
+      weixinbar: true
     };
   },
   /**
@@ -261,49 +264,64 @@ var _default = {
    * @param {Object} options 路由参数
    */
   onLoad: function onLoad(options) {
-    uni.showLoading({
-      title: '加载中',
-      mask: true,
-      icon: "loading"
-    });
-    this.surveryId = options.id;
-    // this.getQuestionList(options.id)
-  },
-  onReady: function onReady() {
     var _this = this;
     return (0, _asyncToGenerator2.default)( /*#__PURE__*/_regenerator.default.mark(function _callee() {
-      var questions;
       return _regenerator.default.wrap(function _callee$(_context) {
         while (1) {
           switch (_context.prev = _context.next) {
             case 0:
-              _context.next = 2;
-              return (0, _index.getQusetionList)(_this.surveryId);
-            case 2:
-              questions = _context.sent;
-              _this.questionList = questions.data.list;
-              uni.hideLoading();
-              if (_this.questionList.length <= 0) {
-                uni.showLoading({
-                  title: '该问卷没有题目',
-                  icon: 'errro',
-                  mask: true
-                });
-              }
-              uni.setStorageSync('questionList', []);
-              _this.resultObj.total = _this.questionList.length;
-              // 通过 ref 调用 swiper 组件中的 init 方法，进行数据的初始化
-              // var aaa = document.getElementById("swiperLoad")
-              // console.log(aaa)
-              _this.$refs.swiperRef.init(_this.questionList, _this.initCurrentIndex);
-              // 设置导航栏题号信息
-              _this.navTitle = "".concat(_this.initCurrentIndex + 1, "/").concat(_this.resultObj.total) + "\u7B54\u9898\u4E2D";
-            case 10:
+              uni.showLoading({
+                title: '加载中',
+                mask: true,
+                icon: "loading"
+              });
+              _this.surveryId = options.id;
+              // this.getQuestionList(options.id)
+
+              _this.weixinbar = true;
+            case 3:
             case "end":
               return _context.stop();
           }
         }
       }, _callee);
+    }))();
+  },
+  onReady: function onReady() {
+    var _this2 = this;
+    return (0, _asyncToGenerator2.default)( /*#__PURE__*/_regenerator.default.mark(function _callee2() {
+      var questionId, questions;
+      return _regenerator.default.wrap(function _callee2$(_context2) {
+        while (1) {
+          switch (_context2.prev = _context2.next) {
+            case 0:
+              questionId = uni.getStorageSync("currentQuestionId");
+              _context2.next = 3;
+              return (0, _index.getQusetionList)(questionId);
+            case 3:
+              questions = _context2.sent;
+              _this2.questionList = questions.data.list;
+              uni.hideLoading();
+              if (_this2.questionList.length <= 0) {
+                uni.showLoading({
+                  title: '该问卷没有题目',
+                  icon: 'errro',
+                  mask: true
+                });
+              } else {
+                uni.setStorageSync('questionList', []);
+                _this2.resultObj.total = _this2.questionList.length;
+                // 通过 ref 调用 swiper 组件中的 init 方法，进行数据的初始化
+                _this2.$refs.swiperRef.init(_this2.questionList, _this2.initCurrentIndex);
+                // 设置导航栏题号信息
+                _this2.navTitle = "".concat(_this2.initCurrentIndex + 1, "/").concat(_this2.resultObj.total) + "\u7B54\u9898\u4E2D";
+              }
+            case 7:
+            case "end":
+              return _context2.stop();
+          }
+        }
+      }, _callee2);
     }))();
   },
   filters: {
@@ -323,20 +341,20 @@ var _default = {
   },
   methods: {
     getQuestionList: function getQuestionList(id) {
-      var _this2 = this;
-      return (0, _asyncToGenerator2.default)( /*#__PURE__*/_regenerator.default.mark(function _callee2() {
+      var _this3 = this;
+      return (0, _asyncToGenerator2.default)( /*#__PURE__*/_regenerator.default.mark(function _callee3() {
         var questions;
-        return _regenerator.default.wrap(function _callee2$(_context2) {
+        return _regenerator.default.wrap(function _callee3$(_context3) {
           while (1) {
-            switch (_context2.prev = _context2.next) {
+            switch (_context3.prev = _context3.next) {
               case 0:
-                _context2.next = 2;
+                _context3.next = 2;
                 return (0, _index.getQusetionList)(id);
               case 2:
-                questions = _context2.sent;
-                _this2.questionList = questions.data.list;
+                questions = _context3.sent;
+                _this3.questionList = questions.data.list;
                 uni.hideLoading();
-                if (_this2.questionList.length <= 0) {
+                if (_this3.questionList.length <= 0) {
                   uni.showLoading({
                     title: '该问卷没有题目',
                     icon: 'errro',
@@ -344,21 +362,20 @@ var _default = {
                   });
                 }
                 uni.setStorageSync('questionList', []);
-                _this2.resultObj.total = _this2.questionList.length;
-                console.log(_this2.questionList, _this2.initCurrentIndex);
+                _this3.resultObj.total = _this3.questionList.length;
+                console.log(_this3.questionList, _this3.initCurrentIndex);
                 // 通过 ref 调用 swiper 组件中的 init 方法，进行数据的初始化
-                console.log(_this2.$refs.swiperRef);
-                _this2.$refs.swiperRef.init(_this2.questionList, _this2.initCurrentIndex);
+                _this3.$refs.swiperRef.init(_this3.questionList, _this3.initCurrentIndex);
 
                 // 设置导航栏题号信息
-                _this2.navTitle = "".concat(_this2.initCurrentIndex + 1, "/").concat(_this2.resultObj.total) + "\u7B54\u9898\u4E2D";
+                _this3.navTitle = "".concat(_this3.initCurrentIndex + 1, "/").concat(_this3.resultObj.total) + "\u7B54\u9898\u4E2D";
                 // })
-              case 12:
+              case 11:
               case "end":
-                return _context2.stop();
+                return _context3.stop();
             }
           }
-        }, _callee2);
+        }, _callee3);
       }))();
     },
     /**
@@ -415,7 +432,7 @@ var _default = {
      * 点击提交答案方法
      */
     onClickSubmit: function onClickSubmit() {
-      var _this3 = this;
+      var _this4 = this;
       this.questionList = uni.getStorageSync("questionList");
       var options = [];
       for (var i = 0; i < this.questionList.length; i++) {
@@ -438,7 +455,7 @@ var _default = {
           (0, _index.submitAnswer)(params).then(function (res) {
             uni.removeStorageSync("questionList");
             uni.navigateTo({
-              url: "/pages/report/index?surveryId=".concat(_this3.surveryId)
+              url: "/pages/report/index?surveryId=".concat(_this4.surveryId)
             });
           });
         }

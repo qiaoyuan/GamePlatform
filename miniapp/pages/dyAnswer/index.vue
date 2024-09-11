@@ -1,12 +1,8 @@
 <template>
 	<view class="test-container">
-		<!-- 顶部导航区域 -->
-		
 		<NavBar
-				v-if="weixinbar"
 		   :title="navTitle"
 		   @back="onClickBack" />
-		
 		 <!-- 主内容区域 -->
 		 <view class="content-container">
 		   <SwiperLimitLoad
@@ -82,7 +78,6 @@ import { getQusetionList, submitAnswer, reportInfo } from '@/api/index.js'
 					notDone: 0,
 					total: 0,
 				},
-				weixinbar: true
 			}
 		},
 
@@ -98,12 +93,7 @@ import { getQusetionList, submitAnswer, reportInfo } from '@/api/index.js'
 			})
 			this.surveryId = options.id
 			// this.getQuestionList(options.id)
-			// #ifdef MP-WEIXIN
-				this.weixinbar = true
-			// #endif
-			// #ifdef MP-TOUTIAO
-				this.weixinbar = false
-			// #endif
+			
 		},
 		async onReady() {
 			var questionId = uni.getStorageSync("currentQuestionId")
@@ -159,7 +149,6 @@ import { getQusetionList, submitAnswer, reportInfo } from '@/api/index.js'
 				}
 					uni.setStorageSync('questionList', [])
 					this.resultObj.total = this.questionList.length
-					console.log(this.questionList, this.initCurrentIndex)
 					// 通过 ref 调用 swiper 组件中的 init 方法，进行数据的初始化
 					this.$refs.swiperRef.init(this.questionList, this.initCurrentIndex)
 					

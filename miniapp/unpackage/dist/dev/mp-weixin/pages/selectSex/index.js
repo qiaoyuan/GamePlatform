@@ -170,9 +170,9 @@ exports.default = void 0;
 //
 //
 var _default = {
-  onLoad: function onLoad(option) {
-    this.currentId = option.id;
-    this.title = option.title;
+  onLoad: function onLoad(options) {
+    this.currentId = options.id;
+    this.title = options.title;
   },
   data: function data() {
     return {
@@ -183,8 +183,9 @@ var _default = {
   methods: {
     goAnswer: function goAnswer(sex) {
       var id = this.currentId;
+      uni.setStorageSync('currentQuestionId', this.currentId);
       uni.navigateTo({
-        url: "/pages/answer/index?id=".concat(id, "&sex=").concat(sex)
+        url: "/pages/dyAnswer/index?id=".concat(id, "&sex=").concat(sex)
       });
     }
   }

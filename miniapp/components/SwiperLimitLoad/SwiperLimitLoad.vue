@@ -10,7 +10,7 @@
       @touchmove.stop>
       <swiper-item
         v-for="(item, index) in renderList"
-		catchtouchmove="catchTouchMove"
+				catchtouchmove="false"
         :key="index">
         <scroll-view
           style="height: 100%"
@@ -101,7 +101,6 @@ export default {
     init(allDataList, contentIndex) {
       this.allDataList = allDataList
       this.renderList = this.initSwiperList(allDataList, contentIndex)
-			console.log(this.renderList)
     },
 
     /**

@@ -41,9 +41,10 @@ export default {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  height: 180rpx;
+  height: 120rpx;
   vertical-align: bottom;
-
+	background-color: #f8f8f8;
+	padding-top: 70rpx;
   .back {
     display: flex;
     align-items: center;

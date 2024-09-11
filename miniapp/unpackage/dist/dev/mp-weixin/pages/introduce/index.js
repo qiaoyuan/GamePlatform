@@ -197,12 +197,11 @@ var _default = {
                   }; // 调取订单接口
 
                   (0, _index.getOrderInfo)(params).then(function (res) {
-                    console.log(res);
                     if (res.code == 0) {
                       // 订单调取成功，查看是否支付，第一次直接支付；若已经支付查看是否完成答题，
                       // 未完成答题则开始答题，已完成答题直接进入报告页
 
-                      _this2.wxPay(res); // 微信支付
+                      _this2.wxPay(res, _this2.currentId, _this2.introduceInfo.title); // 微信支付
                     } else if (res.code == 3001) {
                       // 已支付，已生成报告  查看报告
                       uni.hideLoading();
@@ -213,7 +212,7 @@ var _default = {
                       // 已支付，未生成报告  进入答题页
                       uni.hideLoading();
                       uni.navigateTo({
-                        url: "/pages/selectSex/index?id=".concat(_this2.currentId)
+                        url: "/pages/selectSex/index?id=".concat(_this2.currentId, "&title=").concat(_this2.introduceInfo.title)
                       });
                     }
                   });
@@ -234,7 +233,7 @@ var _default = {
         }, _callee);
       }))();
     },
-    wxPay: function wxPay(data) {
+    wxPay: function wxPay(data, currentId, title) {
       var orderInfo = data.data;
       var orderData = {
         // "appid": orderInfo.info.appid,  // 微信开放平台 - 应用 - AppId，注意和微信小程序、公众号 AppId 可能不一致
@@ -262,7 +261,7 @@ var _default = {
           uni.hideLoading();
           // 进入答题页答题
           uni.navigateTo({
-            url: "/pages/selectSex/index?id=".concat(this.currentId)
+            url: "/pages/selectSex/index?id=".concat(currentId, "&title=").concat(title)
           });
         },
         fail: function fail(err) {
@@ -292,9 +291,9 @@ var _default = {
       }));
     },
     // 抖音支付
-    ttPay: function ttPay(data) {
+    ttPay: function ttPay(data, currentId, title) {
       var _this3 = this;
-      var orderInfo = data.data;
+      var orderInfos = data.data;
       // uni.requestPayment({
       // 	provider: "toutiao",
       // 	orderInfo: orderInfo,
@@ -306,11 +305,12 @@ var _default = {
       // 		that.getOrderInfo()
       // 	}
       // })
+      // uni.requestPayment
       uni.requestPayment({
         provider: "toutiao",
         orderInfo: {
-          order_id: orderInfo.info.data.order_id,
-          order_token: orderInfo.info.data.order_token
+          order_id: orderInfos.info.data.order_id,
+          order_token: orderInfos.info.data.order_token
         },
         service: 5,
         success: function success(res) {
@@ -319,7 +319,7 @@ var _default = {
             uni.hideLoading();
             // 进入答题页答题
             uni.navigateTo({
-              url: "/pages/selectSex/index?id=".concat(_this3.currentId)
+              url: "/pages/selectSex/index?id=".concat(currentId, "&title=").concat(title)
             });
           } else {
             uni.showToast({
@@ -331,14 +331,49 @@ var _default = {
           resolve(res);
         },
         fail: function fail(error) {
-          uni.showToast({
-            title: JSON.stringify(error),
-            icon: 'none',
-            mask: true
-          });
-          uni.hideLoading();
-          console.log(error);
-          reject(error);
+          if (error.data.code == 10003) {
+            uni.hideLoading();
+            // uni.showToast({
+            // 	title: '订单已超时，请重新下单',
+            // 	icon: 'none',
+            // 	mask: true
+            // })
+            // 删除之前的超时订单
+            var selefOrder = orderInfos.info.self_order;
+            (0, _index.getOrderInfo)({
+              questionnaire_id: _this3.currentId,
+              order_timeout: selefOrder
+            }).then(function (res) {
+              if (res.code == 0) {
+                // 订单调取成功，查看是否支付，第一次直接支付；若已经支付查看是否完成答题，
+                // 未完成答题则开始答题，已完成答题直接进入报告页
+
+                _this3.wxPay(res, _this3.currentId, _this3.introduceInfo.title); // 微信支付
+              } else if (res.code == 3001) {
+                // 已支付，已生成报告  查看报告
+                uni.hideLoading();
+                uni.navigateTo({
+                  url: "/pages/report/index?surveryId=".concat(res.data.info.questionnaire_id)
+                });
+              } else if (res.code == 3002) {
+                // 已支付，未生成报告  进入答题页
+                uni.hideLoading();
+                uni.navigateTo({
+                  url: "/pages/selectSex/index?id=".concat(_this3.currentId, "&title=").concat(_this3.introduceInfo.title)
+                });
+              }
+            });
+          } else {
+            uni.hideLoading();
+            uni.showToast({
+              title: JSON.stringify(error.errMsg),
+              icon: 'none',
+              mask: true
+            });
+          }
+
+          // console.log(error)
+          // reject(error.errMsg)
         }
       });
     },

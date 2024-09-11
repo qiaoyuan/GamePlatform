@@ -21,9 +21,23 @@ export default {
     }
   },
   methods: {
-    setForm({ id, title, img_url, remark}) {
+    setForm({ id, title, img_url, remark, platform}) {
       this.form = {
         title: { label: '渠道名称', value: title },
+        platform: {
+          label: '平台',
+          value: platform,
+          formType: 'select',
+          options: [
+            {
+              label: '微信小程序',
+              value: 1
+            },{
+              label: '抖音小程序',
+              value: 2
+            }
+          ]
+        },
         remark: {label: '备注', value: remark, required: false, formType: 'textarea' }
         // img_url: { label: '渠道名称', value: img_url, formType:'upload' },
       }

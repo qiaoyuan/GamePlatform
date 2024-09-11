@@ -79,7 +79,7 @@
 			categoryId: {
 				handler(n) {
 					uni.showToast({
-						titel: '加载中',
+						title: '加载中',
 						mask: true,
 						icon: 'loading'
 					})
@@ -175,8 +175,9 @@
 			},
 			// 点击进入测评页面
 			clickTest(data) {
+				var questionId = data.id
 				uni.navigateTo({
-					url: `/pages/introduce/index?id=${data.id}`,
+					url: `/pages/introduce/index?id=${questionId}`,
 				})
 			}
 		}
@@ -236,10 +237,10 @@
 				}
 
 				.text {
-					font-size: 16rpx;
+					font-size: 20rpx;
 					color: gray;
 					margin: 12rpx 0;
-					width: calc(100% - 6rem);
+					width: calc(100% - 7rem);
 					white-space: nowrap;
 					/* 强制不换行 */
 					text-overflow: ellipsis;
