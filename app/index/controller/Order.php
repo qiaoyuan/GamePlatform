@@ -23,7 +23,9 @@ class Order extends BaseController
         }
 
         if (!empty($param['order_timeout'])){
-            QuestionnairesOrder::where('order_id', $param['order_timeout'])->delete();
+            $order = QuestionnairesOrder::where('order_id', $param['order_timeout'])->find();
+            $order->status = 0;
+            $order->save();
             $order = null;
         } else {
 
