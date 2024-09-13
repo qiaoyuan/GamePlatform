@@ -72,7 +72,7 @@
 }
 .hotTest.data-v-57280228 {
   width: 100%;
-  height: 600rpx;
+  max-height: 600rpx;
 }
 .hotTest .content.data-v-57280228 {
   margin: 20rpx;
@@ -83,7 +83,7 @@
 }
 .hotTest .content .top.data-v-57280228 {
   width: 100%;
-  height: 16%;
+  height: 100rpx;
 }
 .hotTest .content .top .title.data-v-57280228 {
   font-size: 1rem;
@@ -110,7 +110,7 @@
 }
 .hotTest .content .middle.data-v-57280228 {
   width: 100%;
-  height: 39%;
+  height: 243rpx;
   border-radius: 20rpx;
   background-color: #ffffff;
   display: flex;
@@ -174,7 +174,7 @@
 }
 .hotTest .content .bottom.data-v-57280228 {
   width: 100%;
-  height: 39%;
+  height: 243rpx;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -265,10 +265,11 @@
 .more.data-v-57280228 {
   width: 200rpx;
   font-size: 0.75rem;
-  height: 8%;
+  height: 34rpx;
   text-align: center;
   color: #7c91fd;
   margin-left: calc(50% - 100rpx);
+  margin-top: 5px;
 }
 .more > ._span.data-v-57280228 {
   border-bottom: 2rpx solid #7c91fd;

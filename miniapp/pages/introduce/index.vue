@@ -61,7 +61,7 @@
 			<view class="goods-carts">
 				<view class="bottom">
 					<view class="goHome" @click="goHome">
-						<button> 测试大厅 </button>
+						<button style="width: 100%; height: 100%;">  <image style="width: 30rpx; height: 30rpx;margin-top: 10px;" src="../../static/tab-home-click.png" mode=""></image><text style="line-height: 28px;">测试大厅</text> </button>
 					</view>
 					<view class="test">
 						<!-- <button class="btn-pay" @click="goSelectSex" :loading="loading" :disabled="disabled">立即测试</button> -->
@@ -448,7 +448,7 @@
 				width: 25%;
 				height: 100%;
 				position: relative;
-
+				
 				>button {
 					height: 100rpx;
 					font-size: 20rpx;
@@ -456,6 +456,9 @@
 					background: #ffffff;
 					line-height: 100rpx;
 					border-radius: unset;
+					display: flex;
+					flex-direction: column;
+					align-items: center;
 				}
 			}
 

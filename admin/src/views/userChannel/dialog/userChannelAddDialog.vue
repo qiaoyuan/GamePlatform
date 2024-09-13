@@ -6,7 +6,9 @@
     :action="formAction"
     :width="$w_fun.isMobile() ? '100%' : '60%'"
     @done="v => $emit('done', v)"
-  />
+  >
+  
+  </w-dialog-form>
 </template>
 
 <script>

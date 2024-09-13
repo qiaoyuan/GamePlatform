@@ -47,7 +47,7 @@
 					<view class="title">{{item.title}}</view>
 					<view class="text">{{item.description}}</view>
 				</view>
-				<view class="middle" @click="reviewDetail(item.questionnaires[0].id ? item.questionnaires[0].id : '')">
+				<view class="middle" @click="reviewDetail(item.questionnaires[0].id ? item.questionnaires[0].id : '')" v-if="item.questionnaires[0]">
 					<view class="middle-left">
 						<view class="title">{{item.questionnaires[0].title}}</view>
 						<view class="text">{{item.questionnaires[0].description}}</view>
@@ -64,7 +64,7 @@
 					</view>
 
 				</view>
-				<view class="bottom">
+				<view class="bottom"  v-if="item.questionnaires[1]">
 					<view class="bottom-left" @click="reviewDetail(item.questionnaires[1].id ? item.questionnaires[1].id : '')">
 						<view class="top">
 							<view class="title">{{item.questionnaires[1].title}}</view>
@@ -80,7 +80,7 @@
 							</view>
 						</view>
 					</view>
-					<view class="bottom-right" @click="reviewDetail(item.questionnaires[2].id ? item.questionnaires[2].id : '')">
+					<view class="bottom-right" @click="reviewDetail(item.questionnaires[2].id ? item.questionnaires[2].id : '')" v-if="item.questionnaires[2]">
 						<view class="top">
 							<view class="title">{{ item.questionnaires[2].title }}</view>
 							<view class="text">{{ item.questionnaires[2].description ? item.questionnaires[2].description : '' }}</view>
@@ -395,7 +395,7 @@
 
 	.hotTest {
 		width: 100%;
-		height: 600rpx;
+		max-height: 600rpx;
 
 		.content {
 			margin: 20rpx;
@@ -407,7 +407,8 @@
 
 			.top {
 				width: 100%;
-				height: 16%;
+				// height: 16%;
+				height: 100rpx;
 
 				.title {
 					font-size: 1rem;
@@ -422,7 +423,14 @@
 				}
 
 				.text {
+					// #ifdef MP-WEIXIN
 					font-size: 0.75rem;
+					// #endif
+					
+					// #ifdef MP-TOUTIAO
+					font-size: 0.6rem;
+					// #endif
+					
 					color: #4b4a4a;
 					margin-top: 10rpx;
 					width: calc(80% - 20rpx);
@@ -438,7 +446,8 @@
 
 			.middle {
 				width: 100%;
-				height: 39%;
+				// height: 39%;
+				height: 243rpx;
 				border-radius: 20rpx;
 				background-color: #ffffff;
 				display: flex;
@@ -461,7 +470,13 @@
 					}
 
 					.text {
+						// #ifdef MP-WEIXIN
 						font-size: 0.75rem;
+						// #endif
+						
+						// #ifdef MP-TOUTIAO
+						font-size: 0.6rem;
+						// #endif
 						color: #4b4a4a;
 						margin: 10rpx 0;
 						width: calc(80% - 20rpx);
@@ -475,7 +490,13 @@
 					}
 
 					.btn {
+						// #ifdef MP-WEIXIN
 						font-size: 0.75rem;
+						// #endif
+						
+						// #ifdef MP-TOUTIAO
+						font-size: 0.6rem;
+						// #endif
 						color: #ffffff;
 						background-color: #7c91fd;
 						width: 140rpx;
@@ -512,7 +533,8 @@
 
 			.bottom {
 				width: 100%;
-				height: 39%;
+				// height: 39%;
+				height: 243rpx;
 				display: flex;
 				justify-content: space-between;
 				align-items: center;
@@ -543,7 +565,13 @@
 						}
 
 						.text {
+							// #ifdef MP-WEIXIN
 							font-size: 0.75rem;
+							// #endif
+							
+							// #ifdef MP-TOUTIAO
+							font-size: 0.6rem;
+							// #endif
 							color: #4b4a4a;
 							margin: 10rpx 0;
 							width: calc(60% - 20rpx);
@@ -610,11 +638,11 @@
 	.more {
 		width: 200rpx;
 		font-size: 0.75rem;
-		height: 8%;
+		height: 34rpx;
 		text-align: center;
 		color: #7c91fd;
 		margin-left: calc(50% - 100rpx);
-
+		margin-top: 5px;
 		>span {
 			border-bottom: 2rpx solid #7c91fd;
 		}

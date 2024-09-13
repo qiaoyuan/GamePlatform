@@ -153,6 +153,9 @@
   background: #ffffff;
   line-height: 100rpx;
   border-radius: unset;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 .goods-carts .bottom .test.data-v-254b4b79 {
   width: 75%;
