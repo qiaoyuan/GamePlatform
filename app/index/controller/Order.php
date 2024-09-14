@@ -380,7 +380,11 @@ class Order extends BaseController
             $this->error('订单id不能为空');
         }
 
-        $this->success('订单详情', ['info' => QuestionnairesOrder::find($param['id'])]);
+        $order = QuestionnairesOrder::find($param['id'])->toArray();
+        $order['title'] = \app\common\model\Questionnaires::find($order['questionnaire_id'])->title;
+        $order['pay_type'] = QuestionnairesOrder::$PAY_TYPE_MAP[$order['pay_type']];
+        unset($order['input_data']);
+        $this->success('订单详情', ['info' => $order]);
 
     }
 
