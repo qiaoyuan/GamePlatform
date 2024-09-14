@@ -278,7 +278,7 @@ class Order extends BaseController
             $orderObj->save();
 
             $order = $orderObj->toArray();
-            $goods = Questionnaires::where('id', $orderObj->questionnaire_id)->find()->toArray();
+            $goods = \app\common\model\Questionnaires::find($orderObj->questionnaire_id)->toArray();
             $openId =  \app\common\model\User::find($order['uid'])->open_id;
             $this->pushOrder($goods, $order, $openId);
 
