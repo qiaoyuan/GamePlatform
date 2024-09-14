@@ -13,7 +13,8 @@ use GuzzleHttp\Client;
 class Order extends BaseController
 {
     public $client;
-    public function __construct()
+
+    public function __initialize()
     {
         $this->client = new Client([
             'timeout' => 30,
@@ -279,7 +280,7 @@ class Order extends BaseController
 
             $order = $orderObj->toArray();
             $goods = \app\common\model\Questionnaires::find($orderObj->questionnaire_id)->toArray();
-            $openId =  \app\common\model\User::find($order['uid'])->open_id;
+            $openId = \app\common\model\User::find($order['uid'])->open_id;
             $this->pushOrder($goods, $order, $openId);
 
             $answer = QuestionAnswer::where('uid', $orderObj->uid)->where('questionnaire_id', $orderObj->questionnaire_id)->find();
@@ -305,14 +306,14 @@ class Order extends BaseController
      * @note order_status 与 status须保持一致,但类型不同
      * @return array
      */
-    public function pushOrder($goods,$order,$openId)
+    public function pushOrder($goods, $order, $openId)
     {
         $data = [];//获取订单信息
         $api = "api/apps/order/v2/push";
         $openid = '';//获取下单用户openid
         //组装商品
         $item_list[] = [
-            'item_code' => '1001'.$goods['id'],
+            'item_code' => '1001' . $goods['id'],
             'img' => $goods['img_url'],
             'title' => $goods['title'],
             'amount' => 1,
@@ -321,22 +322,21 @@ class Order extends BaseController
         ];//参数对应请查看官方文档，注意字段类型
         // 组装订单
         $orderDetail = [
-            'order_id' => $order['order_id'].'', 'create_time' => strtotime($order['created_at']), 'status' => '已支付', 'amount' => 1,
-            'total_price' => (int)($order['price'] * 100), 'detail_url' => "pages/order/orderDetail", 'item_list' => $item_list];
+            'order_id' => $order['order_id'] . '', 'create_time' => strtotime($order['created_at']), 'status' => '已支付', 'amount' => 1,
+            'total_price' => (int)($order['price'] * 100), 'detail_url' => "pages/order/orderDetail?id=" . $order['order_id'], 'item_list' => $item_list];
 
         //{\"detail_url\":\"https://www.xxxx.com/shop/order/orderDetail?orderId=21000240218164635217330&pad_check=df126473398e4840111ba0c620ca1c5c\",\"amount\":2,\"create_time\":1708245997095,\"total_price\":2,\"item_list\":[{\"amount\":1,\"img\":\"https://www.xxxx.com/resources/2063/1915501.jpg\",\"price\":1,\"title\":\"字节小程序语音版\"},{\"amount\":1,\"img\":\"https://www.xxxx.com/resources/2063/19155_01.jpg\",\"price\":1,\"title\":\"主卡\"}],\"order_id\":\"21000240218164635217330\",\"status\":\"订单已完成\"}
         $param = ['access_token' => $this->getAccessTokens(), 'app_name' => "douyin",
-            'open_id' => $openId, 'update_time' => $this->getMillisecond(), 'order_detail' => json_encode($orderDetail,JSON_UNESCAPED_UNICODE), 'order_type' => 0, 'order_status' => 1];
+            'open_id' => $openId, 'update_time' => $this->getMillisecond(), 'order_detail' => json_encode($orderDetail, JSON_UNESCAPED_UNICODE), 'order_type' => 0, 'order_status' => 1];
 
 
         $body = $this->client->post($api, ['json' => $param]);
         $result = json_decode($body->getBody()->getContents(), true);
 
-        if(isset($result['err_code']) && $result['err_code'] === 0) {
-           return 0;
+        if (isset($result['err_code']) && $result['err_code'] === 0) {
+            return 0;
         }
-        return  -1;
-
+        return -1;
 
 
     }
@@ -350,7 +350,7 @@ class Order extends BaseController
         $param = ['appid' => config('douyin.mini_app_id'), 'secret' => config('douyin.secret'), 'grant_type' => "client_credential"];
         $body = $this->client->post($api, ['json' => $param]);
         $res = $body->getBody()->getContents();
-        $data = json_decode($res,true);
+        $data = json_decode($res, true);
         if ($data['err_no'] == 0) {
             $access_token = $data['data']['access_token'];
         }
@@ -363,13 +363,25 @@ class Order extends BaseController
         return (float)sprintf('%.0f', (floatval($t1) + floatval($t2)) * 1000);
     }
 
-    public function test() {
+    public function test()
+    {
 
         $order = QuestionnairesOrder::find(150)->toArray();
         $goods = \app\common\model\Questionnaires::find(33)->toArray();
-        $openId =  \app\common\model\User::find($order['uid'])->open_id;
+        $openId = \app\common\model\User::find($order['uid'])->open_id;
         echo $this->pushOrder($goods, $order, $openId);
         die;
+    }
+
+    public function get()
+    {
+        $param = $this->request->param();
+        if(empty($param['id']) ) {
+            $this->error('订单id不能为空');
+        }
+
+        $this->success('订单详情', ['info' => QuestionnairesOrder::find($param['id'])]);
+
     }
 
 }
