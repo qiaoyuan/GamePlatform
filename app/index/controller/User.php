@@ -162,7 +162,8 @@ class User extends BaseController
         $levelArr = [];
         //查看报告
         $questionnairesObj = \app\common\model\Questionnaires::find($param['questionnaire_id']);
-        if (!empty($questionnairesObj->group_conf)) {
+
+        if (!empty($questionnairesObj->group_conf) && !empty($questionnairesObj->group_conf[0]['start']) ) {
             $levelArr[] = []; //占位符
             foreach ($questionnairesObj->group_conf as $groupConf) {
                 $levelArr[] = array_slice($param['options'], $groupConf['start'] - 1, $groupConf['end']);
