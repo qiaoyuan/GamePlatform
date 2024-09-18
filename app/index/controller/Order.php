@@ -12,9 +12,9 @@ use GuzzleHttp\Client;
 
 class Order extends BaseController
 {
-    public $client;
+    public $client = null;
 
-    public function __initialize()
+    public function initialize()
     {
         $this->client = new Client([
             'timeout' => 30,
@@ -332,7 +332,6 @@ class Order extends BaseController
         $param = ['access_token' => $this->getAccessTokens(), 'app_name' => "douyin",
             'open_id' => $openId, 'update_time' => $this->getMillisecond(), 'order_detail' => json_encode($orderDetail, JSON_UNESCAPED_UNICODE), 'order_type' => 0, 'order_status' => 1];
 
-
         $body = $this->client->post($api, ['json' => $param]);
         $result = json_decode($body->getBody()->getContents(), true);
 
@@ -369,8 +368,8 @@ class Order extends BaseController
     public function test()
     {
 
-        $order = QuestionnairesOrder::find(150)->toArray();
-        $goods = \app\common\model\Questionnaires::find(33)->toArray();
+        $order = QuestionnairesOrder::find(160)->toArray();
+        $goods = \app\common\model\Questionnaires::find(32)->toArray();
         $openId = \app\common\model\User::find($order['uid'])->open_id;
         echo $this->pushOrder($goods, $order, $openId);
         die;
