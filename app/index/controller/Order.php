@@ -34,10 +34,13 @@ class Order extends BaseController
 
         if (!empty($param['order_timeout'])) {
             $order = QuestionnairesOrder::where('order_id', $param['order_timeout'])->find();
-            $order->status = 0;
-            $order->remark = '订单超时.';
-            $order->save();
-            $order = null;
+            if(!empty($order)) {
+                $order->status = 0;
+                $order->remark = '订单超时.';
+                $order->save();
+                $order = null;
+            }
+
         } else {
 
             $order = QuestionnairesOrder::where(['uid' => $this->getUid(), 'questionnaire_id' => $param['questionnaire_id'], 'status' => 1])->find();
