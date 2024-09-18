@@ -122,7 +122,7 @@ class Order extends BaseController
             $order->pay_extent = json_encode($result);
             $order->save();
 
-            $result['self_order'] = $order->order_id;
+            $result['self_order'] = $order->order_id.'';
             $this->success('创建订单成功', ['info' => $result]);
 
         } else {
