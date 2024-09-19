@@ -375,6 +375,16 @@ class Order extends BaseController
         die;
     }
 
+    public function getlist()
+    {
+        $lists = $this->tableList(QuestionnairesOrder::class, ['id' => 'DESC'])->with(['questionnaire'])
+            ->selectData();
+        $this->success('', [
+            'list' => $lists,
+        ]);
+
+    }
+
     public function get()
     {
         $param = $this->request->param();
