@@ -375,7 +375,7 @@ class Order extends BaseController
         die;
     }
 
-    public function getlist()
+    public function list()
     {
         $lists = $this->tableList(QuestionnairesOrder::class, ['id' => 'DESC'])->with(['questionnaire'])
             ->where('uid', $this->getUid())
