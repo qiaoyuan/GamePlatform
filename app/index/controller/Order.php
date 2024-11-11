@@ -86,6 +86,12 @@ class Order extends BaseController
 
         }
 
+        if($questionnairesObj->price == 0) {
+            $order->pay_status = QuestionnairesOrder::PAY_PAID_STATUS;
+            $order->save();
+            $this->error('已支付未生成报告', [], 3002);
+        }
+
 
         if ($this->getPlatform() == \app\common\model\User::DOUYIN_PLATFORM) {
 
