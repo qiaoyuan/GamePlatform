@@ -91,6 +91,8 @@ class Admin extends Base
                 return $admin->hidden(['password']);
             }
         }
+        $try = cache('admin_login_try_' . $username);
+        $tryIp = cache('admin_login_try_ip_' . request()->ip());
         cache('admin_login_try_' . $username, ($try ?: 0) + 1, 300);
         cache('admin_login_try_ip_' . request()->ip(), ($tryIp ?: 0) + 1, 300);
         $this->error = '用户名密码错误';

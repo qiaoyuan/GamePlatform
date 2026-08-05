@@ -25,9 +25,8 @@ module.exports = {
         target: process.env.VUE_APP_BASE_URL,
         open: true,
         changeOrigin: true,
-        pathRewrite: {
-          ['^' + process.env.VUE_APP_BASE_API]: ''
-        }
+        // 后端为多应用(multi-app)结构，/admin 前缀需保留才能路由到 app\admin\controller
+        // 故不做 pathRewrite，将 /admin/xxx 原样转发到 http://localhost:8585/admin/xxx
       },
     },
   },
