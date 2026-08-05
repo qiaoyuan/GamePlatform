@@ -4,11 +4,11 @@
     {
       "name": "后台代码规范核对",
       "trigger": "PostFileSave",
-      "description": "保存后台 Controller/Model/Validate 的 PHP 文件后，依据 game-platform-dev skill 核对开发规范（时间字段、columns、权限注解等），必要时同步更新 skill。",
+      "description": "保存后台 Controller/Model/Validate 的 PHP 文件后，按文件类型激活对应专项 skill 核对开发规范。",
       "matcher": "app/(admin/controller|common/(model|validate))/.*\\.php$",
       "action": {
         "type": "agent",
-        "prompt": "刚保存了一个后台 PHP 文件（app/admin/controller、app/common/model 或 app/common/validate）。请激活并遵循 game-platform-dev skill，对该文件做规范核对：\n\n1. 若是 Model：确认继承 Base，且 $field 中包含 created_at、updated_at、deleted_at 三个时间字段；确认有 @property 注释与 $table/$pk/$type。\n2. 若是列表 Controller：确认实现了 columns() 方法，且时间列使用 daterange 搜索；确认 index 用 tableList()->selectData()；确认增删改查方法带 #[Permission] 注解。\n3. 若是 Validate：确认定义了 add/edit 场景，edit 场景包含 id。\n4. 若发现本次改动引入了新的、值得沉淀的通用约定，提示是否需要更新 .kiro/skills/game-platform-dev/SKILL.md。\n\n只在发现不符合规范的地方给出具体、简短的修改建议；完全符合规范则简单确认通过，不要啰嗦。"
+        "prompt": "刚保存了一个后台 PHP 文件。根据文件路径激活对应的专项 skill 并做规范核对：\n\n1. 路径含 app/common/model/：激活 game-model-convention，确认继承 Base、$field 含 created_at/updated_at/deleted_at、@property/$table/$pk/$type 齐全、枚举未重复定义。\n2. 路径含 app/admin/controller/：激活 game-controller-convention，确认实现 columns()（时间列用 daterange）、index 用 tableList()->selectData()、增删改状态方法带 #[Permission]、虚拟字段/关联字段处理正确（含空值防御）。若涉及新增控制器或权限注解变化，同时激活 game-routing-convention 核对 parentUrl 挂靠位置和是否需要运行 php think permission 同步。\n3. 路径含 app/common/validate/：激活 game-validate-convention，确认 add/edit 场景齐全，edit 含 id。\n4. 若发现本次改动引入了新的、值得沉淀的通用约定，提示是否需要更新对应专项 skill 的 SKILL.md。\n\n只在发现不符合规范的地方给出具体、简短的修改建议；完全符合规范则简单确认通过，不要啰嗦。"
       }
     }
   ]

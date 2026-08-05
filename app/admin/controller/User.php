@@ -18,7 +18,7 @@ class User extends BaseController
         if (!is_numeric($lists)) {
             $lists->each(function (Model $item) {
                 $item->channel_name = $item->channel->title ?? '无';
-                $item->platform_name = Model::$PLATFORM_MAP[$item->platform];
+                $item->platform_name = Model::$PLATFORM_MAP[$item->platform] ?? '';
             });
 
         }
