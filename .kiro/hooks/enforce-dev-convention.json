@@ -1,0 +1,15 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "后台代码规范核对",
+      "trigger": "PostFileSave",
+      "description": "保存后台 Controller/Model/Validate 的 PHP 文件后，依据 game-platform-dev skill 核对开发规范（时间字段、columns、权限注解等），必要时同步更新 skill。",
+      "matcher": "app/(admin/controller|common/(model|validate))/.*\\.php$",
+      "action": {
+        "type": "agent",
+        "prompt": "刚保存了一个后台 PHP 文件（app/admin/controller、app/common/model 或 app/common/validate）。请激活并遵循 game-platform-dev skill，对该文件做规范核对：\n\n1. 若是 Model：确认继承 Base，且 $field 中包含 created_at、updated_at、deleted_at 三个时间字段；确认有 @property 注释与 $table/$pk/$type。\n2. 若是列表 Controller：确认实现了 columns() 方法，且时间列使用 daterange 搜索；确认 index 用 tableList()->selectData()；确认增删改查方法带 #[Permission] 注解。\n3. 若是 Validate：确认定义了 add/edit 场景，edit 场景包含 id。\n4. 若发现本次改动引入了新的、值得沉淀的通用约定，提示是否需要更新 .kiro/skills/game-platform-dev/SKILL.md。\n\n只在发现不符合规范的地方给出具体、简短的修改建议；完全符合规范则简单确认通过，不要啰嗦。"
+      }
+    }
+  ]
+}
