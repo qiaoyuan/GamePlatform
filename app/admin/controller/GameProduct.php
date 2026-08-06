@@ -39,7 +39,8 @@ class GameProduct extends BaseController
     #[Permission(title: '编辑游戏产品')]
     public function edit(): void
     {
-        $this->mEdit(Model::class);
+        // price 不允许在常规编辑中修改：改价需要同步 G2G 平台，只能走 updatePrice() 接口
+        $this->mEdit(Model::class, ['except' => ['price']]);
     }
 
     #[Permission(title: '删除游戏产品')]

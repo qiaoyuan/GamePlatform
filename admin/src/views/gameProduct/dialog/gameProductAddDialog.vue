@@ -37,7 +37,10 @@ export default {
           formType: 'select',
           options: [{ label: 'G2G', value: 1 }],
         },
-        price: { label: '价格', value: price, formType: 'number' },
+        // 新增时价格可填写初始值；编辑已有产品时价格只读，修改须用列表「改价」按钮（会同步 G2G 平台）
+        price: id
+          ? { label: '价格（不可编辑，请用改价按钮）', value: price, formType: 'number', readonly: true }
+          : { label: '价格', value: price, formType: 'number' },
         stock: { label: '库存', value: stock, formType: 'number' },
         currency: { label: '货币', value: currency || 'USD' },
         status: { label: '状态', value: status ?? 1, formType: 'status' },

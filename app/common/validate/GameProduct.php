@@ -18,7 +18,9 @@ class GameProduct extends Base
     protected $message = [];
 
     protected $scene = [
+        // price 不参与 edit 场景校验：改价需同步 G2G 平台，只能走 GameProduct::updatePrice() 接口，
+        // 常规 edit 接口会用 except 剔除 price 字段（见 GameProduct::edit()），故此处不能要求其必填。
         'add' => ['game_account_id', 'product_id', 'title', 'platform', 'price', 'stock', 'currency', 'status'],
-        'edit' => ['game_account_id', 'product_id', 'title', 'platform', 'price', 'stock', 'currency', 'status', 'id'],
+        'edit' => ['game_account_id', 'product_id', 'title', 'platform', 'stock', 'currency', 'status', 'id'],
     ];
 }

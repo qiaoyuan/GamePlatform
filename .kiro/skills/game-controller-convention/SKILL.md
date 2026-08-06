@@ -20,6 +20,8 @@ description: 游戏数据平台 Controller 开发规范。当新增/修改 app/a
 | `index()` | 列表 | `$this->tableList(Model::class, [排序], [模糊搜索字段])->with([...])->selectData();` 返回 `['list' => $lists]` |
 | `add()` | 新增 | 优先 `$this->mAdd(Model::class, ['append'=>[...]], [一对一关联])`；复杂逻辑用 `transaction(function(){...}, $this)` |
 | `edit()` | 编辑 | 优先 `$this->mEdit(Model::class, [], [关联])` |
+
+**踩坑提醒**：`mEdit()` 的 `except` 参数是在**校验之前**执行的（先剔除字段，再走 Validate 的 `edit` 场景）。如果某个字段被 `except` 排除但 Validate 的 `edit` 场景仍把它列为必填，会导致所有编辑请求都报"XX不能为空"。典型场景：某字段只能通过专用接口修改（如改价需同步第三方平台），此时要同步把该字段从 Validate 的 `edit` 场景里去掉（`add` 场景可以保留必填）。
 | `delete()` | 删除 | `$this->mDelete(Model::class)`（自动软删除，取决于 Model 是否有 `deleted_at`） |
 | `status()` | 改状态 | `Model::update(['status'=>$status], ['id'=>$this->getInputPk()]);` |
 | `select()` | 下拉数据 | `->field('title as label,id as value')->select()` |
