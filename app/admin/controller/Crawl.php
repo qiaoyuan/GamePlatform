@@ -8,7 +8,6 @@ use app\common\annotation\Permission;
 use app\common\model\CrawlTarget as CrawlTargetModel;
 use app\common\model\CompetitorProduct;
 use app\common\service\CrawlService;
-use think\response\Json;
 
 /**
  * 爬取目标管理
@@ -21,14 +20,14 @@ class Crawl extends BaseController
     public function columns(): array
     {
         return [
-            ['field' => 'id',          'name' => 'ID',            'width' => 80,   'searchType' => 'number'],
-            ['field' => 'name',        'name' => '任务名称',      'width' => 150,  'searchType' => 'like'],
-            ['field' => 'url',         'name' => '目标链接',      'width' => 300,  'searchType' => 'like'],
-            ['field' => 'category',    'name' => '产品分类',      'width' => 120,  'searchType' => 'like'],
-            ['field' => 'status',      'name' => '状态',          'width' => 80,   'searchType' => 'match'],
-            ['field' => 'last_crawl_at', 'name' => '最后爬取时间','width' => 160,  'searchType' => 'daterange'],
-            ['field' => 'created_at',  'name' => '创建时间',      'width' => 160],
-            ['field' => 'updated_at',  'name' => '更新时间',      'width' => 160],
+            ['v' => 'id',            'label' => 'ID',         'width' => 80,  'searchType' => 'number',    'sort' => 'id'],
+            ['v' => 'name',          'label' => '任务名称',   'width' => 150, 'searchType' => 'like',      'sort' => 'name'],
+            ['v' => 'url',           'label' => '目标链接',   'width' => 300, 'searchType' => 'like'],
+            ['v' => 'category',      'label' => '产品分类',   'width' => 120, 'searchType' => 'like'],
+            ['v' => 'status',        'label' => '状态',       'width' => 80,  'searchType' => 'match',     'sort' => 'status'],
+            ['v' => 'last_crawl_at', 'label' => '最后爬取时间', 'width' => 160, 'searchType' => 'daterange', 'sort' => 'last_crawl_at'],
+            ['v' => 'created_at',    'label' => '创建时间',   'width' => 160, 'searchType' => 'daterange', 'sort' => 'created_at'],
+            ['v' => 'updated_at',    'label' => '更新时间',   'width' => 160, 'sort' => 'updated_at'],
         ];
     }
 
@@ -36,19 +35,17 @@ class Crawl extends BaseController
      * 列表
      */
     #[Permission(title: '竞品爬取', isMenu: 1, parentUrl: 'gameProduct/index', isHideSub: 1)]
-    public function index(): Json
+    public function index(): void
     {
-        $list = $this->tableList(new CrawlTargetModel)
+        $lists = $this->tableList(CrawlTargetModel::class, ['id' => 'DESC'])
             ->selectData();
-
-        // 虚拟字段：状态翻译
-        $list->each(function ($item) {
-            $item['status_name'] = CrawlTargetModel::$STATUS_MAP[$item['status'] ?? 0] ?? '未知';
-        });
-
-        return $this->success([
-            'list'  => $list,
-            'count' => $this->tableList(new CrawlTargetModel)->count(),
+        if (!is_numeric($lists)) {
+            $lists->each(function (CrawlTargetModel $item) {
+                $item->status_name = CrawlTargetModel::$STATUS_MAP[$item->status] ?? '';
+            });
+        }
+        $this->success('', [
+            'list' => $lists,
         ]);
     }
 
@@ -56,85 +53,84 @@ class Crawl extends BaseController
      * 下拉选项
      */
     #[Permission(title: '下拉选项')]
-    public function select(): Json
+    public function select(): void
     {
-        $list = CrawlTargetModel::field('id,name,category')->select();
-        return $this->success(['list' => $list]);
+        $this->success('', [
+            'list' => CrawlTargetModel::field('name as label,id as value')->where('status', 1)->select(),
+        ]);
     }
 
     /**
      * 详情
      */
     #[Permission(title: '查看详情')]
-    public function get(): Json
+    public function get(): void
     {
-        $id  = $this->request->param('id', 0);
-        $row = CrawlTargetModel::find($id);
-        return $row ? $this->success(['info' => $row]) : $this->success([], '暂无数据');
+        $row = CrawlTargetModel::find(input('id'));
+        $row ? $this->success('', ['info' => $row]) : $this->success('暂无数据');
     }
 
     /**
      * 新增
      */
     #[Permission(title: '添加目标')]
-    public function add(): Json
+    public function add(): void
     {
-        return $this->mAdd(new CrawlTargetModel);
+        $this->mAdd(CrawlTargetModel::class);
     }
 
     /**
      * 编辑
      */
     #[Permission(title: '编辑目标')]
-    public function edit(): Json
+    public function edit(): void
     {
-        return $this->mEdit(new CrawlTargetModel);
+        $this->mEdit(CrawlTargetModel::class);
     }
 
     /**
      * 删除
      */
     #[Permission(title: '删除目标')]
-    public function delete(): Json
+    public function delete(): void
     {
-        return $this->mDelete(new CrawlTargetModel);
+        $this->mDelete(CrawlTargetModel::class);
     }
 
     /**
      * 修改状态
      */
     #[Permission(title: '修改状态')]
-    public function status(): Json
+    public function status(): void
     {
-        $id     = $this->request->param('id', 0);
-        $status = $this->request->param('status', 0);
-        CrawlTargetModel::where('id', $id)->update(['status' => $status]);
-        return $this->success([], '操作成功');
+        $status = input('status', 0);
+        CrawlTargetModel::update(['status' => $status], ['id' => input('id')]);
+        $this->success('修改成功', ['status' => $status]);
     }
 
     /**
      * 执行爬取
      */
     #[Permission(title: '执行爬取')]
-    public function crawl(): Json
+    public function crawl(): void
     {
-        $id = $this->request->param('id', 0);
+        $id = input('id', 0);
         if (empty($id)) {
-            return $this->systemError('缺少目标ID');
+            $this->systemError('缺少目标ID');
         }
 
         try {
             $service = new CrawlService;
             $result  = $service->crawl((int) $id);
 
-            return $this->success([
+            $this->success("爬取完成，共 {$result['count']} 条", [
                 'target'   => $result['target'],
                 'products' => $result['products'],
                 'count'    => $result['count'],
                 'elapsed'  => $result['elapsed'] . 's',
-            ], "爬取完成，共 {$result['count']} 条");
+            ]);
         } catch (\Throwable $e) {
-            return $this->systemError('爬取失败: ' . $e->getMessage());
+            $this->systemError('爬取失败: ' . $e->getMessage());
         }
     }
 
@@ -142,22 +138,22 @@ class Crawl extends BaseController
      * 查看竞品结果
      */
     #[Permission(title: '查看竞品结果')]
-    public function products(): Json
+    public function products(): void
     {
-        $targetId = $this->request->param('target_id', 0);
+        $targetId = input('target_id', 0);
         $query    = CompetitorProduct::where('crawl_target_id', $targetId)
             ->order('price', 'asc');
 
-        $list = $this->tableList($query, function ($query) {
-            // 自定义搜索逻辑（如按店铺名搜索）
-            $storeName = $this->request->param('store_name', '');
-            if ($storeName) {
-                $query->where('store_name', 'like', "%{$storeName}%");
-            }
-        })->selectData();
+        $lists = $this->tableList(CompetitorProduct::class, ['price' => 'ASC'])
+            ->selectData();
+        if (!is_numeric($lists)) {
+            $lists->each(function (CompetitorProduct $item) {
+                $item->price_display = $item->price . ' ' . $item->currency;
+            });
+        }
 
-        return $this->success([
-            'list'  => $list,
+        $this->success('', [
+            'list'  => $lists,
             'count' => $query->count(),
         ]);
     }
