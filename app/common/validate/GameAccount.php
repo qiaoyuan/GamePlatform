@@ -1,23 +1,21 @@
 <?php
+declare(strict_types=1);
 
 namespace app\common\validate;
+
+use app\common\validate\Base;
 
 class GameAccount extends Base
 {
     protected $rule = [
-        'user_id|用户ID' => ['require'],
-        'account_name|账号名称' => [],
-        'platform|平台' => ['require'],
-        'active_device_token|设备活跃令牌' => [],
-        'long_lived_token|长期访问令牌' => [],
-        'refresh_token|刷新令牌' => [],
-        'status|状态' => ['require'],
+        'account|账号'  => 'require|length:2,32',
+        'password|密码' => 'require|length:6,32',
+        'status|状态'   => 'require|in:0,1',
+        'remark|备注'   => 'max:256',
     ];
 
-    protected $message = [];
-
     protected $scene = [
-        'add' => ['user_id', 'account_name', 'platform', 'active_device_token', 'long_lived_token', 'refresh_token', 'status'],
-        'edit' => ['user_id', 'account_name', 'platform', 'active_device_token', 'long_lived_token', 'refresh_token', 'status', 'id'],
+        'add'  => ['account', 'password', 'status', 'remark'],
+        'edit' => ['account', 'password', 'status', 'remark', 'id'],
     ];
 }

@@ -1,1 +1,8 @@
-{}
+{
+  "name": "game-platform-crawler",
+  "type": "module",
+  "description": "G2G competitor data scraper",
+  "dependencies": {
+    "puppeteer": "^22.0.0"
+  }
+}
