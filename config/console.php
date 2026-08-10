@@ -8,6 +8,8 @@ use app\common\command\Model;
 use app\common\command\Tool;
 use app\common\command\Validate;
 use app\common\command\Permission;
+use app\common\command\PriceStrategyRun;
+use app\common\command\PriceStrategyConsume;
 use app\common\command\View;
 
 return [
@@ -20,5 +22,7 @@ return [
         'tool' => Tool::class,
         'permission' => Permission::class,
         'domain' => Domain::class,
+        'price:strategy:run' => PriceStrategyRun::class,
+        'price:strategy:consume' => PriceStrategyConsume::class,
     ],
 ];

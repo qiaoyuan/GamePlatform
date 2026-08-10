@@ -6,7 +6,6 @@ namespace app\admin\controller;
 use app\admin\BaseController;
 use app\common\annotation\Permission;
 use app\common\model\CrawlTarget as CrawlTargetModel;
-use app\common\model\CompetitorProduct;
 use app\common\service\CrawlService;
 
 /**
@@ -132,29 +131,5 @@ class Crawl extends BaseController
         } catch (\Throwable $e) {
             $this->systemError('爬取失败: ' . $e->getMessage());
         }
-    }
-
-    /**
-     * 查看竞品结果
-     */
-    #[Permission(title: '查看竞品结果')]
-    public function products(): void
-    {
-        $targetId = input('target_id', 0);
-        $query    = CompetitorProduct::where('crawl_target_id', $targetId)
-            ->order('price', 'asc');
-
-        $lists = $this->tableList(CompetitorProduct::class, ['price' => 'ASC'])
-            ->selectData();
-        if (!is_numeric($lists)) {
-            $lists->each(function (CompetitorProduct $item) {
-                $item->price_display = $item->price . ' ' . $item->currency;
-            });
-        }
-
-        $this->success('', [
-            'list'  => $lists,
-            'count' => $query->count(),
-        ]);
     }
 }

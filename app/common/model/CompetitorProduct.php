@@ -11,6 +11,7 @@ namespace app\common\model;
  * @property string $store_name      店铺唯一标识
  * @property string $store_url       店铺链接
  * @property string $store_level     店铺等级
+ * @property float  $rating          好评率(%)
  * @property string $stock           库存
  * @property float  $price           销售单价
  * @property string $currency        币种
@@ -25,7 +26,7 @@ class CompetitorProduct extends Base
     protected $pk    = 'id';
 
     /** @var string[] */
-    protected $field = ['id', 'crawl_target_id', 'store_name', 'store_url', 'store_level', 'stock', 'price', 'currency', 'crawl_at', 'created_at', 'updated_at', 'deleted_at'];
+    protected $field = ['id', 'crawl_target_id', 'store_name', 'store_url', 'store_level', 'rating', 'stock', 'price', 'currency', 'crawl_at', 'created_at', 'updated_at', 'deleted_at'];
 
     /** @var array<string, string> */
     protected $type = [
@@ -34,6 +35,7 @@ class CompetitorProduct extends Base
         'store_name'      => 'string',
         'store_url'       => 'string',
         'store_level'     => 'string',
+        'rating'          => 'float',
         'stock'           => 'string',
         'price'           => 'float',
         'currency'        => 'string',

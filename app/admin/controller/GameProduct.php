@@ -6,7 +6,7 @@ use app\admin\BaseController;
 use app\common\model\GameProduct as Model;
 use app\common\model\GameAccount;
 use app\common\annotation\Permission;
-use app\common\service\G2gClient;
+use app\common\service\GameProductPriceService;
 
 class GameProduct extends BaseController
 {
@@ -84,17 +84,12 @@ class GameProduct extends BaseController
         if (!$product) {
             $this->error('产品不存在');
         }
-        if (!$product->gameAccount) {
-            $this->error('该产品未关联有效的游戏账号');
-        }
         try {
-            $client = new G2gClient($product->gameAccount);
-            $client->updatePrice($product->product_id, $price, $product->id);
+            // 与策略自动改价复用同一段内部逻辑（G2G 改价 + 同步本地价格）
+            GameProductPriceService::change($product, $price);
         } catch (\RuntimeException $e) {
             $this->error($e->getMessage());
         }
-        $product->price = $price;
-        $product->save();
         $this->success('改价成功', ['price' => $price]);
     }
 

@@ -5,6 +5,8 @@ namespace app\common\service;
 
 use app\common\model\CompetitorProduct;
 use app\common\model\CrawlTarget;
+use GuzzleHttp\Client;
+use GuzzleHttp\Exception\GuzzleException;
 use RuntimeException;
 use think\facade\Log;
 
@@ -12,26 +14,51 @@ use think\facade\Log;
  * G2G 竞品爬虫服务
  *
  * 工作流程：
- * 1. 根据 CrawlTarget 获取目标URL
- * 2. 通过 Node.js + Puppeteer 无头浏览器渲染页面并提取数据
+ * 1. 从 CrawlTarget.url（G2G 商品分类页面地址）解析出 region_id / filter_attr / seo_term 等参数
+ * 2. 直接请求 G2G 前端页面背后调用的 JSON API（sls.g2g.com/v3/offer/search），
+ *    该接口无需登录、无需渲染，返回结构化的店铺报价数据
  * 3. 将结构化数据写入 competitor_product 表
+ *
+ * 注：早期版本用 Node.js + Puppeteer 无头浏览器渲染页面再解析 DOM，
+ *    依赖本机 Node 环境（PHP-FPM 进程 PATH 里往往找不到 nvm 装的 node，导致爬取失败），
+ *    且速度慢、易被反爬拦截。改为直接调用页面背后的 JSON API 后不再需要 Node 环境。
  */
 class CrawlService
 {
     /**
-     * Node.js 爬虫脚本路径
+     * G2G 商品列表接口地址
      */
-    protected string $scraperScript;
+    protected string $apiUrl = 'https://sls.g2g.com/v3/offer/search';
 
     /**
-     * Node.js 可执行文件路径
+     * 每页拉取数量（单次请求上限，超过则翻页拉取直至拉满或无更多数据）
      */
-    protected string $nodeBin;
+    protected int $pageSize = 20;
+
+    /**
+     * 最大翻页次数（防止目标数据量过大导致单次爬取耗时过长，也降低触发对方限流的概率）
+     */
+    protected int $maxPage = 3;
+
+    /**
+     * 翻页间隔（毫秒），避免请求过于密集触发对方限流/反爬
+     */
+    protected int $pageDelayMs = 800;
+
+    protected Client $http;
 
     public function __construct()
     {
-        $this->scraperScript = app()->getRootPath() . 'scripts/crawl_g2g.mjs';
-        $this->nodeBin       = $this->findNodeBin();
+        $this->http = new Client([
+            'timeout' => 10,
+            'connect_timeout' => 5,
+            'headers' => [
+                'User-Agent' => 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
+                'Accept' => 'application/json',
+                'Origin' => 'https://www.g2g.com',
+                'Referer' => 'https://www.g2g.com/',
+            ],
+        ]);
     }
 
     /**
@@ -48,67 +75,41 @@ class CrawlService
             throw new RuntimeException('爬取目标不存在');
         }
 
-        if (! file_exists($this->scraperScript)) {
-            throw new RuntimeException('爬虫脚本不存在: ' . $this->scraperScript);
-        }
+        $params = $this->parseTargetUrl($target['url']);
 
         $startTime = microtime(true);
+        $rawList = $this->fetchAll($params);
 
-        // ----- 1. 调用 Node.js Puppeteer 脚本 -----
-        $url      = escapeshellarg($target['url']);
-        $nodeBin  = escapeshellcmd($this->nodeBin);
-        $script   = escapeshellarg($this->scraperScript);
-        $command  = "{$nodeBin} {$script} --url={$url} 2>/dev/null";
-
-        Log::info("[CrawlService] 执行爬虫: url={$target['url']}");
-
-        $output = [];
-        $exitCode = 0;
-        exec($command, $output, $exitCode);
-
-        if ($exitCode !== 0) {
-            Log::error("[CrawlService] 爬虫执行失败, exitCode={$exitCode}, output=" . implode("\n", $output));
-            throw new RuntimeException('爬虫执行失败, exitCode=' . $exitCode);
-        }
-
-        $json = implode("\n", $output);
-        $data = json_decode($json, true);
-
-        if (json_last_error() !== JSON_ERROR_NONE) {
-            Log::error("[CrawlService] JSON 解析失败: " . json_last_error_msg() . ", raw=" . substr($json, 0, 500));
-            throw new RuntimeException('爬虫返回数据解析失败');
-        }
-
-        if (empty($data) || ! is_array($data)) {
-            Log::warning("[CrawlService] 爬虫未提取到数据, url={$target['url']}");
+        if (empty($rawList)) {
+            Log::warning("[CrawlService] 未获取到数据, url={$target['url']}");
             $crawlAt = date('Y-m-d H:i:s');
             CrawlTarget::where('id', $targetId)->update(['last_crawl_at' => $crawlAt]);
             return [
-                'target'   => $target->toArray(),
+                'target' => $target->toArray(),
                 'products' => [],
-                'count'    => 0,
-                'elapsed'  => round(microtime(true) - $startTime, 2),
+                'count' => 0,
+                'elapsed' => round(microtime(true) - $startTime, 2),
             ];
         }
 
-        // ----- 2. 写入数据库（同一批次覆盖写入） -----
+        // ----- 写入数据库（同一批次覆盖写入） -----
         $crawlAt = date('Y-m-d H:i:s');
 
         // 删除该目标的上次爬取结果
         CompetitorProduct::where('crawl_target_id', $targetId)->delete();
 
         $inserted = 0;
-        foreach ($data as $item) {
+        foreach ($rawList as $item) {
             $product = new CompetitorProduct;
             $product->save([
                 'crawl_target_id' => $targetId,
-                'store_name'      => $item['store_name'] ?? '',
-                'store_url'       => $this->buildFullUrl($item['store_url'] ?? ''),
-                'store_level'     => $item['store_level'] ?? '',
-                'stock'           => $item['stock'] ?? '',
-                'price'           => (float) ($item['price'] ?? 0),
-                'currency'        => $item['currency'] ?? 'USD',
-                'crawl_at'        => $crawlAt,
+                'store_name' => $item['username'] ?? '',
+                'store_url' => $this->buildOfferUrl($item['offer_id'] ?? ''),
+                'store_level' => isset($item['user_level']) ? '等级 ' . $item['user_level'] : '',
+                'stock' => (string)($item['available_qty'] ?? ''),
+                'price' => (float)($item['converted_unit_price'] ?? $item['unit_price'] ?? 0),
+                'currency' => $item['display_currency'] ?? 'USD',
+                'crawl_at' => $crawlAt,
             ]);
             $inserted++;
         }
@@ -116,89 +117,133 @@ class CrawlService
         // 更新目标的最后爬取时间
         CrawlTarget::where('id', $targetId)->update(['last_crawl_at' => $crawlAt]);
 
+        // 注：改价策略的触发已改为「信号驱动」——真实爬虫是 Python，爬完写 crawl_notify，
+        // 由 php think price:strategy:consume 消费通知后执行策略改价，这里不再直接触发。
+
         $elapsed = round(microtime(true) - $startTime, 2);
         Log::info("[CrawlService] 爬取完成, targetId={$targetId}, count={$inserted}, elapsed={$elapsed}s");
 
         return [
-            'target'   => $target->toArray(),
+            'target' => $target->toArray(),
             'products' => CompetitorProduct::where('crawl_target_id', $targetId)
                 ->order('price', 'asc')
                 ->select()
                 ->toArray(),
-            'count'   => $inserted,
+            'count' => $inserted,
             'elapsed' => $elapsed,
         ];
     }
 
     /**
-     * 测试：直接用静态HTML演示解析逻辑（无需Puppeteer）
+     * 循环翻页拉取全部数据（直到无更多数据或达到 maxPage 上限）
      */
-    public function testParse(string $html): array
+    protected function fetchAll(array $params): array
     {
-        $script = app()->getRootPath() . 'scripts/crawl_g2g.mjs';
-        if (! file_exists($script)) {
-            throw new RuntimeException('爬虫脚本不存在');
-        }
-
-        // 将HTML写入临时文件
-        $tmpFile = app()->getRuntimePath() . 'crawl_test.html';
-        file_put_contents($tmpFile, $html);
-
-        $nodeBin = escapeshellcmd($this->nodeBin);
-        $script  = escapeshellarg($script);
-        $tmp     = escapeshellarg($tmpFile);
-        $command = "{$nodeBin} {$script} --file={$tmp} 2>/dev/null";
-
-        $output = [];
-        exec($command, $output, $exitCode);
-
-        @unlink($tmpFile);
-
-        if ($exitCode !== 0) {
-            throw new RuntimeException('解析失败');
-        }
-
-        $data = json_decode(implode("\n", $output), true);
-        return is_array($data) ? $data : [];
-    }
-
-    /**
-     * 补全相对URL
-     */
-    protected function buildFullUrl(string $url): string
-    {
-        if (empty($url)) {
-            return '';
-        }
-        if (preg_match('#^https?://#', $url)) {
-            return $url;
-        }
-        return 'https://www.g2g.com' . $url;
-    }
-
-    /**
-     * 查找 Node.js 可执行文件
-     */
-    protected function findNodeBin(): string
-    {
-        // 优先使用 nvm 管理的版本
-        $candidates = [
-            '/usr/local/bin/node',
-            '/opt/homebrew/bin/node',
-        ];
-
-        foreach ($candidates as $candidate) {
-            if (is_executable($candidate)) {
-                return $candidate;
+        $all = [];
+        for ($page = 1; $page <= $this->maxPage; $page++) {
+            if ($page > 1) {
+                usleep($this->pageDelayMs * 1000);
+            }
+            $query = array_merge($params, [
+                'page_size' => $this->pageSize,
+                'page' => $page,
+                'group' => 0,
+                'v' => 'v2',
+            ]);
+            $list = $this->fetchPage($query);
+            // 单页失败（超时/限流等）不影响已抓到的数据，直接停止翻页
+            if ($list === null) {
+                break;
+            }
+            if (empty($list)) {
+                break;
+            }
+            $all = array_merge($all, $list);
+            if (count($list) < $this->pageSize) {
+                // 已到最后一页
+                break;
             }
         }
+        return $all;
+    }
 
-        // 通过 which 查找
-        $node = trim(shell_exec('which node 2>/dev/null') ?? '');
-        if ($node && is_executable($node)) {
-            return $node;
+    /**
+     * 请求单页数据。首页失败抛异常（说明目标本身有问题），后续页失败仅返回 null 静默跳过，
+     * 保留已抓取到的前面页数据，不让单页波动导致整次爬取全部失败。
+     */
+    protected function fetchPage(array $query): ?array
+    {
+        try {
+            $res = $this->http->get($this->apiUrl, ['query' => $query]);
+            $json = json_decode((string)$res->getBody(), true);
+            if (json_last_error() !== JSON_ERROR_NONE || ($json['code'] ?? null) != 2000) {
+                Log::warning('[CrawlService] 接口返回异常: ' . substr((string)$res->getBody(), 0, 300));
+                if ($query['page'] == 1) {
+                    throw new RuntimeException('接口返回异常');
+                }
+                return null;
+            }
+            return $json['payload']['results'] ?? [];
+        } catch (GuzzleException $e) {
+            Log::error('[CrawlService] 请求异常(page=' . $query['page'] . '): ' . $e->getMessage());
+            if ($query['page'] == 1) {
+                throw new RuntimeException('爬取请求失败: ' . $e->getMessage());
+            }
+            return null;
+        }
+    }
+
+    /**
+     * 从 G2G 商品分类页面 URL 中解析出接口所需参数
+     *
+     * 示例输入：
+     *   https://www.g2g.com/cn/categories/wow-gold/offer/group?fa=lgc_2299_platform%3Algc_2299_platform_39979&region_id=xxx
+     * 解析出：
+     *   seo_term=wow-gold, filter_attr=lgc_2299_platform:lgc_2299_platform_39979, region_id=xxx
+     */
+    protected function parseTargetUrl(string $url): array
+    {
+        $parts = parse_url($url);
+        if (empty($parts['path']) || empty($parts['query'])) {
+            throw new RuntimeException('目标链接格式不正确，无法解析参数');
         }
 
-        return 'node';
+        parse_str($parts['query'], $queryParams);
+
+        // 从路径 /cn/categories/{seo_term}/offer/group 中提取 seo_term
+        $seoTerm = '';
+        if (preg_match('#/categories/([^/]+)/#', $parts['path'], $m)) {
+            $seoTerm = $m[1];
+        }
+
+        $regionId = $queryParams['region_id'] ?? '';
+        $filterAttr = $queryParams['fa'] ?? ($queryParams['filter_attr'] ?? '');
+
+        if ($seoTerm === '' || $regionId === '') {
+            throw new RuntimeException('目标链接缺少必要参数(分类/region_id)，无法爬取');
+        }
+
+        $params = [
+            'seo_term' => $seoTerm,
+            'region_id' => $regionId,
+            'currency' => $queryParams['currency'] ?? 'USD',
+            'country' => $queryParams['country'] ?? 'CN',
+        ];
+        if ($filterAttr !== '') {
+            $params['filter_attr'] = $filterAttr;
+        }
+
+        return $params;
+    }
+
+    /**
+     * 根据 offer_id 拼接商品详情页链接
+     */
+    protected function buildOfferUrl(string $offerId): string
+    {
+        if ($offerId === '') {
+            return '';
+        }
+        return 'https://www.g2g.com/offer/' . $offerId;
     }
 }

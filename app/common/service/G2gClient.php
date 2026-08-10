@@ -138,8 +138,17 @@ class G2gClient
             return $json;
         } catch (GuzzleException $e) {
             $duration = (int)((microtime(true) - $start) * 1000);
-            $this->log(GameAccountApiLog::TYPE_UPDATE_PRICE, $url, $requestData, null, false, $e->getMessage(), $duration, $gameProductId);
-            throw new \RuntimeException('G2G改价请求异常: ' . $e->getMessage());
+            // Guzzle 默认把响应体截断到 120 字，这里从异常里取完整响应体，提取 G2G 的具体校验信息
+            $respJson = null;
+            $errMsg = $e->getMessage();
+            if ($e instanceof \GuzzleHttp\Exception\RequestException && $e->hasResponse()) {
+                $respBody = (string) $e->getResponse()->getBody();
+                $respJson = json_decode($respBody, true);
+                $g2gMsg = $respJson['messages'][0]['text'] ?? ($respJson['messages'][0] ?? $respBody);
+                $errMsg = is_string($g2gMsg) ? $g2gMsg : json_encode($g2gMsg, JSON_UNESCAPED_UNICODE);
+            }
+            $this->log(GameAccountApiLog::TYPE_UPDATE_PRICE, $url, $requestData, $respJson, false, $errMsg, $duration, $gameProductId);
+            throw new \RuntimeException('G2G改价失败: ' . $errMsg);
         }
     }
 

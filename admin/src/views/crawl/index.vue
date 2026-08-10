@@ -43,9 +43,9 @@ export default {
             click: row => this.doCrawl(row),
           },
           {
-            title: '竞品分析',
+            title: '竞品数据',
             type: 'success',
-            p: 'crawl/products',
+            p: 'competitorProduct/index',
             click: row => this.showProducts(row),
           },
         ],
@@ -72,30 +72,34 @@ export default {
         background: 'rgba(0, 0, 0, 0.3)',
       })
       try {
-        const { data } = await this.$http.post(`${this.module}/crawl`, { id: row.id })
+        const res = await this.$w_fun.post(`${this.module}/crawl`, { id: row.id }, {}, false, false)
         loading.close()
-        this.$message.success(data.msg || `爬取完成！共 ${data.data.count} 条，耗时 ${data.data.elapsed}`)
+        const d = res.data || {}
+        this.$message.success(res.message || `爬取完成！共 ${d.count} 条，耗时 ${d.elapsed}`)
         this.getList()
       } catch (e) {
         loading.close()
-        this.$message.error(e?.response?.data?.msg || '爬取失败')
+        this.$message.error(e?.message || '爬取失败')
       }
     },
-    // 查看竞品分析
+    // 查看该目标的竞品数据（按爬取目标预筛选，跳转到竞品数据列表页）
+    // crawl_data 用 target_id 关联爬取目标，故过滤字段为 target_id
     showProducts(row) {
-      this.$router.push({ name: 'CrawlProducts', query: { target_id: row.id, name: row.name } })
+      this.$router.push({
+        name: 'CompetitorProductIndex',
+        query: { filter: JSON.stringify({ target_id_multiple: [row.id] }) },
+      })
     },
     // 一键爬取全部启用的目标
     async crawlEmpty() {
-      // 获取当前列表
-      this.$refs.wTable.staticQuery = { status: 1 }
-      const res = await this.$http.get(this.module + '/index', { params: { page: 1, limit: 999, status: 1 } })
-      const list = res?.data?.data?.list ?? res?.data?.list ?? []
+      // 获取当前启用的爬取目标列表（status_match=1 走后端精确匹配搜索）
+      const res = await this.$w_fun.post(this.module + '/index', { page: 1, limit: 999, status_match: 1 }, {}, false, false)
+      const raw = res?.data?.list
+      const list = Array.isArray(raw) ? raw : (raw?.data ?? [])
       if (!list.length) {
         this.$message.warning('没有启用的爬取目标')
         return
       }
-      this.$refs.wTable.staticQuery = {}
 
       const loading = this.$loading({
         lock: true,
@@ -107,8 +111,8 @@ export default {
       for (let i = 0; i < list.length; i++) {
         loading.setText(`正在爬取第 ${i + 1}/${list.length} 个: ${list[i].name}`)
         try {
-          const { data } = await this.$http.post(`${this.module}/crawl`, { id: list[i].id })
-          total += data.data.count || 0
+          const res = await this.$w_fun.post(`${this.module}/crawl`, { id: list[i].id }, {}, false, false)
+          total += (res.data && res.data.count) || 0
         } catch (_) {
           // 单个失败继续
         }

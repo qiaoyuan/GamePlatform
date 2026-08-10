@@ -19,6 +19,7 @@ CREATE TABLE `competitor_product` (
   `store_name` varchar(128) NOT NULL DEFAULT '' COMMENT '店铺唯一标识',
   `store_url` varchar(512) NOT NULL DEFAULT '' COMMENT '店铺链接',
   `store_level` varchar(32) NOT NULL DEFAULT '' COMMENT '店铺等级',
+  `rating` decimal(5,2) NOT NULL DEFAULT 0.00 COMMENT '好评率(%)，改价策略好评率过滤用',
   `stock` varchar(32) NOT NULL DEFAULT '' COMMENT '库存',
   `price` decimal(12,5) NOT NULL DEFAULT 0.00000 COMMENT '销售单价',
   `currency` varchar(8) NOT NULL DEFAULT 'USD' COMMENT '币种',
