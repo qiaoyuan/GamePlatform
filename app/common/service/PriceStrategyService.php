@@ -238,8 +238,10 @@ class PriceStrategyService
         if ($bid <= 0) {
             return [PriceStrategyLog::STATUS_SKIP, $current, $lowest, '出价非正数，已跳过'];
         }
-        // 与现价基本一致则不改（极小阈值判断浮点相等）
-        if (abs($bid - $current) < 0.00001) {
+        // 与现价一致则不改。阈值按取整精度取「半个最小单位」，
+        // 否则像 0.000479 vs 0.00048 这类 6 位小数的真实差异会被误判为相同而跳过。
+        $epsilon = 0.5 * pow(10, -$precision);
+        if (abs($bid - $current) < $epsilon) {
             return [PriceStrategyLog::STATUS_SKIP, $current, $lowest, '出价与现价一致，无需改价'];
         }
 
