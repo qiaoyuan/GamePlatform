@@ -45,7 +45,7 @@
 
       <el-divider content-position="left">二、保底出价</el-divider>
       <el-form-item label="最低出价">
-        <el-input-number v-model="form.floor_price" :min="0" :precision="4" :step="0.01" placeholder="不填=无底线" />
+        <el-input-number v-model="form.floor_price" :min="0" :precision="6" :step="0.0001" placeholder="不填=无底线" />
         <span class="tip">出价低于此价则不再竞价（跳过）；不填表示无底线</span>
       </el-form-item>
 
@@ -57,7 +57,7 @@
         </el-radio-group>
       </el-form-item>
       <el-form-item v-if="form.bid_mode === 'amount'" label="幅度值">
-        <el-input-number v-model="form.amplitude" :precision="4" :step="0.01" />
+        <el-input-number v-model="form.amplitude" :precision="6" :step="0.0001" />
         <span class="tip">出价 = 目标价 − 幅度值（如目标100、幅度1→出价99；幅度-1→出价101）</span>
       </el-form-item>
       <el-form-item v-else label="说明">
@@ -100,7 +100,7 @@ const defaultForm = () => ({
   floor_price: undefined,
   bid_mode: 'amount',
   amplitude: 1,
-  round_precision: 4,
+  round_precision: 6,
 })
 
 export default {

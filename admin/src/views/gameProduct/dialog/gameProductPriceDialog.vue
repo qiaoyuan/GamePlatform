@@ -16,11 +16,12 @@
       <el-form-item label="新价格" prop="price">
         <el-input-number
           v-model="form.price"
-          :precision="2"
-          :min="0.01"
-          :step="0.1"
+          :precision="6"
+          :min="0.000001"
+          :step="0.0001"
           style="width: 100%"
         />
+        <div style="font-size:12px;color:#909399">支持最多 6 位小数，如 0.00063</div>
       </el-form-item>
     </el-form>
   </w-dialog>
