@@ -10,3 +10,4 @@ runtime/
 node_modules
 .phpunit.result.cache
 admin/.env.development
+admin/dist/

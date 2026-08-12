@@ -23,6 +23,13 @@ const permission = {
       return new Promise(async (resolve, reject) => {
         // 向后端请求路由数据
         const res = await post('/index/menus')
+        const getFirstRoutePath = (route) => {
+          if (route.children && route.children.length > 0) {
+            const child = route.children.find(item => !item.hidden) || route.children[0]
+            return getFirstRoutePath(child)
+          }
+          return route.path
+        }
         const loopMenu = function (items, subKey = 'children') {
           const menus = []
           for (const item of items) {
@@ -45,8 +52,11 @@ const permission = {
               menuItem.children = loopMenu(item[subKey], subKey)
             }
             if (item.level === 1) {
-              menuItem.redirect = 'noRedirect'
               menuItem.path = '/' + menuItem.path
+              if (menuItem.children && menuItem.children.length > 0) {
+                const firstRoutePath = getFirstRoutePath(menuItem)
+                menuItem.redirect = `/${firstRoutePath.replace(/^\/+/, '')}`
+              }
             }
             menus.push(menuItem)
           }

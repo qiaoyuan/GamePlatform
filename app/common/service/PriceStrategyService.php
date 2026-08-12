@@ -160,12 +160,14 @@ class PriceStrategyService
 
         foreach ($products as $product) {
             $stat['total']++;
+            // 改价前价格必须在 handleProduct 之前取：改价成功时 handleProduct 会把 $product->price 改成新价
+            $oldPrice = (float) $product->price;
             [$status, $newPrice, $refPrice, $message] = $this->handleProduct($product, $competitors, $dimension);
 
             PriceStrategyLog::record([
                 'price_strategy_id' => $strategy->id,
                 'game_product_id'   => $product->id,
-                'old_price'         => (float) $product->price,
+                'old_price'         => $oldPrice,
                 'new_price'         => $newPrice,
                 'ref_price'         => $refPrice,
                 'status'            => $status,
@@ -262,8 +264,8 @@ class PriceStrategyService
      */
     protected function calcLowest(GameProduct $product, $competitors, array $dimension): ?float
     {
-        $blacklist = array_map('strval', (array) ($dimension['blacklist_stores'] ?? []));
-        $whitelist = array_map('strval', (array) ($dimension['whitelist_stores'] ?? []));
+        $blacklist = $this->normalizeStoreIdentifiers((array) ($dimension['blacklist_stores'] ?? []));
+        $whitelist = $this->normalizeStoreIdentifiers((array) ($dimension['whitelist_stores'] ?? []));
         $minStock  = (int) ($dimension['min_stock'] ?? 0);
         $currency  = $product->currency ?: GameProduct::DEFAULT_CURRENCY;
 
@@ -296,6 +298,28 @@ class PriceStrategyService
         }
 
         return $prices ? min($prices) : null;
+    }
+
+    /**
+     * 规范化店铺标识，避免大小写或首尾空白导致黑白名单匹配失败。
+     *
+     * @param array<int, mixed> $values
+     * @return array<int, string>
+     */
+    protected function normalizeStoreIdentifiers(array $values): array
+    {
+        $normalized = [];
+        foreach ($values as $value) {
+            $value = trim((string) $value);
+            if ($value === '') {
+                continue;
+            }
+            $value = function_exists('mb_strtolower')
+                ? mb_strtolower($value, 'UTF-8')
+                : strtolower($value);
+            $normalized[$value] = true;
+        }
+        return array_keys($normalized);
     }
 
     /**
