@@ -108,7 +108,7 @@ class PriceStrategyService
     }
 
     /**
-     * 定时任务：执行所有到期的策略（启用 + interval_minutes>0 + 距上次执行已达频率）。
+     * 定时任务：执行所有到期且允许自动执行的策略（启用 + auto_run=1 + interval_minutes>0）。
      * 供 price:strategy:run 命令调用（可选的按频率触发，与信号驱动互补）。
      *
      * @return int 本次执行的策略数
@@ -116,6 +116,7 @@ class PriceStrategyService
     public function runDue(): int
     {
         $strategies = PriceStrategy::where('status', PriceStrategy::STATUS_ON)
+            ->where('auto_run', 1)
             ->where('interval_minutes', '>', 0)
             ->select();
         $count = 0;
