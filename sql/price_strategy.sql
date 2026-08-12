@@ -32,6 +32,7 @@ CREATE TABLE `price_strategy_log` (
   `id` int unsigned NOT NULL AUTO_INCREMENT,
   `price_strategy_id` int unsigned NOT NULL DEFAULT 0 COMMENT '策略ID',
   `game_product_id` int unsigned NOT NULL DEFAULT 0 COMMENT '游戏产品ID',
+  `competitor_id` int unsigned DEFAULT NULL COMMENT '竞品数据ID（crawl_data.id）',
   `old_price` decimal(20,8) NOT NULL DEFAULT 0 COMMENT '改价前价格',
   `new_price` decimal(20,8) NOT NULL DEFAULT 0 COMMENT '改价后价格',
   `ref_price` decimal(20,8) NOT NULL DEFAULT 0 COMMENT '参考价(竞品最低价)',
@@ -40,5 +41,6 @@ CREATE TABLE `price_strategy_log` (
   `created_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `idx_price_strategy_id` (`price_strategy_id`),
-  KEY `idx_game_product_id` (`game_product_id`)
+  KEY `idx_game_product_id` (`game_product_id`),
+  KEY `idx_price_strategy_log_competitor_id` (`competitor_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='改价策略执行日志';

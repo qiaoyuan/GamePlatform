@@ -56,16 +56,28 @@ class PriceStrategyService
     public function consumeNotify(): array
     {
         $pending = CrawlNotify::where('status', CrawlNotify::STATUS_PENDING)->select();
+        $processedTargets = [];
         $result = ['notifies' => 0, 'strategies' => 0];
         foreach ($pending as $notify) {
+            $targetId = (int) $notify->crawl_target_id;
             try {
-                $agg = $this->runByCrawlTarget($notify->crawl_target_id);
+                if (isset($processedTargets[$targetId])) {
+                    // 同一次消费中，同一竞品池只执行一次，避免重复通知重复改价。
+                    $agg = ['strategies' => 0, 'success' => 0, 'skip' => 0, 'fail' => 0];
+                    $duplicated = true;
+                } else {
+                    $agg = $this->runByCrawlTarget($targetId);
+                    $processedTargets[$targetId] = true;
+                    $duplicated = false;
+                }
                 $notify->status = CrawlNotify::STATUS_DONE;
                 $notify->processed_at = date('Y-m-d H:i:s');
-                $notify->message = sprintf(
-                    '执行策略%d个: 成功%d/跳过%d/失败%d',
-                    $agg['strategies'], $agg['success'], $agg['skip'], $agg['fail']
-                );
+                $notify->message = $duplicated
+                    ? '同一批次已执行，跳过重复策略'
+                    : sprintf(
+                        '执行策略%d个: 成功%d/跳过%d/失败%d',
+                        $agg['strategies'], $agg['success'], $agg['skip'], $agg['fail']
+                    );
                 $notify->save();
                 $result['notifies']++;
                 $result['strategies'] += $agg['strategies'];
@@ -165,16 +177,22 @@ class PriceStrategyService
             $oldPrice = (float) $product->price;
             [$status, $newPrice, $refPrice, $message, $competitorId] = $this->handleProduct($product, $competitors, $dimension);
 
-            PriceStrategyLog::record([
-                'price_strategy_id' => $strategy->id,
-                'game_product_id'   => $product->id,
-                'competitor_id'     => $competitorId,
-                'old_price'         => $oldPrice,
-                'new_price'         => $newPrice,
-                'ref_price'         => $refPrice,
-                'status'            => $status,
-                'message'           => $message,
-            ]);
+            try {
+                PriceStrategyLog::record([
+                    'price_strategy_id' => $strategy->id,
+                    'game_product_id'   => $product->id,
+                    'competitor_id'     => $competitorId,
+                    'old_price'         => $oldPrice,
+                    'new_price'         => $newPrice,
+                    'ref_price'         => $refPrice,
+                    'status'            => $status,
+                    'message'           => $message,
+                ]);
+            } catch (\Throwable $e) {
+                Log::error('[PriceStrategyService] 改价日志写入失败 strategyId=' . $strategy->id
+                    . ' productId=' . $product->id . ': ' . $e->getMessage());
+                throw $e;
+            }
 
             if ($status === PriceStrategyLog::STATUS_SUCCESS) {
                 $stat['success']++;
