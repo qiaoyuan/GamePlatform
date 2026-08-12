@@ -20,7 +20,7 @@ class CompetitorProduct extends BaseController
     public function columns(): array
     {
         return [
-            ['v' => 'id',          'label' => 'ID',       'width' => 80,  'searchType' => 'number', 'sort' => 'id'],
+            ['v' => 'id',          'label' => 'ID',       'width' => 80,  'search' => 'id', 'searchType' => 'match', 'sort' => 'id'],
             [
                 'v'          => 'target_name',
                 'label'      => '爬取目标',
