@@ -162,11 +162,12 @@ class PriceStrategyService
             $stat['total']++;
             // 改价前价格必须在 handleProduct 之前取：改价成功时 handleProduct 会把 $product->price 改成新价
             $oldPrice = (float) $product->price;
-            [$status, $newPrice, $refPrice, $message] = $this->handleProduct($product, $competitors, $dimension);
+            [$status, $newPrice, $refPrice, $message, $competitorId] = $this->handleProduct($product, $competitors, $dimension);
 
             PriceStrategyLog::record([
                 'price_strategy_id' => $strategy->id,
                 'game_product_id'   => $product->id,
+                'competitor_id'     => $competitorId,
                 'old_price'         => $oldPrice,
                 'new_price'         => $newPrice,
                 'ref_price'         => $refPrice,
@@ -193,7 +194,7 @@ class PriceStrategyService
      * 处理单个产品：算目标价 -> 竞价幅度 -> 保底/上限夹逼 -> 应用改价。
      *
      * @param CrawlData[]|\think\Collection $competitors
-     * @return array{0:int,1:float,2:float,3:string} [日志状态, 新价格, 参考价, 说明]
+     * @return array{0:int,1:float,2:float,3:string,4:int|null} [日志状态, 新价格, 参考价, 说明, 竞品数据ID]
      */
     protected function handleProduct(GameProduct $product, $competitors, array $dimension): array
     {
@@ -215,11 +216,11 @@ class PriceStrategyService
             } else {
                 $msg = '无可竞价的竞品（过滤后为空）';
             }
-            return [PriceStrategyLog::STATUS_SKIP, $current, 0.0, $msg];
+            return [PriceStrategyLog::STATUS_SKIP, $current, 0.0, $msg, null];
         }
 
         $lowest = (float) $lowestInfo['price'];
-        $competitorMessage = $this->formatCompetitorMessage($lowestInfo);
+        $competitorId = (int) $lowestInfo['id'];
 
         // 2. 竞价幅度：算出我们的出价
         $bid = $this->applyBid($lowest, $dimension);
@@ -227,7 +228,7 @@ class PriceStrategyService
         // 3. 保底出价：出价低于保底价则不再竞价
         $floor = $this->numOrNull($dimension['floor_price'] ?? null);
         if ($floor !== null && $bid < $floor) {
-            return [PriceStrategyLog::STATUS_SKIP, $current, $lowest, "出价({$bid})低于保底价({$floor})，不竞价；{$competitorMessage}"];
+            return [PriceStrategyLog::STATUS_SKIP, $current, $lowest, "出价({$bid})低于保底价({$floor})，不竞价", $competitorId];
         }
 
         // 4. 价格上限（可选）
@@ -241,21 +242,21 @@ class PriceStrategyService
         $bid = round($bid, $precision);
 
         if ($bid <= 0) {
-            return [PriceStrategyLog::STATUS_SKIP, $current, $lowest, "出价非正数，已跳过；{$competitorMessage}"];
+            return [PriceStrategyLog::STATUS_SKIP, $current, $lowest, '出价非正数，已跳过', $competitorId];
         }
         // 与现价一致则不改。阈值按取整精度取「半个最小单位」，
         // 否则像 0.000479 vs 0.00048 这类 6 位小数的真实差异会被误判为相同而跳过。
         $epsilon = 0.5 * pow(10, -$precision);
         if (abs($bid - $current) < $epsilon) {
-            return [PriceStrategyLog::STATUS_SKIP, $current, $lowest, "出价与现价一致，无需改价；{$competitorMessage}"];
+            return [PriceStrategyLog::STATUS_SKIP, $current, $lowest, '出价与现价一致，无需改价', $competitorId];
         }
 
         // 6. 应用改价（复用与手动改价相同的内部逻辑，改价在 PHP 侧调 G2G）
         try {
             GameProductPriceService::change($product, $bid);
-            return [PriceStrategyLog::STATUS_SUCCESS, $bid, $lowest, "改价成功；{$competitorMessage}"];
+            return [PriceStrategyLog::STATUS_SUCCESS, $bid, $lowest, '改价成功', $competitorId];
         } catch (\Throwable $e) {
-            return [PriceStrategyLog::STATUS_FAIL, $current, $lowest, mb_substr($e->getMessage(), 0, 480) . "；{$competitorMessage}"];
+            return [PriceStrategyLog::STATUS_FAIL, $current, $lowest, mb_substr($e->getMessage(), 0, 480), $competitorId];
         }
     }
 
@@ -265,7 +266,7 @@ class PriceStrategyService
      * 过滤优先级：黑名单剔除 > 白名单强制纳入(跳过库存过滤) > 其余按库存过滤。
      * 店铺标识同时匹配 crawl_data 的 seller_id 与 seller_name。
      *
-     * @return array{price:float,id:int,seller_id:string,seller_name:string}|null
+     * @return array{price:float,id:int}|null
      */
     protected function calcLowest(GameProduct $product, $competitors, array $dimension): ?array
     {
@@ -300,10 +301,8 @@ class PriceStrategyService
             }
 
             $candidate = [
-                'price'      => $price,
-                'id'         => (int) $c->id,
-                'seller_id'  => trim((string) $c->seller_id),
-                'seller_name'=> trim((string) $c->seller_name),
+                'price' => $price,
+                'id'    => (int) $c->id,
             ];
             // 价格相同时使用较小的 crawl_data.id，保证命中记录稳定可追溯
             if ($lowest === null
@@ -314,21 +313,6 @@ class PriceStrategyService
         }
 
         return $lowest;
-    }
-
-    /**
-     * 生成日志中的竞品追踪信息。
-     *
-     * @param array{price:float,id:int,seller_id:string,seller_name:string} $competitor
-     */
-    protected function formatCompetitorMessage(array $competitor): string
-    {
-        return sprintf(
-            '竞品ID:%d，卖家ID:%s，卖家:%s',
-            $competitor['id'],
-            $competitor['seller_id'] !== '' ? $competitor['seller_id'] : '--',
-            $competitor['seller_name'] !== '' ? $competitor['seller_name'] : '--'
-        );
     }
 
     /**

@@ -24,8 +24,9 @@ class PriceStrategyLog extends BaseController
                 'searchType' => 'number',
                 'sort'       => 'price_strategy_id',
             ],
-            ['v' => 'product_title', 'label' => '产品',     'width' => 160, 'search' => 'game_product_id', 'searchType' => 'number'],
-            ['v' => 'old_price',     'label' => '改价前',   'width' => 100, 'search' => false],
+            ['v' => 'product_title',  'label' => '产品',     'width' => 160, 'search' => 'game_product_id', 'searchType' => 'number'],
+            ['v' => 'competitor_id',  'label' => '竞品ID',   'width' => 100, 'search' => 'competitor_id', 'searchType' => 'match', 'sort' => 'competitor_id'],
+            ['v' => 'old_price',      'label' => '改价前',   'width' => 100, 'search' => false],
             ['v' => 'new_price',     'label' => '改价后',   'width' => 100, 'search' => false],
             ['v' => 'ref_price',     'label' => '参考价(最低)', 'width' => 110, 'search' => false],
             [

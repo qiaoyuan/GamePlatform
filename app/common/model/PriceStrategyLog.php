@@ -11,6 +11,7 @@ use think\model\relation\BelongsTo;
  * @property int    $id
  * @property int    $price_strategy_id 策略ID
  * @property int    $game_product_id   游戏产品ID
+ * @property int|null $competitor_id   竞品数据ID（crawl_data.id）
  * @property float  $old_price         改价前价格
  * @property float  $new_price         改价后价格
  * @property float  $ref_price         参考价(竞品最低价)
@@ -27,13 +28,14 @@ class PriceStrategyLog extends Base
     protected $updateTime = false;
 
     /** @var string[] */
-    protected $field = ['id', 'price_strategy_id', 'game_product_id', 'old_price', 'new_price', 'ref_price', 'status', 'message', 'created_at'];
+    protected $field = ['id', 'price_strategy_id', 'game_product_id', 'competitor_id', 'old_price', 'new_price', 'ref_price', 'status', 'message', 'created_at'];
 
     /** @var array<string, string> */
     protected $type = [
         'id'                => 'int',
         'price_strategy_id' => 'int',
         'game_product_id'   => 'int',
+        'competitor_id'     => 'int',
         'old_price'         => 'float',
         'new_price'         => 'float',
         'ref_price'         => 'float',
