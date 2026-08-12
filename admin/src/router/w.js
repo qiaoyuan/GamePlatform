@@ -49,6 +49,12 @@ export default [
     hidden: true
   },
   {
+    // 兼容旧版本曾生成的错误地址 /noRedirect
+    path: '/noRedirect',
+    redirect: '/',
+    hidden: true
+  },
+  {
     path: "*",
     name: "404",
     component: (resolve) => require(['@/views/error/404'], resolve),
