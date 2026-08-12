@@ -32,19 +32,25 @@ router.beforeEach(async(to, from, next) => {
       next({ path: '/' })
     } else {
       if (!store.getters.userinfo) {
-          try {
-            await store.dispatch('getUserInfo')
-            await store.dispatch('GenerateRoutes')
-            next({ path: to.fullPath, replace: true})
-          } catch (error) {
-            store.dispatch('logOut').then(() => {
-              location.reload()
-            })
-          }
-      } else {
-        next()
+        try {
+          await store.dispatch('getUserInfo')
+        } catch (error) {
+          await store.dispatch('logOut')
+          return
+        }
       }
-      next()
+      const matchedRoute = router.match(to.path)
+      const routeRegistered = matchedRoute.matched.some(route => route.path === to.path)
+      if (!store.state.permission.loadRoutes || !routeRegistered) {
+        try {
+          await store.dispatch('GenerateRoutes')
+          return next({ path: to.fullPath, replace: true })
+        } catch (error) {
+          await store.dispatch('logOut')
+          return
+        }
+      }
+      return next()
     }
   } else {
     if (whiteList.indexOf(to.path) !== -1) {

@@ -4,6 +4,14 @@ import router from "@/router"
 import Layout from '@/layout'
 import Empty from '@/layout/empty'
 
+// 必须在动态菜单路由之后注册，否则 Vue Router 3 会先命中通配符 404 路由。
+const notFoundRoute = {
+  path: '*',
+  name: '404',
+  component: (resolve) => require(['@/views/error/404'], resolve),
+  hidden: true
+}
+
 const permission = {
   state: {
     routes: [],
@@ -41,9 +49,11 @@ const permission = {
                 component = 'Empty'
               }
             }
+            const menuPath = `/${String(item.url || '').replace(/^\/+/, '')}`
             const menuItem = {
               name: item.url.split(/[\/_]/).map( i => i[0].toUpperCase() + i.substr(1)).join(''),
-              path: item.url,
+              // 后端菜单 URL 是前端绝对页面地址，不能作为父级路由的相对路径。
+              path: menuPath,
               hidden: !!item.is_hide,
               component: component,
               meta: {title: item.title, icon: item.icon, level: item.level},
@@ -52,7 +62,6 @@ const permission = {
               menuItem.children = loopMenu(item[subKey], subKey)
             }
             if (item.level === 1) {
-              menuItem.path = '/' + menuItem.path
               if (menuItem.children && menuItem.children.length > 0) {
                 const firstRoutePath = getFirstRoutePath(menuItem)
                 menuItem.redirect = `/${firstRoutePath.replace(/^\/+/, '')}`
@@ -64,10 +73,17 @@ const permission = {
         }
         const menus = loopMenu(res.data.menus)
         const accessedRoutes = filterAsyncRouter(menus)
-        for (const item of accessedRoutes) {
-          router.addRoute(item)
+        const routesWithNotFound = accessedRoutes.concat(notFoundRoute)
+        if (typeof router.addRoutes === 'function') {
+          // 当前项目使用 vue-router 3，批量注册动态路由。
+          // 404 必须最后注册，否则会拦截所有动态路由。
+          router.addRoutes(routesWithNotFound)
+        } else {
+          // 兼容 vue-router 4。
+          accessedRoutes.forEach(route => router.addRoute(route))
+          router.addRoute(notFoundRoute)
         }
-        commit('SET_ROUTES', accessedRoutes)
+        commit('SET_ROUTES', routesWithNotFound)
         resolve(accessedRoutes)
       })
     }

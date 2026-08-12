@@ -34,19 +34,23 @@ export default {
     ]),
     currentMenus() {
       const permission_routes = deepClone(this.permission_routes)
-      for(const item of permission_routes) {
-        if (!item.hidden && item.path) {
-          const item_path = item.path
-          const current_path = this.$route.path
-          if (current_path.substring(0,item_path.length) === item_path) {
-            return item.children.map(child => {
-              child.path = item_path + '/' + child.path
-              return child
-            })
+      const matchedParent = this.$route.matched && this.$route.matched[0]
+      const parentPath = matchedParent ? matchedParent.path : ''
+      const currentMenu = permission_routes.find(item => {
+        if (item.hidden) return false
+        if (item.path === parentPath) return true
+        return !parentPath && item.path === ''
+      })
+      if (!currentMenu || !currentMenu.children) return []
+      const itemPath = currentMenu.path || ''
+      return currentMenu.children
+        .filter(child => !child.hidden)
+        .map(child => {
+          if (child.path && child.path[0] !== '/') {
+            child.path = `${itemPath}/${child.path}`.replace(/\/+/g, '/')
           }
-        }
-      }
-      return []
+          return child
+        })
     },
     activeMenu() {
       const route = this.$route

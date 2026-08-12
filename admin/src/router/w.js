@@ -54,10 +54,4 @@ export default [
     redirect: '/',
     hidden: true
   },
-  {
-    path: "*",
-    name: "404",
-    component: (resolve) => require(['@/views/error/404'], resolve),
-    hidden: true
-  }
 ]
