@@ -93,13 +93,15 @@ class PriceStrategyService
             ->select();
         $agg = ['strategies' => 0, 'success' => 0, 'skip' => 0, 'fail' => 0];
         foreach ($strategies as $strategy) {
+            // 先统计已匹配并尝试执行的策略，避免策略内部异常时错误显示为 0 个。
+            $agg['strategies']++;
             try {
                 $stat = $this->runStrategy($strategy);
-                $agg['strategies']++;
                 $agg['success'] += $stat['success'];
                 $agg['skip']    += $stat['skip'];
                 $agg['fail']    += $stat['fail'];
             } catch (\Throwable $e) {
+                $agg['fail']++;
                 Log::error('[PriceStrategyService] 策略执行异常 strategyId=' . $strategy->id . ': ' . $e->getMessage());
             }
         }
