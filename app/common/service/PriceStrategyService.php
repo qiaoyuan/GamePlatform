@@ -240,6 +240,12 @@ class PriceStrategyService
 
         $lowest = (float) $lowestInfo['price'];
         $competitorId = (int) $lowestInfo['id'];
+        $competitorContext = sprintf(
+            '参考竞品ID=%d，seller_id=%s，seller_name=%s',
+            $competitorId,
+            $lowestInfo['seller_id'] !== '' ? $lowestInfo['seller_id'] : '--',
+            $lowestInfo['seller_name'] !== '' ? $lowestInfo['seller_name'] : '--'
+        );
 
         // 2. 竞价幅度：算出我们的出价
         $bid = $this->applyBid($lowest, $dimension);
@@ -247,7 +253,7 @@ class PriceStrategyService
         // 3. 保底出价：出价低于保底价则不再竞价
         $floor = $this->numOrNull($dimension['floor_price'] ?? null);
         if ($floor !== null && $bid < $floor) {
-            return [PriceStrategyLog::STATUS_SKIP, $current, $lowest, "出价({$bid})低于保底价({$floor})，不竞价", $competitorId];
+            return [PriceStrategyLog::STATUS_SKIP, $current, $lowest, $this->withCompetitorContext("出价({$bid})低于保底价({$floor})，不竞价", $competitorContext), $competitorId];
         }
 
         // 4. 价格上限（可选）
@@ -261,21 +267,21 @@ class PriceStrategyService
         $bid = round($bid, $precision);
 
         if ($bid <= 0) {
-            return [PriceStrategyLog::STATUS_SKIP, $current, $lowest, '出价非正数，已跳过', $competitorId];
+            return [PriceStrategyLog::STATUS_SKIP, $current, $lowest, '出价非正数，已跳过；' . $competitorContext, $competitorId];
         }
         // 与现价一致则不改。阈值按取整精度取「半个最小单位」，
         // 否则像 0.000479 vs 0.00048 这类 6 位小数的真实差异会被误判为相同而跳过。
         $epsilon = 0.5 * pow(10, -$precision);
         if (abs($bid - $current) < $epsilon) {
-            return [PriceStrategyLog::STATUS_SKIP, $current, $lowest, '出价与现价一致，无需改价', $competitorId];
+            return [PriceStrategyLog::STATUS_SKIP, $current, $lowest, '出价与现价一致，无需改价；' . $competitorContext, $competitorId];
         }
 
         // 6. 应用改价（复用与手动改价相同的内部逻辑，改价在 PHP 侧调 G2G）
         try {
             GameProductPriceService::change($product, $bid);
-            return [PriceStrategyLog::STATUS_SUCCESS, $bid, $lowest, '改价成功', $competitorId];
+            return [PriceStrategyLog::STATUS_SUCCESS, $bid, $lowest, '改价成功；' . $competitorContext, $competitorId];
         } catch (\Throwable $e) {
-            return [PriceStrategyLog::STATUS_FAIL, $current, $lowest, mb_substr($e->getMessage(), 0, 480), $competitorId];
+            return [PriceStrategyLog::STATUS_FAIL, $current, $lowest, $this->withCompetitorContext(mb_substr($e->getMessage(), 0, 420), $competitorContext), $competitorId];
         }
     }
 
@@ -285,7 +291,7 @@ class PriceStrategyService
      * 过滤优先级：黑名单剔除 > 白名单强制纳入(跳过库存过滤) > 其余按库存过滤。
      * 店铺标识同时匹配 crawl_data 的 seller_id 与 seller_name。
      *
-     * @return array{price:float,id:int}|null
+     * @return array{price:float,id:int,seller_id:string,seller_name:string}|null
      */
     protected function calcLowest(GameProduct $product, $competitors, array $dimension): ?array
     {
@@ -320,8 +326,10 @@ class PriceStrategyService
             }
 
             $candidate = [
-                'price' => $price,
-                'id'    => (int) $c->id,
+                'price'      => $price,
+                'id'         => (int) $c->id,
+                'seller_id'  => trim((string) $c->seller_id),
+                'seller_name'=> trim((string) $c->seller_name),
             ];
             // 价格相同时使用较小的 crawl_data.id，保证命中记录稳定可追溯
             if ($lowest === null
@@ -335,7 +343,15 @@ class PriceStrategyService
     }
 
     /**
-     * 规范化店铺标识，避免大小写或首尾空白导致黑白名单匹配失败。
+     * 在日志说明中追加实际参考竞品信息，并限制在日志字段长度内。
+     */
+    protected function withCompetitorContext(string $message, string $context): string
+    {
+        return mb_substr($message . '；' . $context, 0, 500);
+    }
+
+    /**
+     * 规范化店铺标识，避免大小写、首尾空白或 Unicode 空白导致黑白名单匹配失败。
      *
      * @param array<int, mixed> $values
      * @return array<int, string>
@@ -348,6 +364,9 @@ class PriceStrategyService
             if ($value === '') {
                 continue;
             }
+            $value = html_entity_decode($value, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+            $value = preg_replace('/\\s+/u', ' ', $value) ?? $value;
+            $value = trim($value);
             $value = function_exists('mb_strtolower')
                 ? mb_strtolower($value, 'UTF-8')
                 : strtolower($value);
