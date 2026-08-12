@@ -295,8 +295,8 @@ class PriceStrategyService
      */
     protected function calcLowest(GameProduct $product, $competitors, array $dimension): ?array
     {
-        $blacklist = $this->normalizeStoreIdentifiers((array) ($dimension['blacklist_stores'] ?? []));
-        $whitelist = $this->normalizeStoreIdentifiers((array) ($dimension['whitelist_stores'] ?? []));
+        $blacklist = $this->normalizeStoreIdentifiers($dimension['blacklist_stores'] ?? []);
+        $whitelist = $this->normalizeStoreIdentifiers($dimension['whitelist_stores'] ?? []);
         $minStock  = (int) ($dimension['min_stock'] ?? 0);
         $currency  = $product->currency ?: GameProduct::DEFAULT_CURRENCY;
 
@@ -353,13 +353,16 @@ class PriceStrategyService
     /**
      * 规范化店铺标识，避免大小写、首尾空白或 Unicode 空白导致黑白名单匹配失败。
      *
-     * @param array<int, mixed> $values
+     * 支持数组、JSON 数组字符串，以及换行/逗号分隔的文本，避免配置格式变化时
+     * 整个黑名单被当成一个无法命中的字符串。
+     *
+     * @param mixed $values
      * @return array<int, string>
      */
-    protected function normalizeStoreIdentifiers(array $values): array
+    protected function normalizeStoreIdentifiers($values): array
     {
         $normalized = [];
-        foreach ($values as $value) {
+        foreach ($this->expandStoreIdentifiers($values) as $value) {
             $value = trim((string) $value);
             if ($value === '') {
                 continue;
@@ -373,6 +376,40 @@ class PriceStrategyService
             $normalized[$value] = true;
         }
         return array_keys($normalized);
+    }
+
+    /**
+     * 将黑白名单配置展开成店铺标识数组。
+     *
+     * @param mixed $values
+     * @return array<int, string>
+     */
+    protected function expandStoreIdentifiers($values): array
+    {
+        if ($values === null || $values === '') {
+            return [];
+        }
+
+        if (is_string($values)) {
+            $text = trim($values);
+            $decoded = json_decode($text, true);
+            if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                return $this->expandStoreIdentifiers($decoded);
+            }
+            $values = preg_split('/[\\r\\n,，、]+/u', $text, -1, PREG_SPLIT_NO_EMPTY) ?: [];
+        } elseif (!is_array($values)) {
+            $values = [$values];
+        }
+
+        $expanded = [];
+        foreach ($values as $value) {
+            if (is_array($value)) {
+                $expanded = array_merge($expanded, $this->expandStoreIdentifiers($value));
+            } elseif ($value !== null && $value !== '') {
+                $expanded[] = (string) $value;
+            }
+        }
+        return $expanded;
     }
 
     /**
@@ -392,12 +429,40 @@ class PriceStrategyService
 
     /**
      * 取第一个维度配置（首期只处理首个维度），并补齐默认值。
+     *
+     * @param mixed $config
      */
-    protected function firstDimension(?array $config): array
+    protected function firstDimension($config): array
     {
+        if (is_string($config)) {
+            $decoded = json_decode($config, true);
+            $config = json_last_error() === JSON_ERROR_NONE ? $decoded : [];
+        }
+        if (!is_array($config)) {
+            $config = [];
+        }
+
         $dimensions = $config['dimensions'] ?? [];
+        if (is_string($dimensions)) {
+            $decoded = json_decode($dimensions, true);
+            $dimensions = json_last_error() === JSON_ERROR_NONE ? $decoded : [];
+        }
+        if (!is_array($dimensions)) {
+            $dimensions = [];
+        }
+
+        // 兼容早期直接把黑白名单放在 config 顶层的旧数据。
         $dimension = $dimensions[0] ?? [];
-        return array_merge([
+        if (!$dimension && array_key_exists('blacklist_stores', $config)) {
+            $dimension = $config;
+        }
+        if (is_string($dimension)) {
+            $decoded = json_decode($dimension, true);
+            $dimension = json_last_error() === JSON_ERROR_NONE ? $decoded : [];
+        }
+        $dimension = is_array($dimension) ? $dimension : [];
+
+        $dimension = array_merge([
             'type'             => PriceStrategy::DIMENSION_LOWEST,
             'blacklist_stores' => [],
             'whitelist_stores' => [],
@@ -408,7 +473,10 @@ class PriceStrategyService
             'bid_mode'         => PriceStrategy::BID_AMOUNT,
             'amplitude'        => 0,
             'round_precision'  => 4,
-        ], is_array($dimension) ? $dimension : []);
+        ], $dimension);
+        $dimension['blacklist_stores'] = $this->normalizeStoreIdentifiers($dimension['blacklist_stores']);
+        $dimension['whitelist_stores'] = $this->normalizeStoreIdentifiers($dimension['whitelist_stores']);
+        return $dimension;
     }
 
     /**
