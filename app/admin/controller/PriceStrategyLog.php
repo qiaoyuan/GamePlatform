@@ -5,6 +5,7 @@ namespace app\admin\controller;
 
 use app\admin\BaseController;
 use app\common\annotation\Permission;
+use app\common\model\PriceStrategy;
 use app\common\model\PriceStrategyLog as Model;
 
 /**
@@ -21,10 +22,21 @@ class PriceStrategyLog extends BaseController
                 'label'      => '策略',
                 'width'      => 150,
                 'search'     => 'price_strategy_id',
-                'searchType' => 'number',
+                'searchType' => 'multiple',
+                'searchList' => PriceStrategy::whereNull('deleted_at')
+                    ->field('name as label,id as value')
+                    ->select()
+                    ->toArray(),
                 'sort'       => 'price_strategy_id',
             ],
-            ['v' => 'product_title',  'label' => '产品',     'width' => 160, 'search' => 'game_product_id', 'searchType' => 'number'],
+            [
+                'v'          => 'product_title',
+                'label'      => '产品',
+                'width'      => 160,
+                'search'     => 'game_product_id',
+                'searchType' => 'multiple',
+                'searchList' => '/gameProduct/select',
+            ],
             ['v' => 'competitor_id',  'label' => '竞品ID',   'width' => 100, 'search' => 'competitor_id', 'searchType' => 'match', 'sort' => 'competitor_id'],
             ['v' => 'old_price',      'label' => '改价前',   'width' => 100, 'search' => false],
             ['v' => 'new_price',     'label' => '改价后',   'width' => 100, 'search' => false],
