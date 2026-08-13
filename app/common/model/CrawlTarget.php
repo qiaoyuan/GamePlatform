@@ -37,6 +37,27 @@ class CrawlTarget extends Base
         'deleted_at'    => 'string',
     ];
 
+    // ==================== 产品分类枚举 ====================
+
+    /** G2G 物品分类，保留历史数据库值以兼容现有爬取目标 */
+    const CATEGORY_ITEM = '物品';
+    /** G2G 游戏币分类 */
+    const CATEGORY_CURRENCY = '游戏币';
+
+    /** @var array<string, string> 产品分类显示文案 */
+    public static $CATEGORY_MAP = [
+        self::CATEGORY_ITEM     => 'G2G物品',
+        self::CATEGORY_CURRENCY => 'G2G游戏币',
+    ];
+
+    public static function getCategoryList(): array
+    {
+        return [
+            ['value' => self::CATEGORY_ITEM, 'label' => 'G2G物品'],
+            ['value' => self::CATEGORY_CURRENCY, 'label' => 'G2G游戏币'],
+        ];
+    }
+
     // ==================== 枚举 ====================
 
     /** 状态：停用 */

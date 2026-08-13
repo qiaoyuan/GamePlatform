@@ -22,7 +22,7 @@ class Crawl extends BaseController
             ['v' => 'id',            'label' => 'ID',         'width' => 80,  'searchType' => 'number',    'sort' => 'id'],
             ['v' => 'name',          'label' => '任务名称',   'width' => 150, 'searchType' => 'like',      'sort' => 'name'],
             ['v' => 'url',           'label' => '目标链接',   'width' => 300, 'searchType' => 'like'],
-            ['v' => 'category',      'label' => '产品分类',   'width' => 120, 'searchType' => 'like'],
+            ['v' => 'category_name',  'label' => '产品分类',   'width' => 120, 'search' => 'category', 'searchType' => 'match', 'searchList' => CrawlTargetModel::getCategoryList(), 'sort' => 'category'],
             ['v' => 'status',        'label' => '状态',       'width' => 80,  'searchType' => 'match',     'sort' => 'status'],
             ['v' => 'last_crawl_at', 'label' => '最后爬取时间', 'width' => 160, 'searchType' => 'daterange', 'sort' => 'last_crawl_at'],
             ['v' => 'created_at',    'label' => '创建时间',   'width' => 160, 'searchType' => 'daterange', 'sort' => 'created_at'],
@@ -41,6 +41,7 @@ class Crawl extends BaseController
         if (!is_numeric($lists)) {
             $lists->each(function (CrawlTargetModel $item) {
                 $item->status_name = CrawlTargetModel::$STATUS_MAP[$item->status] ?? '';
+                $item->category_name = CrawlTargetModel::$CATEGORY_MAP[$item->category] ?? $item->category;
             });
         }
         $this->success('', [

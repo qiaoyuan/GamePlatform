@@ -32,7 +32,16 @@ export default {
       this.form = {
         name: { label: '任务名称', value: name, rules: [{ required: true, message: '请输入任务名称', trigger: 'blur' }] },
         url: { label: '目标链接', value: url, formType: 'textarea', rows: 3, rules: [{ required: true, message: '请输入目标链接', trigger: 'blur' }] },
-        category: { label: '产品分类', value: category, rules: [{ required: true, message: '请输入产品分类', trigger: 'blur' }] },
+        category: {
+          label: '产品分类',
+          value: category || '物品',
+          formType: 'select',
+          options: [
+            { label: 'G2G物品', value: '物品' },
+            { label: 'G2G游戏币', value: '游戏币' },
+          ],
+          rules: [{ required: true, message: '请选择产品分类', trigger: 'change' }],
+        },
         status: { label: '状态', value: status ?? 1, formType: 'status' },
       }
       if (id) {
