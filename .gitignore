@@ -10,9 +10,6 @@ runtime/
 node_modules
 .phpunit.result.cache
 admin/.env.development
-<<<<<<< HEAD
-admin/dist/
-=======
 vendor/
 admin/.env.production
->>>>>>> 6b43213 (greng)
+admin/dist/
