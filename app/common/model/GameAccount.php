@@ -58,12 +58,18 @@ class GameAccount extends Base
 
     // ==================== 平台枚举 ====================
 
-    /** 平台：Facebook */
-    const PLATFORM_FACEBOOK = 1;
+    /** 平台：G2G */
+    const PLATFORM_G2G = 1;
+
+    /**
+     * 兼容旧代码中的常量名称：历史上该值曾误命名为 Facebook，实际业务平台为 G2G。
+     * @deprecated 请使用 PLATFORM_G2G
+     */
+    const PLATFORM_FACEBOOK = self::PLATFORM_G2G;
 
     /** @var array<int, string> 平台映射 */
     public static $PLATFORM_MAP = [
-        self::PLATFORM_FACEBOOK => 'Facebook',
+        self::PLATFORM_G2G => 'G2G',
     ];
 
     /**
@@ -72,7 +78,7 @@ class GameAccount extends Base
     public static function getPlatformList(): array
     {
         return [
-            ['value' => self::PLATFORM_FACEBOOK, 'label' => 'Facebook'],
+            ['value' => self::PLATFORM_G2G, 'label' => 'G2G'],
         ];
     }
 

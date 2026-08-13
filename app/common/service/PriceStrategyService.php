@@ -31,6 +31,7 @@ use think\facade\Log;
  *       // 一、目标店铺过滤
  *       "blacklist_stores": [],   // 黑名单：命中 seller_id/seller_name 即剔除(永不竞价)
  *       "whitelist_stores": [],   // 白名单：命中则强制纳入(跳过库存过滤)
+ *       "minimum_price": null,    // 竞品参考价下限：价格小于等于此值的竞品不参与最低价计算
  *       "min_stock": 0,           // 库存过滤：低于此库存(stock_num)的店铺不竞价，0=不限
  *       "min_rating": 0,          // 好评率过滤：crawl_data 暂无该字段，忽略
  *       // 二、保底出价
@@ -235,6 +236,10 @@ class PriceStrategyService
             } else {
                 $msg = '无可竞价的竞品（过滤后为空）';
             }
+            $minimumPrice = $this->numOrNull($dimension['minimum_price'] ?? null);
+            if ($minimumPrice !== null) {
+                $msg .= '；已排除价格小于等于' . $minimumPrice . '的竞品';
+            }
             return [PriceStrategyLog::STATUS_SKIP, $current, 0.0, $msg, null];
         }
 
@@ -246,6 +251,10 @@ class PriceStrategyService
             $lowestInfo['seller_id'] !== '' ? $lowestInfo['seller_id'] : '--',
             $lowestInfo['seller_name'] !== '' ? $lowestInfo['seller_name'] : '--'
         );
+        $minimumPrice = $this->numOrNull($dimension['minimum_price'] ?? null);
+        if ($minimumPrice !== null) {
+            $competitorContext .= '，已排除价格≤' . $minimumPrice . '的竞品';
+        }
 
         // 2. 竞价幅度：算出我们的出价
         $bid = $this->applyBid($lowest, $dimension);
@@ -297,6 +306,7 @@ class PriceStrategyService
     {
         $blacklist = $this->normalizeStoreIdentifiers($dimension['blacklist_stores'] ?? []);
         $whitelist = $this->normalizeStoreIdentifiers($dimension['whitelist_stores'] ?? []);
+        $minimumPrice = $this->numOrNull($dimension['minimum_price'] ?? null);
         $minStock  = (int) ($dimension['min_stock'] ?? 0);
         $currency  = $product->currency ?: GameProduct::DEFAULT_CURRENCY;
 
@@ -323,6 +333,11 @@ class PriceStrategyService
                 if ($minStock > 0 && (int) $c->stock_num < $minStock) {
                     continue;
                 }
+            }
+
+            // 价格小于等于门槛的竞品不参与最低价计算；只有严格大于门槛才是候选。
+            if ($minimumPrice !== null && $price <= $minimumPrice) {
+                continue;
             }
 
             $candidate = [
@@ -453,7 +468,7 @@ class PriceStrategyService
 
         // 兼容早期直接把黑白名单放在 config 顶层的旧数据。
         $dimension = $dimensions[0] ?? [];
-        if (!$dimension && array_key_exists('blacklist_stores', $config)) {
+        if (!$dimension && (array_key_exists('blacklist_stores', $config) || array_key_exists('minimum_price', $config))) {
             $dimension = $config;
         }
         if (is_string($dimension)) {
@@ -466,6 +481,7 @@ class PriceStrategyService
             'type'             => PriceStrategy::DIMENSION_LOWEST,
             'blacklist_stores' => [],
             'whitelist_stores' => [],
+            'minimum_price'   => null,
             'min_stock'        => 0,
             'min_rating'       => 0,
             'floor_price'      => null,

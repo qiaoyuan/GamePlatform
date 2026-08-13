@@ -3,7 +3,7 @@ CREATE TABLE `price_strategy` (
   `id` int unsigned NOT NULL AUTO_INCREMENT,
   `name` varchar(64) NOT NULL DEFAULT '' COMMENT '策略名称',
   `crawl_target_id` int unsigned NOT NULL DEFAULT 0 COMMENT '对标竞品池(爬取目标ID)',
-  `config` text COMMENT '维度配置(JSON)，dimensions 有序数组，首期支持 type=lowest(含黑白名单/库存/好评率/保底/竞价幅度)',
+  `config` text COMMENT '维度配置(JSON)，dimensions 有序数组，首期支持 type=lowest(含黑白名单/最低竞品价门槛/库存/好评率/保底/竞价幅度)',
   `auto_run` tinyint NOT NULL DEFAULT 1 COMMENT '爬取完成后自动执行一次 0-否 1-是',
   `interval_minutes` int NOT NULL DEFAULT 0 COMMENT '改价频率(分钟)，0=不定时，>0 则由定时任务按频率执行',
   `status` tinyint NOT NULL DEFAULT 1 COMMENT '状态 0-停用 1-启用',
