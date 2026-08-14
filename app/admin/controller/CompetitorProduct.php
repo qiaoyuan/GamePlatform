@@ -30,6 +30,12 @@ class CompetitorProduct extends BaseController
                 'searchList' => '/crawl/select',
                 'sort'       => 'target_id',
             ],
+            [
+                'v'          => 'game_product_name',
+                'label'      => '游戏产品',
+                'width'      => 180,
+                'search'     => false,
+            ],
             ['v' => 'seller_name',   'label' => '店铺',     'width' => 130, 'search' => 'seller_name', 'searchType' => 'like'],
             ['v' => 'product_title', 'label' => '产品标题', 'width' => 220, 'search' => 'product_title', 'searchType' => 'like'],
             ['v' => 'seller_level',  'label' => '卖家等级', 'width' => 90,  'search' => false],
@@ -49,12 +55,15 @@ class CompetitorProduct extends BaseController
     public function index(): void
     {
         $lists = $this->tableList(Model::class, ['crawled_at' => 'DESC', 'price' => 'ASC'], ['seller_name', 'product_title'])
-            ->with(['crawlTarget'])
+            ->with(['crawlTarget.gameProduct'])
             ->selectData();
         if (!is_numeric($lists)) {
             $lists->each(function (Model $item) {
-                // 关联目标可能已被删除，回退显示 --
+                // 关联目标或游戏产品可能已被删除，回退显示 --
                 $item->target_name = $item->crawlTarget ? $item->crawlTarget->name : '--';
+                $item->game_product_name = $item->crawlTarget && $item->crawlTarget->gameProduct
+                    ? $item->crawlTarget->gameProduct->title
+                    : '--';
             });
         }
         $this->success('', [
@@ -67,8 +76,15 @@ class CompetitorProduct extends BaseController
      */
     public function get(): void
     {
-        $row = Model::with(['crawlTarget'])->find(input('id'));
-        $row ? $this->success('', ['info' => $row]) : $this->success('暂无数据');
+        $row = Model::with(['crawlTarget.gameProduct'])->find(input('id'));
+        if ($row) {
+            $row->target_name = $row->crawlTarget ? $row->crawlTarget->name : '--';
+            $row->game_product_name = $row->crawlTarget && $row->crawlTarget->gameProduct
+                ? $row->crawlTarget->gameProduct->title
+                : '--';
+            $this->success('', ['info' => $row]);
+        }
+        $this->success('暂无数据');
     }
 
     /**
