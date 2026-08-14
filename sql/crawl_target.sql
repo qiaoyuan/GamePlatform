@@ -10,8 +10,10 @@ CREATE TABLE `crawl_target` (
   `created_at` datetime DEFAULT NULL,
   `updated_at` datetime DEFAULT NULL,
   `deleted_at` datetime DEFAULT NULL,
+  `active_game_product_id` int unsigned GENERATED ALWAYS AS (IF(`deleted_at` IS NULL AND `game_product_id` > 0, `game_product_id`, NULL)) STORED,
   PRIMARY KEY (`id`),
-  KEY `idx_game_product_id` (`game_product_id`)
+  KEY `idx_game_product_id` (`game_product_id`),
+  UNIQUE KEY `uk_crawl_target_active_game_product` (`active_game_product_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='爬取目标链接';
 
 -- 竞品产品分析表

@@ -102,7 +102,7 @@ class Crawl extends BaseController
     #[Permission(title: '编辑目标')]
     public function edit(): void
     {
-        $this->ensureGameProduct();
+        $this->ensureGameProduct((int) input('id', 0));
         $this->mEdit(CrawlTargetModel::class);
     }
 
@@ -127,13 +127,27 @@ class Crawl extends BaseController
     }
 
     /**
-     * 校验爬虫目标绑定的游戏产品有效且未被删除。
+     * 校验爬虫目标绑定的游戏产品有效，且未被其他未删除目标占用。
      */
-    private function ensureGameProduct(): void
+    private function ensureGameProduct(int $excludeTargetId = 0): void
     {
         $gameProductId = (int) input('game_product_id', 0);
         if ($gameProductId <= 0 || !GameProduct::where('id', $gameProductId)->find()) {
             $this->error('请选择有效的游戏产品');
+        }
+
+        $query = CrawlTargetModel::where('game_product_id', $gameProductId)
+            ->whereNull('deleted_at');
+        if ($excludeTargetId > 0) {
+            $query->where('id', '<>', $excludeTargetId);
+        }
+        $occupied = $query->field('id,name')->find();
+        if ($occupied) {
+            $this->error(sprintf(
+                '游戏产品已绑定爬虫目标「%s」(ID:%d)，一个游戏产品只能绑定一个爬虫目标',
+                $occupied->name,
+                $occupied->id
+            ));
         }
     }
 
