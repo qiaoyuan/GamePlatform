@@ -3,10 +3,13 @@ declare(strict_types=1);
 
 namespace app\common\model;
 
+use think\model\relation\BelongsTo;
+
 /**
  * 爬取目标链接
  *
  * @property int    $id
+ * @property int    $game_product_id 关联游戏产品ID
  * @property string $name     任务名称
  * @property string $url      目标链接
  * @property string $category 产品分类
@@ -22,12 +25,13 @@ class CrawlTarget extends Base
     protected $pk    = 'id';
 
     /** @var string[] */
-    protected $field = ['id', 'name', 'url', 'category', 'status', 'last_crawl_at', 'created_at', 'updated_at', 'deleted_at'];
+    protected $field = ['id', 'game_product_id', 'name', 'url', 'category', 'status', 'last_crawl_at', 'created_at', 'updated_at', 'deleted_at'];
 
     /** @var array<string, string> */
     protected $type = [
-        'id'            => 'int',
-        'name'          => 'string',
+        'id'             => 'int',
+        'game_product_id' => 'int',
+        'name'           => 'string',
         'url'           => 'string',
         'category'      => 'string',
         'status'        => 'int',
@@ -77,5 +81,10 @@ class CrawlTarget extends Base
             ['value' => self::STATUS_OFF, 'label' => '停用'],
             ['value' => self::STATUS_ON,  'label' => '启用'],
         ];
+    }
+
+    public function gameProduct(): BelongsTo
+    {
+        return $this->belongsTo(GameProduct::class, 'game_product_id', 'id');
     }
 }

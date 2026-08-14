@@ -5,6 +5,7 @@ namespace app\common\service;
 
 use app\common\model\CompetitorProduct;
 use app\common\model\CrawlTarget;
+use app\common\model\GameProduct;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
 use RuntimeException;
@@ -73,6 +74,10 @@ class CrawlService
         $target = CrawlTarget::find($targetId);
         if (! $target) {
             throw new RuntimeException('爬取目标不存在');
+        }
+        $gameProductId = (int) $target->game_product_id;
+        if ($gameProductId <= 0 || !GameProduct::where('id', $gameProductId)->find()) {
+            throw new RuntimeException('请先为爬虫目标关联有效的游戏产品');
         }
 
         $params = $this->parseTargetUrl($target['url']);

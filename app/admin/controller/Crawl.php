@@ -6,6 +6,7 @@ namespace app\admin\controller;
 use app\admin\BaseController;
 use app\common\annotation\Permission;
 use app\common\model\CrawlTarget as CrawlTargetModel;
+use app\common\model\GameProduct;
 use app\common\service\CrawlService;
 
 /**
@@ -20,10 +21,20 @@ class Crawl extends BaseController
     {
         return [
             ['v' => 'id',            'label' => 'ID',         'width' => 80,  'searchType' => 'number',    'sort' => 'id'],
-            ['v' => 'name',          'label' => '任务名称',   'width' => 150, 'searchType' => 'like',      'sort' => 'name'],
+            ['v' => 'name',           'label' => '任务名称',   'width' => 150, 'searchType' => 'like',      'sort' => 'name'],
+            [
+                'v'          => 'game_product_name',
+                'label'      => '游戏产品',
+                'width'      => 180,
+                'search'     => 'game_product_id',
+                'searchType' => 'multiple',
+                'searchList' => '/gameProduct/select',
+                'sort'       => 'game_product_id',
+            ],
             ['v' => 'url',           'label' => '目标链接',   'width' => 300, 'searchType' => 'like'],
             ['v' => 'category_name',  'label' => '产品分类',   'width' => 120, 'search' => 'category', 'searchType' => 'multiple', 'searchList' => CrawlTargetModel::getCategoryList(), 'sort' => 'category'],
-            ['v' => 'status', 'label' => '状态', 'render' => 'status', 'sort' => 'status'],            ['v' => 'last_crawl_at', 'label' => '最后爬取时间', 'width' => 160, 'searchType' => 'daterange', 'sort' => 'last_crawl_at'],
+            ['v' => 'status',          'label' => '状态',       'render' => 'status', 'sort' => 'status'],
+            ['v' => 'last_crawl_at',   'label' => '最后爬取时间', 'width' => 160, 'searchType' => 'daterange', 'sort' => 'last_crawl_at'],
             ['v' => 'created_at',    'label' => '创建时间',   'width' => 160, 'searchType' => 'daterange', 'sort' => 'created_at'],
             ['v' => 'updated_at',    'label' => '更新时间',   'width' => 160, 'sort' => 'updated_at'],
         ];
@@ -36,11 +47,13 @@ class Crawl extends BaseController
     public function index(): void
     {
         $lists = $this->tableList(CrawlTargetModel::class, ['id' => 'DESC'])
+            ->with(['gameProduct'])
             ->selectData();
         if (!is_numeric($lists)) {
             $lists->each(function (CrawlTargetModel $item) {
                 $item->status_name = CrawlTargetModel::$STATUS_MAP[$item->status] ?? '';
                 $item->category_name = CrawlTargetModel::$CATEGORY_MAP[$item->category] ?? $item->category;
+                $item->game_product_name = $item->gameProduct ? $item->gameProduct->title : '--';
             });
         }
         $this->success('', [
@@ -65,8 +78,12 @@ class Crawl extends BaseController
     #[Permission(title: '查看详情')]
     public function get(): void
     {
-        $row = CrawlTargetModel::find(input('id'));
-        $row ? $this->success('', ['info' => $row]) : $this->success('暂无数据');
+        $row = CrawlTargetModel::with(['gameProduct'])->find(input('id'));
+        if ($row) {
+            $row->game_product_name = $row->gameProduct ? $row->gameProduct->title : '--';
+            $this->success('', ['info' => $row]);
+        }
+        $this->success('暂无数据');
     }
 
     /**
@@ -75,6 +92,7 @@ class Crawl extends BaseController
     #[Permission(title: '添加目标')]
     public function add(): void
     {
+        $this->ensureGameProduct();
         $this->mAdd(CrawlTargetModel::class);
     }
 
@@ -84,6 +102,7 @@ class Crawl extends BaseController
     #[Permission(title: '编辑目标')]
     public function edit(): void
     {
+        $this->ensureGameProduct();
         $this->mEdit(CrawlTargetModel::class);
     }
 
@@ -105,6 +124,17 @@ class Crawl extends BaseController
         $status = input('status', 0);
         CrawlTargetModel::update(['status' => $status], ['id' => input('id')]);
         $this->success('修改成功', ['status' => $status]);
+    }
+
+    /**
+     * 校验爬虫目标绑定的游戏产品有效且未被删除。
+     */
+    private function ensureGameProduct(): void
+    {
+        $gameProductId = (int) input('game_product_id', 0);
+        if ($gameProductId <= 0 || !GameProduct::where('id', $gameProductId)->find()) {
+            $this->error('请选择有效的游戏产品');
+        }
     }
 
     /**

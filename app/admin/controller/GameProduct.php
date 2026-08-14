@@ -98,7 +98,6 @@ class GameProduct extends BaseController
         $this->success('', [
             'list' => $this->tableList(Model::class, [], ['title', 'product_id'])
                 ->field('title as label,id as value')
-                ->limit(20)
                 ->select()
         ]);
     }

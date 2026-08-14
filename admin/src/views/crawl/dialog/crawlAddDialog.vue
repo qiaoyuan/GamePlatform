@@ -28,9 +28,18 @@ export default {
     open(row) {
       this.setForm(row)
     },
-    setForm({ id, name, url, category, status }) {
+    setForm({ id, name, url, category, status, game_product_id, game_product_name }) {
       this.form = {
         name: { label: '任务名称', value: name, rules: [{ required: true, message: '请输入任务名称', trigger: 'blur' }] },
+        game_product_id: {
+          label: '游戏产品',
+          value: game_product_id || '',
+          oldValueToShow: game_product_name,
+          formType: 'select',
+          options: '/gameProduct/select',
+          attrs: { clearable: false },
+          rules: [{ required: true, message: '请选择游戏产品', trigger: 'change' }],
+        },
         url: { label: '目标链接', value: url, formType: 'textarea', rows: 3, rules: [{ required: true, message: '请输入目标链接', trigger: 'blur' }] },
         category: {
           label: '产品分类',

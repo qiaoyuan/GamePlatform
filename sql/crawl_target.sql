@@ -1,6 +1,7 @@
 -- 爬取目标链接表
 CREATE TABLE `crawl_target` (
   `id` int unsigned NOT NULL AUTO_INCREMENT,
+  `game_product_id` int unsigned NOT NULL DEFAULT 0 COMMENT '关联游戏产品ID',
   `name` varchar(64) NOT NULL DEFAULT '' COMMENT '任务名称',
   `url` varchar(1024) NOT NULL DEFAULT '' COMMENT '目标链接',
   `category` varchar(64) NOT NULL DEFAULT '' COMMENT '产品分类',
@@ -9,7 +10,8 @@ CREATE TABLE `crawl_target` (
   `created_at` datetime DEFAULT NULL,
   `updated_at` datetime DEFAULT NULL,
   `deleted_at` datetime DEFAULT NULL,
-  PRIMARY KEY (`id`)
+  PRIMARY KEY (`id`),
+  KEY `idx_game_product_id` (`game_product_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='爬取目标链接';
 
 -- 竞品产品分析表
