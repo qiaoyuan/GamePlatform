@@ -6,6 +6,7 @@ namespace app\admin\controller;
 use app\admin\BaseController;
 use app\common\annotation\Permission;
 use app\common\model\CrawlData as Model;
+use app\common\model\CrawlTarget;
 
 /**
  * 竞品数据（爬取结果）展示
@@ -34,7 +35,9 @@ class CompetitorProduct extends BaseController
                 'v'          => 'game_product_name',
                 'label'      => '游戏产品',
                 'width'      => 180,
-                'search'     => false,
+                'search'     => 'game_product_id',
+                'searchType' => 'multiple',
+                'searchList' => '/gameProduct/select',
             ],
             ['v' => 'seller_name',   'label' => '店铺',     'width' => 130, 'search' => 'seller_name', 'searchType' => 'like'],
             ['v' => 'product_title', 'label' => '产品标题', 'width' => 220, 'search' => 'product_title', 'searchType' => 'like'],
@@ -54,9 +57,27 @@ class CompetitorProduct extends BaseController
     #[Permission(title: '竞品数据', isMenu: 1, parentUrl: 'crawl/index', isHideSub: 1)]
     public function index(): void
     {
-        $lists = $this->tableList(Model::class, ['crawled_at' => 'DESC', 'price' => 'ASC'], ['seller_name', 'product_title'])
-            ->with(['crawlTarget.gameProduct'])
-            ->selectData();
+        $query = $this->tableList(Model::class, ['crawled_at' => 'DESC', 'price' => 'ASC'], ['seller_name', 'product_title'])
+            ->with(['crawlTarget.gameProduct']);
+
+        // game_product_id 属于 crawl_target，不属于 crawl_data，先转换为目标 ID 再筛选竞品。
+        $productIds = input('game_product_id_multiple', []);
+        if (is_string($productIds)) {
+            $decoded = json_decode($productIds, true);
+            $productIds = is_array($decoded) ? $decoded : explode(',', $productIds);
+        }
+        $productIds = array_values(array_unique(array_filter(
+            array_map('intval', (array) $productIds),
+            static fn (int $id): bool => $id > 0
+        )));
+        if ($productIds) {
+            $targetIds = CrawlTarget::whereIn('game_product_id', $productIds)
+                ->whereNull('deleted_at')
+                ->column('id');
+            $query->whereIn('target_id', $targetIds ?: [-1]);
+        }
+
+        $lists = $query->selectData();
         if (!is_numeric($lists)) {
             $lists->each(function (Model $item) {
                 // 关联目标或游戏产品可能已被删除，回退显示 --
