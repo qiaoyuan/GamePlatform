@@ -31,6 +31,7 @@ class Crawl extends BaseController
                 'searchList' => '/gameProduct/select',
                 'sort'       => 'game_product_id',
             ],
+            ['v' => 'version',         'label' => '数据版本',   'width' => 90, 'searchType' => 'number', 'sort' => 'version'],
             ['v' => 'url',           'label' => '目标链接',   'width' => 300, 'searchType' => 'like'],
             ['v' => 'category_name',  'label' => '产品分类',   'width' => 120, 'search' => 'category', 'searchType' => 'multiple', 'searchList' => CrawlTargetModel::getCategoryList(), 'sort' => 'category'],
             ['v' => 'status',          'label' => '状态',       'render' => 'status', 'sort' => 'status'],
@@ -102,7 +103,9 @@ class Crawl extends BaseController
     #[Permission(title: '编辑目标')]
     public function edit(): void
     {
-        $this->ensureGameProduct((int) input('id', 0));
+        $targetId = (int) input('id', 0);
+        $this->ensureGameProduct($targetId);
+        $this->ensureVersion($targetId);
         $this->mEdit(CrawlTargetModel::class);
     }
 
@@ -147,6 +150,28 @@ class Crawl extends BaseController
                 '游戏产品已绑定爬虫目标「%s」(ID:%d)，一个游戏产品只能绑定一个爬虫目标',
                 $occupied->name,
                 $occupied->id
+            ));
+        }
+    }
+
+    private function ensureVersion(int $targetId): void
+    {
+        if ($targetId <= 0) {
+            return;
+        }
+        $current = CrawlTargetModel::where('id', $targetId)->value('version');
+        if ($current === null) {
+            return;
+        }
+        $requested = input('version', null);
+        if ($requested === null || $requested === '') {
+            return;
+        }
+        if ((int) $requested < (int) $current) {
+            $this->error(sprintf(
+                '数据版本不能回退，当前版本为%d，提交版本为%d',
+                (int) $current,
+                (int) $requested
             ));
         }
     }

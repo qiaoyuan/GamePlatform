@@ -28,9 +28,16 @@ export default {
     open(row) {
       this.setForm(row)
     },
-    setForm({ id, name, url, category, status, game_product_id, game_product_name }) {
+    setForm({ id, name, url, category, status, game_product_id, game_product_name, version }) {
       this.form = {
         name: { label: '任务名称', value: name, rules: [{ required: true, message: '请输入任务名称', trigger: 'blur' }] },
+        version: {
+          label: '数据版本',
+          value: version ?? 0,
+          formType: 'number',
+          attrs: { min: 0, step: 1 },
+          rules: [{ required: true, type: 'number', min: 0, message: '请输入有效的数据版本', trigger: 'blur' }],
+        },
         game_product_id: {
           label: '游戏产品',
           value: game_product_id || '',

@@ -2,6 +2,7 @@
 CREATE TABLE `crawl_target` (
   `id` int unsigned NOT NULL AUTO_INCREMENT,
   `game_product_id` int unsigned NOT NULL DEFAULT 0 COMMENT '关联游戏产品ID',
+  `version` int unsigned NOT NULL DEFAULT 0 COMMENT '爬虫数据版本',
   `name` varchar(64) NOT NULL DEFAULT '' COMMENT '任务名称',
   `url` varchar(1024) NOT NULL DEFAULT '' COMMENT '目标链接',
   `category` varchar(64) NOT NULL DEFAULT '' COMMENT '产品分类',

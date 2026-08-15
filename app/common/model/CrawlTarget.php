@@ -10,6 +10,7 @@ use think\model\relation\BelongsTo;
  *
  * @property int    $id
  * @property int    $game_product_id 关联游戏产品ID
+ * @property int    $version 竞品数据版本
  * @property string $name     任务名称
  * @property string $url      目标链接
  * @property string $category 产品分类
@@ -25,12 +26,13 @@ class CrawlTarget extends Base
     protected $pk    = 'id';
 
     /** @var string[] */
-    protected $field = ['id', 'game_product_id', 'name', 'url', 'category', 'status', 'last_crawl_at', 'created_at', 'updated_at', 'deleted_at'];
+    protected $field = ['id', 'game_product_id', 'version', 'name', 'url', 'category', 'status', 'last_crawl_at', 'created_at', 'updated_at', 'deleted_at'];
 
     /** @var array<string, string> */
     protected $type = [
         'id'             => 'int',
         'game_product_id' => 'int',
+        'version'        => 'int',
         'name'           => 'string',
         'url'           => 'string',
         'category'      => 'string',

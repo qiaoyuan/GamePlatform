@@ -8,6 +8,8 @@ namespace app\common\model;
  *
  * @property int    $id
  * @property int    $target_id       关联 crawl_target.id
+ * @property int    $game_product_id 关联游戏产品ID
+ * @property int    $version         爬虫数据版本
  * @property string $platform        平台 g2g/eldorado
  * @property string $seller_id       店铺唯一标识
  * @property string $seller_name     店铺显示名
@@ -37,7 +39,7 @@ class CrawlData extends Base
 
     /** @var string[] */
     protected $field = [
-        'id', 'target_id', 'platform', 'seller_id', 'seller_name', 'seller_level', 'seller_url',
+        'id', 'target_id', 'game_product_id', 'version', 'platform', 'seller_id', 'seller_name', 'seller_level', 'seller_url',
         'is_online', 'product_title', 'offer_url', 'sold_count', 'sold_count_num', 'stock', 'stock_num',
         'price', 'currency', 'min_order', 'delivery_time', 'crawled_at', 'created_at',
     ];
@@ -46,6 +48,8 @@ class CrawlData extends Base
     protected $type = [
         'id'             => 'int',
         'target_id'      => 'int',
+        'game_product_id' => 'int',
+        'version'        => 'int',
         'is_online'      => 'int',
         'sold_count_num' => 'int',
         'stock_num'      => 'int',

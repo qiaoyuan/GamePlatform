@@ -5,10 +5,10 @@ namespace app\common\service;
 
 use app\common\model\CrawlData;
 use app\common\model\CrawlNotify;
+use app\common\model\CrawlTarget;
 use app\common\model\GameProduct;
 use app\common\model\PriceStrategy;
 use app\common\model\PriceStrategyLog;
-use app\common\model\PriceStrategyProduct;
 use think\facade\Log;
 
 /**
@@ -20,8 +20,8 @@ use think\facade\Log;
  *
  * 职责：
  * 1. 读取策略的维度配置(config.dimensions)，首期支持 type=lowest（跟竞品最低价）。
- * 2. 对策略绑定的每个产品，基于对标竞品池(crawl_data.target_id)算出出价，做保底价夹逼后改价。
- * 3. 每个产品一条执行日志（成功/跳过/失败）落 price_strategy_log。
+ * 2. 对爬虫目标绑定的唯一游戏产品，基于该目标当前版本的 crawl_data 算出出价，做保底价夹逼后改价。
+ * 3. 每个目标产品一条执行日志（成功/跳过/失败）落 price_strategy_log。
  *
  * 维度配置结构（对应「正常模板」）：
  * {
@@ -56,28 +56,42 @@ class PriceStrategyService
      */
     public function consumeNotify(): array
     {
-        $pending = CrawlNotify::where('status', CrawlNotify::STATUS_PENDING)->select();
+        $pending = CrawlNotify::where('status', CrawlNotify::STATUS_PENDING)
+            ->order('id', 'asc')
+            ->select();
         $processedTargets = [];
         $result = ['notifies' => 0, 'strategies' => 0];
         foreach ($pending as $notify) {
             $targetId = (int) $notify->crawl_target_id;
             try {
-                if (isset($processedTargets[$targetId])) {
-                    // 同一次消费中，同一竞品池只执行一次，避免重复通知重复改价。
+                $target = CrawlTarget::find($targetId);
+                if (!$target) {
+                    throw new \RuntimeException('爬虫目标不存在: ' . $targetId);
+                }
+                // 以本次消费开始时的目标版本作为快照，避免执行过程中目标版本变化导致混用数据。
+                $version = (int) ($target->version ?? 0);
+                $executionKey = $targetId . ':' . $version;
+                if (isset($processedTargets[$executionKey])) {
+                    // 同一轮消费中，同一目标同一版本只执行一次，避免重复通知重复改价。
                     $agg = ['strategies' => 0, 'success' => 0, 'skip' => 0, 'fail' => 0];
                     $duplicated = true;
                 } else {
-                    $agg = $this->runByCrawlTarget($targetId);
-                    $processedTargets[$targetId] = true;
+                    $agg = $this->runByCrawlTarget($targetId, $version);
+                    $processedTargets[$executionKey] = true;
                     $duplicated = false;
                 }
                 $notify->status = CrawlNotify::STATUS_DONE;
                 $notify->processed_at = date('Y-m-d H:i:s');
                 $notify->message = $duplicated
-                    ? '同一批次已执行，跳过重复策略'
+                    ? sprintf('目标%d版本%d已执行，跳过重复策略', $targetId, $version)
                     : sprintf(
-                        '执行策略%d个: 成功%d/跳过%d/失败%d',
-                        $agg['strategies'], $agg['success'], $agg['skip'], $agg['fail']
+                        '目标%d版本%d执行策略%d个: 成功%d/跳过%d/失败%d',
+                        $targetId,
+                        $version,
+                        $agg['strategies'],
+                        $agg['success'],
+                        $agg['skip'],
+                        $agg['fail']
                     );
                 $notify->save();
                 $result['notifies']++;
@@ -93,14 +107,24 @@ class PriceStrategyService
         return $result;
     }
 
+    private function getCrawlTargetVersion(int $crawlTargetId): int
+    {
+        $target = CrawlTarget::find($crawlTargetId);
+        if (!$target) {
+            throw new \RuntimeException('爬虫目标不存在: ' . $crawlTargetId);
+        }
+        return (int) ($target->version ?? 0);
+    }
+
     /**
      * 执行绑定了该竞品池且已启用(status=1)的全部策略。
      * 单个策略异常不影响其它策略；auto_run 不参与筛选。
      *
      * @return array{strategies:int, success:int, skip:int, fail:int}
      */
-    public function runByCrawlTarget(int $crawlTargetId): array
+    public function runByCrawlTarget(int $crawlTargetId, ?int $version = null): array
     {
+        $version = $version ?? $this->getCrawlTargetVersion($crawlTargetId);
         $strategies = PriceStrategy::where('crawl_target_id', $crawlTargetId)
             ->where('status', PriceStrategy::STATUS_ON)
             ->select();
@@ -109,13 +133,14 @@ class PriceStrategyService
             // 先统计已匹配并尝试执行的策略，避免策略内部异常时错误显示为 0 个。
             $agg['strategies']++;
             try {
-                $stat = $this->runStrategy($strategy);
+                $stat = $this->runStrategy($strategy, $version);
                 $agg['success'] += $stat['success'];
                 $agg['skip']    += $stat['skip'];
                 $agg['fail']    += $stat['fail'];
             } catch (\Throwable $e) {
                 $agg['fail']++;
-                Log::error('[PriceStrategyService] 策略执行异常 strategyId=' . $strategy->id . ': ' . $e->getMessage());
+                Log::error('[PriceStrategyService] 策略执行异常 strategyId=' . $strategy->id
+                    . ' targetId=' . $crawlTargetId . ' version=' . $version . ': ' . $e->getMessage());
             }
         }
         return $agg;
@@ -150,33 +175,58 @@ class PriceStrategyService
     }
 
     /**
-     * 执行单个策略：遍历绑定产品，逐个算价改价并记录日志。
+     * 执行单个策略：使用爬虫目标绑定的唯一产品，按目标当前版本竞品算价并记录日志。
      *
      * @return array{total:int, success:int, skip:int, fail:int}
      */
-    public function runStrategy(PriceStrategy $strategy): array
+    public function runStrategy(PriceStrategy $strategy, ?int $version = null): array
     {
         $stat = ['total' => 0, 'success' => 0, 'skip' => 0, 'fail' => 0];
 
+        $target = CrawlTarget::find($strategy->crawl_target_id);
+        if (!$target) {
+            throw new \RuntimeException('策略绑定的爬虫目标不存在: ' . $strategy->crawl_target_id);
+        }
+        $currentVersion = (int) ($target->version ?? 0);
+        if ($version !== null && $version !== $currentVersion) {
+            throw new \RuntimeException(sprintf(
+                '爬虫目标版本已变化，拒绝使用版本%d，当前版本为%d',
+                $version,
+                $currentVersion
+            ));
+        }
+        $version = $version ?? $currentVersion;
+        $gameProductId = (int) $target->game_product_id;
+        if ($gameProductId <= 0) {
+            throw new \RuntimeException('爬虫目标未绑定游戏产品: ' . $target->id);
+        }
+
         $dimension = $this->firstDimension($strategy->config);
 
-        // 取绑定的产品（含账号，用于改价）
-        $productIds = PriceStrategyProduct::where('price_strategy_id', $strategy->id)->column('game_product_id');
-        if (empty($productIds)) {
-            $strategy->last_run_at = date('Y-m-d H:i:s');
-            $strategy->save();
-            return $stat;
+        // 一个爬虫目标只服务一个游戏产品，策略执行不再使用旧的多产品绑定表决定改价对象。
+        $products = GameProduct::with(['gameAccount'])
+            ->where('id', $gameProductId)
+            ->select();
+        if (count($products) === 0) {
+            throw new \RuntimeException('爬虫目标绑定的游戏产品不存在: ' . $gameProductId);
         }
-        $products = GameProduct::with(['gameAccount'])->whereIn('id', $productIds)->select();
 
-        // 取对标竞品池：真实竞品数据来自 crawl_data(target_id)，由 Python 爬虫写入
-        $competitors = CrawlData::where('target_id', $strategy->crawl_target_id)->select();
+        // 只取该目标当前版本、且属于该目标游戏产品的竞品，避免历史版本或其他产品参与竞价。
+        $competitors = CrawlData::where('target_id', $strategy->crawl_target_id)
+            ->where('game_product_id', $gameProductId)
+            ->where('version', $version)
+            ->select();
 
         foreach ($products as $product) {
             $stat['total']++;
             // 改价前价格必须在 handleProduct 之前取：改价成功时 handleProduct 会把 $product->price 改成新价
             $oldPrice = (float) $product->price;
             [$status, $newPrice, $refPrice, $message, $competitorId] = $this->handleProduct($product, $competitors, $dimension);
+            $message = mb_substr(
+                sprintf('目标ID=%d，版本=%d；%s', $strategy->crawl_target_id, $version, $message),
+                0,
+                500
+            );
 
             try {
                 PriceStrategyLog::record([

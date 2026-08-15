@@ -39,6 +39,7 @@ class CompetitorProduct extends BaseController
                 'searchType' => 'multiple',
                 'searchList' => '/gameProduct/select',
             ],
+            ['v' => 'version',        'label' => '数据版本', 'width' => 90, 'searchType' => 'number', 'sort' => 'version'],
             ['v' => 'seller_name',   'label' => '店铺',     'width' => 130, 'search' => 'seller_name', 'searchType' => 'like'],
             ['v' => 'product_title', 'label' => '产品标题', 'width' => 220, 'search' => 'product_title', 'searchType' => 'like'],
             ['v' => 'seller_level',  'label' => '卖家等级', 'width' => 90,  'search' => false],
