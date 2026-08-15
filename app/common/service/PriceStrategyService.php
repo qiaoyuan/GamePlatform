@@ -127,6 +127,7 @@ class PriceStrategyService
         $version = $version ?? $this->getCrawlTargetVersion($crawlTargetId);
         $strategies = PriceStrategy::where('crawl_target_id', $crawlTargetId)
             ->where('status', PriceStrategy::STATUS_ON)
+            ->whereNull('deleted_at')
             ->select();
         $agg = ['strategies' => 0, 'success' => 0, 'skip' => 0, 'fail' => 0];
         foreach ($strategies as $strategy) {
@@ -155,6 +156,7 @@ class PriceStrategyService
     public function runDue(): int
     {
         $strategies = PriceStrategy::where('status', PriceStrategy::STATUS_ON)
+            ->whereNull('deleted_at')
             ->where('interval_minutes', '>', 0)
             ->select();
         $count = 0;

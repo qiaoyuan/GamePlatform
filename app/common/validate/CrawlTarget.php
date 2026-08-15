@@ -18,6 +18,6 @@ class CrawlTarget extends Base
 
     protected $scene = [
         'add'  => ['name', 'url', 'category', 'version', 'game_product_id', 'status'],
-        'edit' => ['name', 'url', 'category', 'version', 'game_product_id', 'status', 'id'],
+        'edit' => ['name', 'url', 'category', 'game_product_id', 'status', 'id'],
     ];
 }
