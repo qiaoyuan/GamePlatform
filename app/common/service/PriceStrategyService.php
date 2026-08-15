@@ -30,10 +30,10 @@ use think\facade\Log;
  *       "type": "lowest",
  *       // 一、目标店铺过滤
  *       "blacklist_stores": [],   // 黑名单：命中 seller_id/seller_name 即剔除(永不竞价)
- *       "whitelist_stores": [],   // 白名单：命中则强制纳入(跳过库存过滤)
+ *       "whitelist_stores": [],   // 白名单：命中则强制纳入(跳过库存/好评率过滤)
  *       "minimum_price": null,    // 竞品参考价下限：价格小于等于此值的竞品不参与最低价计算
- *       "min_stock": 0,           // 库存过滤：低于此库存(stock_num)的店铺不竞价，0=不限
- *       "min_rating": 0,          // 好评率过滤：crawl_data 暂无该字段，忽略
+ *       "min_stock": 0,           // 库存过滤：低于此库存的店铺不竞价，支持无单位/K/M/G，0=不限
+ *       "min_rating": 0,          // 好评率过滤：低于此好评率的店铺不竞价，0=不限
  *       // 二、保底出价
  *       "floor_price": null,      // 最低出价，出价低于此值则不再竞价(跳过)
  *       "ceiling_price": null,    // 价格上限(可选，超过则封顶)
@@ -290,17 +290,35 @@ class PriceStrategyService
             if ($minimumPrice !== null) {
                 $msg .= '；已排除价格小于等于' . $minimumPrice . '的竞品';
             }
+            $minStock = max(0, (int) ($dimension['min_stock'] ?? 0));
+            if ($minStock > 0) {
+                $msg .= '；已排除库存低于' . $minStock . '的竞品（无库存数据也排除）';
+            }
+            $minRating = max(0.0, (float) ($dimension['min_rating'] ?? 0));
+            if ($minRating > 0) {
+                $msg .= '；已排除好评率低于' . $minRating . '或无效的竞品';
+            }
             return [PriceStrategyLog::STATUS_SKIP, $current, 0.0, $msg, null];
         }
 
         $lowest = (float) $lowestInfo['price'];
         $competitorId = (int) $lowestInfo['id'];
         $competitorContext = sprintf(
-            '参考竞品ID=%d，seller_id=%s，seller_name=%s',
+            '参考竞品ID=%d，seller_id=%s，seller_name=%s，库存=%s，好评率=%s',
             $competitorId,
             $lowestInfo['seller_id'] !== '' ? $lowestInfo['seller_id'] : '--',
-            $lowestInfo['seller_name'] !== '' ? $lowestInfo['seller_name'] : '--'
+            $lowestInfo['seller_name'] !== '' ? $lowestInfo['seller_name'] : '--',
+            $lowestInfo['stock_num'] === null ? '--' : (string) $lowestInfo['stock_num'],
+            $lowestInfo['rating'] === null ? '--' : (string) $lowestInfo['rating']
         );
+        $minStock = max(0, (int) ($dimension['min_stock'] ?? 0));
+        if ($minStock > 0) {
+            $competitorContext .= '，库存要求≥' . $minStock;
+        }
+        $minRating = max(0.0, (float) ($dimension['min_rating'] ?? 0));
+        if ($minRating > 0) {
+            $competitorContext .= '，好评率要求≥' . $minRating;
+        }
         $minimumPrice = $this->numOrNull($dimension['minimum_price'] ?? null);
         if ($minimumPrice !== null) {
             $competitorContext .= '，已排除价格≤' . $minimumPrice . '的竞品';
@@ -347,17 +365,19 @@ class PriceStrategyService
     /**
      * 按「目标店铺过滤」规则筛选 crawl_data 竞品后取最低价，并保留命中的竞品信息。
      *
-     * 过滤优先级：黑名单剔除 > 白名单强制纳入(跳过库存过滤) > 其余按库存过滤。
-     * 店铺标识同时匹配 crawl_data 的 seller_id 与 seller_name。
+     * 过滤优先级：黑名单剔除 > 白名单强制纳入(跳过库存/好评率过滤) > 其余按库存、好评率过滤。
+     * 库存优先使用原始 stock 解析，stock_num 作为已规范化数据的回退值；rating 缺失或非法时，
+     * 在启用 min_rating 的情况下视为不满足。店铺标识同时匹配 crawl_data 的 seller_id 与 seller_name。
      *
-     * @return array{price:float,id:int,seller_id:string,seller_name:string}|null
+     * @return array{price:float,id:int,seller_id:string,seller_name:string,stock_num:int|null,rating:float|null}|null
      */
     protected function calcLowest(GameProduct $product, $competitors, array $dimension): ?array
     {
         $blacklist = $this->normalizeStoreIdentifiers($dimension['blacklist_stores'] ?? []);
         $whitelist = $this->normalizeStoreIdentifiers($dimension['whitelist_stores'] ?? []);
         $minimumPrice = $this->numOrNull($dimension['minimum_price'] ?? null);
-        $minStock  = (int) ($dimension['min_stock'] ?? 0);
+        $minStock  = max(0, (int) ($dimension['min_stock'] ?? 0));
+        $minRating = max(0.0, (float) ($dimension['min_rating'] ?? 0));
         $currency  = $product->currency ?: GameProduct::DEFAULT_CURRENCY;
 
         $lowest = null;
@@ -377,10 +397,19 @@ class PriceStrategyService
             if ($blacklist && array_intersect($ids, $blacklist)) {
                 continue;
             }
-            // 白名单：任何时候都竞价（跳过库存过滤）；非白名单才走后续过滤
-            if (!($whitelist && array_intersect($ids, $whitelist))) {
-                // 库存数量过滤：低于阈值不竞价（用解析好的 stock_num）
-                if ($minStock > 0 && (int) $c->stock_num < $minStock) {
+
+            $stockNum = $this->parseStockNumber($c->stock ?? null, $c->stock_num ?? null);
+            $rating = $this->parseRating($c->rating ?? null);
+            $isWhitelisted = $whitelist && array_intersect($ids, $whitelist);
+
+            // 白名单保持兼容：命中后跳过库存/好评率过滤，但仍受黑名单和价格门槛限制。
+            if (!$isWhitelisted) {
+                // 库存低于阈值，或库存无法解析时，不参与最低价计算。
+                if ($minStock > 0 && ($stockNum === null || $stockNum < $minStock)) {
+                    continue;
+                }
+                // 好评率低于阈值、缺失或非法时，不参与最低价计算。
+                if ($minRating > 0 && ($rating === null || $rating < $minRating)) {
                     continue;
                 }
             }
@@ -395,6 +424,8 @@ class PriceStrategyService
                 'id'         => (int) $c->id,
                 'seller_id'  => trim((string) $c->seller_id),
                 'seller_name'=> trim((string) $c->seller_name),
+                'stock_num'  => $stockNum,
+                'rating'     => $rating,
             ];
             // 价格相同时使用较小的 crawl_data.id，保证命中记录稳定可追溯
             if ($lowest === null
@@ -405,6 +436,78 @@ class PriceStrategyService
         }
 
         return $lowest;
+    }
+
+    /**
+     * 解析竞品库存：无单位为最小单位，K/M/G 分别乘以 10^3/10^6/10^9。
+     * 优先解析原始 stock；原始值为空或无法解析时，回退到已规范化的 stock_num。
+     */
+    protected function parseStockNumber($stock, $stockNum = null): ?int
+    {
+        $stockText = trim((string) $stock);
+        if ($stockText !== '') {
+            $parsed = $this->parseAbbreviatedNumber($stockText);
+            if ($parsed !== null) {
+                return $parsed;
+            }
+        }
+
+        if ($stockNum === null || $stockNum === '') {
+            return null;
+        }
+        if (is_numeric($stockNum)) {
+            $number = (float) $stockNum;
+            return $number >= 0 ? (int) $number : null;
+        }
+        return $this->parseAbbreviatedNumber((string) $stockNum);
+    }
+
+    /**
+     * 解析库存缩写数字：例如 8880、8.88K、2.5M、1.2G。
+     */
+    protected function parseAbbreviatedNumber(string $value): ?int
+    {
+        $value = preg_replace('/\\s+/u', '', trim($value)) ?? trim($value);
+        $value = str_replace(',', '', $value);
+        if ($value === '' || !preg_match('/^(\\d+(?:\\.\\d+)?|\\.\\d+)([kKmMgGbB]?)$/', $value, $matches)) {
+            return null;
+        }
+
+        $number = (float) $matches[1];
+        switch (strtolower($matches[2])) {
+            case 'k':
+                $number *= 1_000;
+                break;
+            case 'm':
+                $number *= 1_000_000;
+                break;
+            case 'g':
+            case 'b':
+                $number *= 1_000_000_000;
+                break;
+        }
+        if (!is_finite($number) || $number < 0 || $number > PHP_INT_MAX) {
+            return null;
+        }
+        return (int) $number;
+    }
+
+    /**
+     * 解析好评率，支持 96、96.00、96.00% 三种常见格式；非法或超出 0-100 返回 null。
+     */
+    protected function parseRating($value): ?float
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+        $text = trim((string) $value);
+        $text = str_replace('%', '', $text);
+        $text = preg_replace('/\\s+/u', '', $text) ?? $text;
+        if ($text === '' || !preg_match('/^(\\d+(?:\\.\\d+)?|\\.\\d+)$/', $text)) {
+            return null;
+        }
+        $rating = (float) $text;
+        return is_finite($rating) && $rating >= 0 && $rating <= 100 ? $rating : null;
     }
 
     /**
@@ -516,9 +619,14 @@ class PriceStrategyService
             $dimensions = [];
         }
 
-        // 兼容早期直接把黑白名单放在 config 顶层的旧数据。
+        // 兼容早期直接把黑白名单、库存或好评率放在 config 顶层的旧数据。
         $dimension = $dimensions[0] ?? [];
-        if (!$dimension && (array_key_exists('blacklist_stores', $config) || array_key_exists('minimum_price', $config))) {
+        if (!$dimension && (
+            array_key_exists('blacklist_stores', $config)
+            || array_key_exists('minimum_price', $config)
+            || array_key_exists('min_stock', $config)
+            || array_key_exists('min_rating', $config)
+        )) {
             $dimension = $config;
         }
         if (is_string($dimension)) {

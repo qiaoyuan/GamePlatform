@@ -26,6 +26,7 @@ namespace app\common\model;
  * @property string $currency        货币
  * @property string $min_order       最低起订
  * @property string $delivery_time   交货时间
+ * @property string $rating         好评率（如 96.00）
  * @property string $crawled_at      爬取时间
  * @property string $created_at
  */
@@ -41,7 +42,7 @@ class CrawlData extends Base
     protected $field = [
         'id', 'target_id', 'game_product_id', 'version', 'platform', 'seller_id', 'seller_name', 'seller_level', 'seller_url',
         'is_online', 'product_title', 'offer_url', 'sold_count', 'sold_count_num', 'stock', 'stock_num',
-        'price', 'currency', 'min_order', 'delivery_time', 'crawled_at', 'created_at',
+        'price', 'currency', 'min_order', 'delivery_time', 'rating', 'crawled_at', 'created_at',
     ];
 
     /** @var array<string, string> */

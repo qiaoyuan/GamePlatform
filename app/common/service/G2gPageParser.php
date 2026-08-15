@@ -137,7 +137,7 @@ class G2gPageParser
                 $minOrder = $t;
             } elseif (preg_match('/(分钟|小时|min|hour|hr)/i', $t)) {
                 $deliveryTime = $t;
-            } elseif (preg_match('/^([\d.,]+[kKmMbB]?)\b/', $t, $m)) {
+            } elseif (preg_match('/^([\d.,]+[kKmMgGbB]?)\b/', $t, $m)) {
                 $stock = $m[1];
             }
         }
@@ -181,13 +181,14 @@ class G2gPageParser
     private function parseAbbrNum(string $text): ?int
     {
         $text = trim(str_replace(',', '', $text));
-        if ($text === '' || !preg_match('/^([\d.]+)([kKmMbB]?)$/', $text, $m)) {
+        if ($text === '' || !preg_match('/^([\d.]+)([kKmMgGbB]?)$/', $text, $m)) {
             return null;
         }
         $num = (float) $m[1];
         switch (strtolower($m[2])) {
             case 'k': $num *= 1_000; break;
             case 'm': $num *= 1_000_000; break;
+            case 'g':
             case 'b': $num *= 1_000_000_000; break;
         }
         return (int) $num;

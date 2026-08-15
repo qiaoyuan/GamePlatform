@@ -31,7 +31,7 @@ class Crawl extends BaseController
                 'searchList' => '/gameProduct/select',
                 'sort'       => 'game_product_id',
             ],
-            ['v' => 'version',         'label' => '数据版本',   'width' => 90, 'searchType' => 'number', 'sort' => 'version'],
+            ['v' => 'version',         'label' => '数据版本',   'width' => 90, 'search' => 'version', 'searchType' => 'match', 'sort' => 'version'],
             ['v' => 'url',           'label' => '目标链接',   'width' => 300, 'searchType' => 'like'],
             ['v' => 'category_name',  'label' => '产品分类',   'width' => 120, 'search' => 'category', 'searchType' => 'multiple', 'searchList' => CrawlTargetModel::getCategoryList(), 'sort' => 'category'],
             ['v' => 'status',          'label' => '状态',       'render' => 'status', 'sort' => 'status'],
