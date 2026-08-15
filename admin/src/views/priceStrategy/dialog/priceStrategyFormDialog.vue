@@ -35,12 +35,12 @@
         />
       </el-form-item>
       <el-form-item label="最低库存">
-        <el-input-number v-model="form.min_stock" :min="0" :step="1" />
-        <span class="tip">低于此库存的店铺不竞价，0=不限</span>
+        <el-input-number v-model="form.min_stock" :min="0" :precision="0" :step="1" />
+        <span class="tip">按无单位整数填写；竞品数据中的 1K 会换算为 1000，低于此库存的店铺不竞价，0=不限</span>
       </el-form-item>
-      <el-form-item label="最低好评率(%)">
-        <el-input-number v-model="form.min_rating" :min="0" :max="100" :step="1" />
-        <span class="tip">低于此好评率的店铺不竞价，0=不限</span>
+      <el-form-item label="最低好评率">
+        <el-input-number v-model="form.min_rating" :min="0" :max="100" :precision="2" :step="0.01" />
+        <span class="tip">低于此好评率数值的店铺不竞价，保留两位小数，0=不限</span>
       </el-form-item>
 
       <el-divider content-position="left">二、竞品参考价过滤</el-divider>
@@ -151,8 +151,12 @@ export default {
           try { return JSON.parse(info.config) } catch (_) { return {} }
         })()
         : (info.config || {})
+      const hasLegacyDimension = config.blacklist_stores
+        || config.minimum_price !== undefined
+        || config.min_stock !== undefined
+        || config.min_rating !== undefined
       const dim = (config.dimensions && config.dimensions[0])
-        || (config.blacklist_stores || config.minimum_price !== undefined ? config : {})
+        || (hasLegacyDimension ? config : {})
       this.form = {
         id: info.id,
         name: info.name,
@@ -162,8 +166,8 @@ export default {
         status: info.status,
         blacklist_text: (dim.blacklist_stores || []).join('\n'),
         whitelist_text: (dim.whitelist_stores || []).join('\n'),
-        min_stock: dim.min_stock || 0,
-        min_rating: dim.min_rating || 0,
+        min_stock: this.normalizeMinStock(dim.min_stock),
+        min_rating: this.normalizeMinRating(dim.min_rating),
         minimum_price: dim.minimum_price === null || dim.minimum_price === undefined || dim.minimum_price === ''
           ? undefined
           : Number(dim.minimum_price),
@@ -172,6 +176,15 @@ export default {
         amplitude: dim.amplitude === undefined ? 1 : Number(dim.amplitude),
         round_precision: dim.round_precision === undefined ? 4 : Number(dim.round_precision),
       }
+    },
+    normalizeMinStock(value) {
+      const number = Number(value)
+      return Number.isFinite(number) && number > 0 ? Math.floor(number) : 0
+    },
+    normalizeMinRating(value) {
+      const number = Number(value)
+      if (!Number.isFinite(number)) return 0
+      return Number(Math.min(100, Math.max(0, number)).toFixed(2))
     },
     splitLines(text) {
       return (text || '')
@@ -184,8 +197,8 @@ export default {
         type: 'lowest',
         blacklist_stores: this.splitLines(this.form.blacklist_text),
         whitelist_stores: this.splitLines(this.form.whitelist_text),
-        min_stock: Number(this.form.min_stock) || 0,
-        min_rating: Number(this.form.min_rating) || 0,
+        min_stock: this.normalizeMinStock(this.form.min_stock),
+        min_rating: this.normalizeMinRating(this.form.min_rating),
         minimum_price: this.form.minimum_price === undefined || this.form.minimum_price === null || this.form.minimum_price === ''
           ? null
           : Number(this.form.minimum_price),

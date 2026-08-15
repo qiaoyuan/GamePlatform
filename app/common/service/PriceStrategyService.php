@@ -32,7 +32,7 @@ use think\facade\Log;
  *       "blacklist_stores": [],   // 黑名单：命中 seller_id/seller_name 即剔除(永不竞价)
  *       "whitelist_stores": [],   // 白名单：命中则强制纳入(跳过库存/好评率过滤)
  *       "minimum_price": null,    // 竞品参考价下限：价格小于等于此值的竞品不参与最低价计算
- *       "min_stock": 0,           // 库存过滤：低于此库存的店铺不竞价，支持无单位/K/M/G，0=不限
+ *       "min_stock": 0,           // 策略库存阈值：填写无单位非负整数；竞品原始 stock 支持 K/M/G，0=不限
  *       "min_rating": 0,          // 好评率过滤：低于此好评率的店铺不竞价，0=不限
  *       // 二、保底出价
  *       "floor_price": null,      // 最低出价，出价低于此值则不再竞价(跳过)
@@ -290,11 +290,11 @@ class PriceStrategyService
             if ($minimumPrice !== null) {
                 $msg .= '；已排除价格小于等于' . $minimumPrice . '的竞品';
             }
-            $minStock = max(0, (int) ($dimension['min_stock'] ?? 0));
+            $minStock = $this->normalizeMinStock($dimension['min_stock'] ?? 0);
             if ($minStock > 0) {
                 $msg .= '；已排除库存低于' . $minStock . '的竞品（无库存数据也排除）';
             }
-            $minRating = max(0.0, (float) ($dimension['min_rating'] ?? 0));
+            $minRating = $this->normalizeMinRating($dimension['min_rating'] ?? 0);
             if ($minRating > 0) {
                 $msg .= '；已排除好评率低于' . $minRating . '或无效的竞品';
             }
@@ -311,11 +311,11 @@ class PriceStrategyService
             $lowestInfo['stock_num'] === null ? '--' : (string) $lowestInfo['stock_num'],
             $lowestInfo['rating'] === null ? '--' : (string) $lowestInfo['rating']
         );
-        $minStock = max(0, (int) ($dimension['min_stock'] ?? 0));
+        $minStock = $this->normalizeMinStock($dimension['min_stock'] ?? 0);
         if ($minStock > 0) {
             $competitorContext .= '，库存要求≥' . $minStock;
         }
-        $minRating = max(0.0, (float) ($dimension['min_rating'] ?? 0));
+        $minRating = $this->normalizeMinRating($dimension['min_rating'] ?? 0);
         if ($minRating > 0) {
             $competitorContext .= '，好评率要求≥' . $minRating;
         }
@@ -376,8 +376,8 @@ class PriceStrategyService
         $blacklist = $this->normalizeStoreIdentifiers($dimension['blacklist_stores'] ?? []);
         $whitelist = $this->normalizeStoreIdentifiers($dimension['whitelist_stores'] ?? []);
         $minimumPrice = $this->numOrNull($dimension['minimum_price'] ?? null);
-        $minStock  = max(0, (int) ($dimension['min_stock'] ?? 0));
-        $minRating = max(0.0, (float) ($dimension['min_rating'] ?? 0));
+        $minStock  = $this->normalizeMinStock($dimension['min_stock'] ?? 0);
+        $minRating = $this->normalizeMinRating($dimension['min_rating'] ?? 0);
         $currency  = $product->currency ?: GameProduct::DEFAULT_CURRENCY;
 
         $lowest = null;
@@ -650,7 +650,40 @@ class PriceStrategyService
         ], $dimension);
         $dimension['blacklist_stores'] = $this->normalizeStoreIdentifiers($dimension['blacklist_stores']);
         $dimension['whitelist_stores'] = $this->normalizeStoreIdentifiers($dimension['whitelist_stores']);
+        $dimension['min_stock'] = $this->normalizeMinStock($dimension['min_stock']);
+        $dimension['min_rating'] = $this->normalizeMinRating($dimension['min_rating']);
         return $dimension;
+    }
+
+    /**
+     * 规范化策略库存阈值：配置只接受无单位的非负整数。
+     * 竞品原始 stock 的 K/M/G 换算由 parseStockNumber() 单独处理。
+     */
+    protected function normalizeMinStock($value): int
+    {
+        if ($value === null || $value === '' || !is_numeric($value)) {
+            return 0;
+        }
+        $number = (float) $value;
+        if (!is_finite($number) || $number < 0) {
+            return 0;
+        }
+        return (int) floor($number);
+    }
+
+    /**
+     * 规范化策略好评率：限制在 0-100，并保留两位小数；配置不使用百分号。
+     */
+    protected function normalizeMinRating($value): float
+    {
+        if ($value === null || $value === '' || !is_numeric($value)) {
+            return 0.0;
+        }
+        $number = (float) $value;
+        if (!is_finite($number)) {
+            return 0.0;
+        }
+        return round(min(100.0, max(0.0, $number)), 2);
     }
 
     /**
