@@ -34,6 +34,7 @@ class PriceStrategy extends BaseController
                 'sort'       => 'crawl_target_id',
             ],
             ['v' => 'products_count', 'label' => '绑定产品数', 'width' => 100, 'search' => false],
+            ['v' => 'price', 'label' => '最低价', 'width' => 110, 'search' => false],
             [
                 'v'          => 'auto_run',
                 'label'      => '爬后自动执行',
@@ -72,11 +73,75 @@ class PriceStrategy extends BaseController
         if (!is_numeric($lists)) {
             $lists->each(function (Model $item) {
                 $item->target_name = $item->crawlTarget ? $item->crawlTarget->name : '--';
+                $item->price = $this->getConfigPrice($item->config);
             });
         }
         $this->success('', [
             'list' => $lists,
         ]);
+    }
+
+    /**
+     * 从维度 JSON 中读取最低价，兼容旧的 minimum_price/floor_price 配置。
+     */
+    private function getConfigPrice($config): ?float
+    {
+        if (is_string($config)) {
+            $config = json_decode($config, true);
+        }
+        if (!is_array($config)) {
+            return null;
+        }
+        $dimensions = $config['dimensions'] ?? [];
+        if (is_string($dimensions)) {
+            $dimensions = json_decode($dimensions, true);
+        }
+        $dimension = is_array($dimensions) && isset($dimensions[0]) ? $dimensions[0] : $config;
+        if (is_string($dimension)) {
+            $dimension = json_decode($dimension, true);
+        }
+        if (!is_array($dimension)) {
+            return null;
+        }
+        $value = array_key_exists('price', $dimension)
+            ? $dimension['price']
+            : ($dimension['minimum_price'] ?? $dimension['floor_price'] ?? null);
+        if ($value === null || $value === '' || !is_numeric($value)) {
+            return null;
+        }
+        $price = (float) $value;
+        return is_finite($price) && $price >= 0 ? $price : null;
+    }
+
+    /**
+     * 只更新维度 JSON 中的最低价，保留其它策略配置。
+     */
+    private function setConfigPrice($config, ?float $price): array
+    {
+        if (is_string($config)) {
+            $config = json_decode($config, true);
+        }
+        $config = is_array($config) ? $config : [];
+        $dimensions = $config['dimensions'] ?? [];
+        if (is_string($dimensions)) {
+            $dimensions = json_decode($dimensions, true);
+        }
+        if (!is_array($dimensions) || !isset($dimensions[0])) {
+            $dimension = $config;
+            unset($dimension['dimensions']);
+            $dimensions = [$dimension];
+        }
+        $dimension = $dimensions[0];
+        if (is_string($dimension)) {
+            $dimension = json_decode($dimension, true);
+        }
+        $dimension = is_array($dimension) ? $dimension : [];
+        $dimension['price'] = $price;
+        unset($dimension['minimum_price'], $dimension['floor_price']);
+        $dimensions[0] = $dimension;
+        $config['dimensions'] = $dimensions;
+        unset($config['price'], $config['minimum_price'], $config['floor_price']);
+        return $config;
     }
 
     /**
@@ -104,6 +169,42 @@ class PriceStrategy extends BaseController
     public function edit(): void
     {
         $this->mEdit(Model::class);
+    }
+
+    /**
+     * 批量更新最低价（仅修改 JSON 维度中的 price 字段）。
+     */
+    #[Permission(title: '批量更新价格')]
+    public function batchPrice(): void
+    {
+        $ids = input('ids', []);
+        $ids = is_array($ids) ? $ids : [];
+        $ids = array_values(array_unique(array_filter(array_map('intval', $ids), fn ($id) => $id > 0)));
+        if (!$ids) {
+            $this->error('请选择要更新的策略');
+        }
+
+        $rawPrice = input('price', null);
+        if ($rawPrice === '' || $rawPrice === null) {
+            $price = null;
+        } elseif (!is_numeric($rawPrice) || !is_finite((float) $rawPrice) || (float) $rawPrice < 0) {
+            $this->error('价格必须是大于等于 0 的数字');
+        } else {
+            $price = round((float) $rawPrice, 6);
+        }
+
+        $rows = Model::whereIn('id', $ids)->select();
+        if (count($rows) !== count($ids)) {
+            $this->error('部分策略不存在，请刷新列表后重试');
+        }
+        Db::transaction(function () use ($rows, $price) {
+            foreach ($rows as $row) {
+                $row->config = $this->setConfigPrice($row->config, $price);
+                $row->save();
+            }
+        });
+
+        $this->success('批量更新成功', ['count' => count($ids), 'price' => $price]);
     }
 
     /**

@@ -43,19 +43,13 @@
         <span class="tip">低于此好评率数值的店铺不竞价，保留两位小数，0=不限</span>
       </el-form-item>
 
-      <el-divider content-position="left">二、竞品参考价过滤</el-divider>
-      <el-form-item label="最低竞品价">
-        <el-input-number v-model="form.minimum_price" :min="0" :precision="6" :step="0.0001" placeholder="不填=不限" />
-        <span class="tip">价格小于等于此值的竞品不参与最低价计算</span>
+      <el-divider content-position="left">二、最低价</el-divider>
+      <el-form-item label="最低价">
+        <el-input-number v-model="form.price" :min="0" :precision="6" :step="0.0001" placeholder="不填=不限" />
+        <span class="tip">出价下限；竞品价低于此值时直接按此价出价，不再套用竞价幅度；不填表示不限</span>
       </el-form-item>
 
-      <el-divider content-position="left">三、保底出价</el-divider>
-      <el-form-item label="最低出价">
-        <el-input-number v-model="form.floor_price" :min="0" :precision="6" :step="0.0001" placeholder="不填=无底线" />
-        <span class="tip">出价低于此价则不再竞价（跳过）；不填表示无底线</span>
-      </el-form-item>
-
-      <el-divider content-position="left">四、竞价幅度</el-divider>
+      <el-divider content-position="left">三、竞价幅度</el-divider>
       <el-form-item label="竞价方式">
         <el-radio-group v-model="form.bid_mode">
           <el-radio label="amount">幅度值</el-radio>
@@ -73,7 +67,7 @@
         <el-input-number v-model="form.round_precision" :min="0" :max="8" :step="1" />
       </el-form-item>
 
-      <el-divider content-position="left">五、改价频率与状态</el-divider>
+      <el-divider content-position="left">四、改价频率与状态</el-divider>
       <el-form-item label="改价频率(分钟)">
         <el-input-number v-model="form.interval_minutes" :min="0" :step="1" />
         <span class="tip">0=不定时；&gt;0 由定时任务按此频率执行</span>
@@ -103,8 +97,7 @@ const defaultForm = () => ({
   whitelist_text: '',
   min_stock: 0,
   min_rating: 0,
-  minimum_price: undefined,
-  floor_price: undefined,
+  price: undefined,
   bid_mode: 'amount',
   amplitude: 1,
   round_precision: 6,
@@ -152,11 +145,17 @@ export default {
         })()
         : (info.config || {})
       const hasLegacyDimension = config.blacklist_stores
+        || config.whitelist_stores
+        || config.price !== undefined
         || config.minimum_price !== undefined
+        || config.floor_price !== undefined
         || config.min_stock !== undefined
         || config.min_rating !== undefined
       const dim = (config.dimensions && config.dimensions[0])
         || (hasLegacyDimension ? config : {})
+      const sharedPrice = dim.price !== undefined
+        ? dim.price
+        : (dim.minimum_price !== undefined ? dim.minimum_price : dim.floor_price)
       this.form = {
         id: info.id,
         name: info.name,
@@ -168,10 +167,9 @@ export default {
         whitelist_text: (dim.whitelist_stores || []).join('\n'),
         min_stock: this.normalizeMinStock(dim.min_stock),
         min_rating: this.normalizeMinRating(dim.min_rating),
-        minimum_price: dim.minimum_price === null || dim.minimum_price === undefined || dim.minimum_price === ''
+        price: sharedPrice === null || sharedPrice === undefined || sharedPrice === ''
           ? undefined
-          : Number(dim.minimum_price),
-        floor_price: dim.floor_price === null || dim.floor_price === undefined ? undefined : Number(dim.floor_price),
+          : Number(sharedPrice),
         bid_mode: dim.bid_mode || 'amount',
         amplitude: dim.amplitude === undefined ? 1 : Number(dim.amplitude),
         round_precision: dim.round_precision === undefined ? 4 : Number(dim.round_precision),
@@ -199,12 +197,9 @@ export default {
         whitelist_stores: this.splitLines(this.form.whitelist_text),
         min_stock: this.normalizeMinStock(this.form.min_stock),
         min_rating: this.normalizeMinRating(this.form.min_rating),
-        minimum_price: this.form.minimum_price === undefined || this.form.minimum_price === null || this.form.minimum_price === ''
+        price: this.form.price === undefined || this.form.price === null || this.form.price === ''
           ? null
-          : Number(this.form.minimum_price),
-        floor_price: this.form.floor_price === undefined || this.form.floor_price === null || this.form.floor_price === ''
-          ? null
-          : Number(this.form.floor_price),
+          : Number(this.form.price),
         bid_mode: this.form.bid_mode,
         amplitude: Number(this.form.amplitude) || 0,
         round_precision: Number(this.form.round_precision) || 4,

@@ -6,19 +6,37 @@
       :operates="operates"
       @add="onAdd"
       @edit="onEdit"
-    />
+    >
+      <template #multiOperate="{ selection }">
+        <el-button
+          v-if="selection.length"
+          v-p="'priceStrategy/batchPrice'"
+          type="primary"
+          size="mini"
+          @click="onBatchPrice(selection)"
+        >
+          批量更新价格
+        </el-button>
+      </template>
+    </w-tabs-table>
     <PriceStrategyFormDialog ref="formDialog" @done="getList" />
     <PriceStrategyProductDialog ref="productDialog" @done="getList" />
+    <PriceStrategyPriceDialog ref="priceDialog" @done="getList" />
   </div>
 </template>
 
 <script>
 import PriceStrategyFormDialog from './dialog/priceStrategyFormDialog'
 import PriceStrategyProductDialog from './dialog/priceStrategyProductDialog'
+import PriceStrategyPriceDialog from './dialog/priceStrategyPriceDialog'
 
 export default {
   name: 'PriceStrategyIndex',
-  components: { PriceStrategyFormDialog, PriceStrategyProductDialog },
+  components: {
+    PriceStrategyFormDialog,
+    PriceStrategyProductDialog,
+    PriceStrategyPriceDialog,
+  },
   data() {
     return {
       module: 'priceStrategy',
@@ -55,6 +73,9 @@ export default {
     },
     onEdit(row) {
       this.$refs.formDialog.open(row)
+    },
+    onBatchPrice(selection) {
+      this.$refs.priceDialog.open(selection)
     },
     async doExecute(row) {
       const loading = this.$loading({

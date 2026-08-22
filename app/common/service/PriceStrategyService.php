@@ -20,7 +20,7 @@ use think\facade\Log;
  *
  * 职责：
  * 1. 读取策略的维度配置(config.dimensions)，首期支持 type=lowest（跟竞品最低价）。
- * 2. 对爬虫目标绑定的唯一游戏产品，基于该目标当前版本的 crawl_data 算出出价，做保底价夹逼后改价。
+ * 2. 对爬虫目标绑定的唯一游戏产品，基于该目标当前版本的 crawl_data 算出出价，做最低价夹逼后改价。
  * 3. 每个目标产品一条执行日志（成功/跳过/失败）落 price_strategy_log。
  *
  * 维度配置结构（对应「正常模板」）：
@@ -31,11 +31,9 @@ use think\facade\Log;
  *       // 一、目标店铺过滤
  *       "blacklist_stores": [],   // 黑名单：命中 seller_id/seller_name 即剔除(永不竞价)
  *       "whitelist_stores": [],   // 白名单：命中则强制纳入(跳过库存/好评率过滤)
- *       "minimum_price": null,    // 竞品参考价下限：价格小于等于此值的竞品不参与最低价计算
+ *       "price": null,             // 最低价：出价下限。竞品价≤此值时直接按此值出价，且不套用竞价幅度
  *       "min_stock": 0,           // 策略库存阈值：填写无单位非负整数；竞品原始 stock 支持 K/M/G，0=不限
  *       "min_rating": 0,          // 好评率过滤：低于此好评率的店铺不竞价，0=不限
- *       // 二、保底出价
- *       "floor_price": null,      // 最低出价，出价低于此值则不再竞价(跳过)
  *       "ceiling_price": null,    // 价格上限(可选，超过则封顶)
  *       // 三、竞价幅度
  *       "bid_mode": "amount",     // amount 幅度值 | equal 等值
@@ -263,7 +261,8 @@ class PriceStrategyService
     }
 
     /**
-     * 处理单个产品：算目标价 -> 竞价幅度 -> 保底/上限夹逼 -> 应用改价。
+     * 处理单个产品：算目标价 -> 最低价/竞价幅度 -> 上限夹逼 -> 应用改价。
+     * 竞品最低价已低于「最低价」时，直接按最低价出价，不再套用竞价幅度。
      *
      * @param CrawlData[]|\think\Collection $competitors
      * @return array{0:int,1:float,2:float,3:string,4:int|null} [日志状态, 新价格, 参考价, 说明, 竞品数据ID]
@@ -287,10 +286,6 @@ class PriceStrategyService
                 $msg = '竞品币种(' . implode('/', array_keys($currencies)) . ')与产品币种(' . $productCurrency . ')不一致，未竞价';
             } else {
                 $msg = '无可竞价的竞品（过滤后为空）';
-            }
-            $minimumPrice = $this->numOrNull($dimension['minimum_price'] ?? null);
-            if ($minimumPrice !== null) {
-                $msg .= '；已排除价格小于等于' . $minimumPrice . '的竞品';
             }
             $minStock = $this->normalizeMinStock($dimension['min_stock'] ?? 0);
             if ($minStock > 0) {
@@ -321,27 +316,30 @@ class PriceStrategyService
         if ($minRating > 0) {
             $competitorContext .= '，好评率要求≥' . $minRating;
         }
-        $minimumPrice = $this->numOrNull($dimension['minimum_price'] ?? null);
-        if ($minimumPrice !== null) {
-            $competitorContext .= '，已排除价格≤' . $minimumPrice . '的竞品';
+        $floor = $this->numOrNull($dimension['price'] ?? $dimension['floor_price'] ?? null);
+        if ($floor !== null) {
+            $competitorContext .= '，最低价=' . $floor;
         }
 
-        // 2. 竞价幅度：算出我们的出价
-        $bid = $this->applyBid($lowest, $dimension);
-
-        // 3. 保底出价：出价低于保底价则不再竞价
-        $floor = $this->numOrNull($dimension['floor_price'] ?? null);
-        if ($floor !== null && $bid < $floor) {
-            return [PriceStrategyLog::STATUS_SKIP, $current, $lowest, $this->withCompetitorContext("出价({$bid})低于保底价({$floor})，不竞价", $competitorContext), $competitorId];
+        // 2. 最低价与竞价幅度：竞品已低于最低价时直接按最低价出价，不再套用幅度
+        if ($floor !== null && $lowest <= $floor) {
+            $bid = $floor;
+            $competitorContext .= '，竞品价≤最低价，直接按最低价出价（不套用幅度）';
+        } else {
+            $bid = $this->applyBid($lowest, $dimension);
+            if ($floor !== null && $bid < $floor) {
+                $bid = $floor;
+                $competitorContext .= '，幅度出价低于最低价，已按最低价出价';
+            }
         }
 
-        // 4. 价格上限（可选）
+        // 3. 价格上限（可选）
         $ceiling = $this->numOrNull($dimension['ceiling_price'] ?? null);
         if ($ceiling !== null && $bid > $ceiling) {
             $bid = $ceiling;
         }
 
-        // 5. 取整
+        // 4. 取整
         $precision = (int) ($dimension['round_precision'] ?? 4);
         $bid = round($bid, $precision);
 
@@ -355,7 +353,7 @@ class PriceStrategyService
             return [PriceStrategyLog::STATUS_SKIP, $current, $lowest, '出价与现价一致，无需改价；' . $competitorContext, $competitorId];
         }
 
-        // 6. 应用改价（复用与手动改价相同的内部逻辑，改价在 PHP 侧调 G2G）
+        // 5. 应用改价（复用与手动改价相同的内部逻辑，改价在 PHP 侧调 G2G）
         try {
             GameProductPriceService::change($product, $bid);
             return [PriceStrategyLog::STATUS_SUCCESS, $bid, $lowest, '改价成功；' . $competitorContext, $competitorId];
@@ -368,6 +366,7 @@ class PriceStrategyService
      * 按「目标店铺过滤」规则筛选 crawl_data 竞品后取最低价，并保留命中的竞品信息。
      *
      * 过滤优先级：黑名单剔除 > 白名单强制纳入(跳过库存/好评率过滤) > 其余按库存、好评率过滤。
+     * 「最低价」不参与过滤，低于最低价的竞品仍会参与最低价计算。
      * 库存优先使用原始 stock 解析，stock_num 作为已规范化数据的回退值；rating 缺失或非法时，
      * 在启用 min_rating 的情况下视为不满足。店铺标识同时匹配 crawl_data 的 seller_id 与 seller_name。
      *
@@ -377,7 +376,6 @@ class PriceStrategyService
     {
         $blacklist = $this->normalizeStoreIdentifiers($dimension['blacklist_stores'] ?? []);
         $whitelist = $this->normalizeStoreIdentifiers($dimension['whitelist_stores'] ?? []);
-        $minimumPrice = $this->numOrNull($dimension['minimum_price'] ?? null);
         $minStock  = $this->normalizeMinStock($dimension['min_stock'] ?? 0);
         $minRating = $this->normalizeMinRating($dimension['min_rating'] ?? 0);
         $currency  = $product->currency ?: GameProduct::DEFAULT_CURRENCY;
@@ -416,11 +414,7 @@ class PriceStrategyService
                 }
             }
 
-            // 价格小于等于门槛的竞品不参与最低价计算；只有严格大于门槛才是候选。
-            if ($minimumPrice !== null && $price <= $minimumPrice) {
-                continue;
-            }
-
+            // 最低价只作为出价下限，不再排除低价竞品：低于最低价的竞品仍参与最低价计算。
             $candidate = [
                 'price'      => $price,
                 'id'         => (int) $c->id,
@@ -621,10 +615,12 @@ class PriceStrategyService
             $dimensions = [];
         }
 
-        // 兼容早期直接把黑白名单、库存或好评率放在 config 顶层的旧数据。
         $dimension = $dimensions[0] ?? [];
+        // 兼容早期直接把黑白名单、库存、好评率或最低价放在 config 顶层的旧数据。
         if (!$dimension && (
             array_key_exists('blacklist_stores', $config)
+            || array_key_exists('whitelist_stores', $config)
+            || array_key_exists('price', $config)
             || array_key_exists('minimum_price', $config)
             || array_key_exists('min_stock', $config)
             || array_key_exists('min_rating', $config)
@@ -636,20 +632,26 @@ class PriceStrategyService
             $dimension = json_last_error() === JSON_ERROR_NONE ? $decoded : [];
         }
         $dimension = is_array($dimension) ? $dimension : [];
+        // 最低价统一读 price；旧数据的 minimum_price/floor_price 一并视为最低价。
+        $lowestPrice = $this->numOrNull(
+            $dimension['price'] ?? $dimension['minimum_price'] ?? $dimension['floor_price'] ?? null
+        );
 
         $dimension = array_merge([
             'type'             => PriceStrategy::DIMENSION_LOWEST,
             'blacklist_stores' => [],
             'whitelist_stores' => [],
-            'minimum_price'   => null,
+            'price'            => null,
             'min_stock'        => 0,
             'min_rating'       => 0,
-            'floor_price'      => null,
             'ceiling_price'    => null,
             'bid_mode'         => PriceStrategy::BID_AMOUNT,
             'amplitude'        => 0,
             'round_precision'  => 4,
         ], $dimension);
+        $dimension['price'] = $lowestPrice;
+        // 最低价只作为出价下限，不再充当竞品过滤门槛。
+        unset($dimension['minimum_price'], $dimension['floor_price']);
         $dimension['blacklist_stores'] = $this->normalizeStoreIdentifiers($dimension['blacklist_stores']);
         $dimension['whitelist_stores'] = $this->normalizeStoreIdentifiers($dimension['whitelist_stores']);
         $dimension['min_stock'] = $this->normalizeMinStock($dimension['min_stock']);
