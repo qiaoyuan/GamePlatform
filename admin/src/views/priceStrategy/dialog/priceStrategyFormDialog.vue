@@ -45,8 +45,8 @@
 
       <el-divider content-position="left">二、最低价</el-divider>
       <el-form-item label="最低价">
-        <el-input-number v-model="form.price" :min="0" :precision="6" :step="0.0001" placeholder="不填=不限" />
-        <span class="tip">出价下限；竞品价低于此值时直接按此价出价，不再套用竞价幅度；不填表示不限</span>
+        <el-input-number v-model="form.filter_price" :min="0" :precision="6" :step="0.0001" placeholder="不填=不限" />
+        <span class="tip">价格小于等于此值的竞品不参与最低价计算；不填表示不限</span>
       </el-form-item>
 
       <el-divider content-position="left">三、竞价幅度</el-divider>
@@ -97,7 +97,7 @@ const defaultForm = () => ({
   whitelist_text: '',
   min_stock: 0,
   min_rating: 0,
-  price: undefined,
+  filter_price: undefined,
   bid_mode: 'amount',
   amplitude: 1,
   round_precision: 6,
@@ -146,6 +146,7 @@ export default {
         : (info.config || {})
       const hasLegacyDimension = config.blacklist_stores
         || config.whitelist_stores
+        || config.filter_price !== undefined
         || config.price !== undefined
         || config.minimum_price !== undefined
         || config.floor_price !== undefined
@@ -153,9 +154,9 @@ export default {
         || config.min_rating !== undefined
       const dim = (config.dimensions && config.dimensions[0])
         || (hasLegacyDimension ? config : {})
-      const sharedPrice = dim.price !== undefined
-        ? dim.price
-        : (dim.minimum_price !== undefined ? dim.minimum_price : dim.floor_price)
+      // 最低价统一读 filter_price，兼容旧的 price/minimum_price/floor_price
+      const filterPrice = [dim.filter_price, dim.price, dim.minimum_price, dim.floor_price]
+        .find(v => v !== undefined)
       this.form = {
         id: info.id,
         name: info.name,
@@ -167,9 +168,9 @@ export default {
         whitelist_text: (dim.whitelist_stores || []).join('\n'),
         min_stock: this.normalizeMinStock(dim.min_stock),
         min_rating: this.normalizeMinRating(dim.min_rating),
-        price: sharedPrice === null || sharedPrice === undefined || sharedPrice === ''
+        filter_price: filterPrice === null || filterPrice === undefined || filterPrice === ''
           ? undefined
-          : Number(sharedPrice),
+          : Number(filterPrice),
         bid_mode: dim.bid_mode || 'amount',
         amplitude: dim.amplitude === undefined ? 1 : Number(dim.amplitude),
         round_precision: dim.round_precision === undefined ? 4 : Number(dim.round_precision),
@@ -197,9 +198,9 @@ export default {
         whitelist_stores: this.splitLines(this.form.whitelist_text),
         min_stock: this.normalizeMinStock(this.form.min_stock),
         min_rating: this.normalizeMinRating(this.form.min_rating),
-        price: this.form.price === undefined || this.form.price === null || this.form.price === ''
+        filter_price: this.form.filter_price === undefined || this.form.filter_price === null || this.form.filter_price === ''
           ? null
-          : Number(this.form.price),
+          : Number(this.form.filter_price),
         bid_mode: this.form.bid_mode,
         amplitude: Number(this.form.amplitude) || 0,
         round_precision: Number(this.form.round_precision) || 4,

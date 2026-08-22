@@ -34,7 +34,7 @@ class PriceStrategy extends BaseController
                 'sort'       => 'crawl_target_id',
             ],
             ['v' => 'products_count', 'label' => '绑定产品数', 'width' => 100, 'search' => false],
-            ['v' => 'price', 'label' => '最低价', 'width' => 110, 'search' => false],
+            ['v' => 'filter_price', 'label' => '最低价', 'width' => 110, 'search' => false],
             [
                 'v'          => 'auto_run',
                 'label'      => '爬后自动执行',
@@ -73,7 +73,7 @@ class PriceStrategy extends BaseController
         if (!is_numeric($lists)) {
             $lists->each(function (Model $item) {
                 $item->target_name = $item->crawlTarget ? $item->crawlTarget->name : '--';
-                $item->price = $this->getConfigPrice($item->config);
+                $item->filter_price = $this->getConfigPrice($item->config);
             });
         }
         $this->success('', [
@@ -82,7 +82,7 @@ class PriceStrategy extends BaseController
     }
 
     /**
-     * 从维度 JSON 中读取最低价，兼容旧的 minimum_price/floor_price 配置。
+     * 从维度 JSON 中读取最低价(filter_price)，兼容旧的 price/minimum_price/floor_price 配置。
      */
     private function getConfigPrice($config): ?float
     {
@@ -103,9 +103,11 @@ class PriceStrategy extends BaseController
         if (!is_array($dimension)) {
             return null;
         }
-        $value = array_key_exists('price', $dimension)
-            ? $dimension['price']
-            : ($dimension['minimum_price'] ?? $dimension['floor_price'] ?? null);
+        $value = $dimension['filter_price']
+            ?? $dimension['price']
+            ?? $dimension['minimum_price']
+            ?? $dimension['floor_price']
+            ?? null;
         if ($value === null || $value === '' || !is_numeric($value)) {
             return null;
         }
@@ -114,7 +116,7 @@ class PriceStrategy extends BaseController
     }
 
     /**
-     * 只更新维度 JSON 中的最低价，保留其它策略配置。
+     * 只更新维度 JSON 中的最低价(filter_price)，保留其它策略配置。
      */
     private function setConfigPrice($config, ?float $price): array
     {
@@ -136,11 +138,11 @@ class PriceStrategy extends BaseController
             $dimension = json_decode($dimension, true);
         }
         $dimension = is_array($dimension) ? $dimension : [];
-        $dimension['price'] = $price;
-        unset($dimension['minimum_price'], $dimension['floor_price']);
+        $dimension['filter_price'] = $price;
+        unset($dimension['price'], $dimension['minimum_price'], $dimension['floor_price']);
         $dimensions[0] = $dimension;
         $config['dimensions'] = $dimensions;
-        unset($config['price'], $config['minimum_price'], $config['floor_price']);
+        unset($config['filter_price'], $config['price'], $config['minimum_price'], $config['floor_price']);
         return $config;
     }
 
@@ -172,7 +174,7 @@ class PriceStrategy extends BaseController
     }
 
     /**
-     * 批量更新最低价（仅修改 JSON 维度中的 price 字段）。
+     * 批量更新最低价（仅修改 JSON 维度中的 filter_price 字段）。
      */
     #[Permission(title: '批量更新价格')]
     public function batchPrice(): void
@@ -184,7 +186,7 @@ class PriceStrategy extends BaseController
             $this->error('请选择要更新的策略');
         }
 
-        $rawPrice = input('price', null);
+        $rawPrice = input('filter_price', null);
         if ($rawPrice === '' || $rawPrice === null) {
             $price = null;
         } elseif (!is_numeric($rawPrice) || !is_finite((float) $rawPrice) || (float) $rawPrice < 0) {
@@ -204,7 +206,7 @@ class PriceStrategy extends BaseController
             }
         });
 
-        $this->success('批量更新成功', ['count' => count($ids), 'price' => $price]);
+        $this->success('批量更新成功', ['count' => count($ids), 'filter_price' => $price]);
     }
 
     /**

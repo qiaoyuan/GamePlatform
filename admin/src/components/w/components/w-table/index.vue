@@ -374,6 +374,7 @@ export default {
       selection: [], // 多选项
       operateWidth: 0,
       showSummary: true, // 是否展示合计
+      isFirstActivated: true, // keep-alive 首次激活标记，避免与初始化请求重复
     }
   },
   methods: {
@@ -811,6 +812,17 @@ export default {
       'resize',
       debounce(() => this.getMaxSize(), 500)
     )
+  },
+  // 页面被 keep-alive 缓存后，切换标签/菜单回来时只会触发 activated，
+  // 不会重新 mounted，这里统一重新拉一次列表数据，无需手动点刷新。
+  activated() {
+    // 首次激活紧跟在初始化请求之后，跳过以避免重复请求
+    if (this.isFirstActivated) {
+      this.isFirstActivated = false
+      return
+    }
+    // 保留当前搜索条件与分页，只重新请求数据
+    this.columns.length ? this.getList() : this.onRefresh()
   },
   beforeDestroy() {
     this.observer && this.observer.disconnect()
