@@ -38,6 +38,11 @@ class EldoradoClient
      *
      * @throws \RuntimeException 获取失败时抛出
      */
+    /**
+     * 获取完整的 Authorization 头值（tokenType + ' ' + accessToken），优先读缓存
+     *
+     * @throws \RuntimeException 获取失败时抛出
+     */
     public function getAccessToken(): string
     {
         $cacheKey = 'eldorado_access_token_' . $this->account->id;
@@ -51,7 +56,7 @@ class EldoradoClient
     }
 
     /**
-     * 强制刷新 access_token（不读缓存），并记录调用日志
+     * 强制刷新并返回完整的 Authorization 头值（tokenType + ' ' + accessToken），并记录调用日志
      *
      * @throws \RuntimeException 刷新失败时抛出
      */
@@ -73,8 +78,8 @@ class EldoradoClient
             $json = json_decode($body, true) ?? [];
             $duration = (int) ((microtime(true) - $start) * 1000);
 
-            // 平台返回字段为 accessToken（驼峰）
             $accessToken = $json['accessToken'] ?? '';
+            $tokenType   = $json['tokenType']   ?? 'Bearer';
             $success     = $accessToken !== '';
 
             $this->log(
@@ -92,7 +97,8 @@ class EldoradoClient
                     'Eldorado token 获取失败: ' . $this->extractError($json)
                 );
             }
-            return $accessToken;
+            // 返回完整的 Authorization 头值，tokenType 由平台响应决定
+            return $tokenType . ' ' . $accessToken;
         } catch (GuzzleException $e) {
             $duration = (int) ((microtime(true) - $start) * 1000);
             $this->log(GameAccountApiLog::TYPE_REFRESH_TOKEN, $url, $this->maskSensitive($requestData), null, false, $e->getMessage(), $duration);
@@ -110,7 +116,6 @@ class EldoradoClient
      */
     public function updatePrice(string $offerId, float $price, int $gameProductId = 0): array
     {
-        $accessToken = $this->getAccessToken();
         $url         = '/api/v1/currency-management/me/offers/' . $offerId . '/change-price';
         $requestData = [
             'amount'   => $price,
@@ -121,7 +126,7 @@ class EldoradoClient
         try {
             $res  = $this->http->put($url, [
                 'headers' => [
-                    'Authorization' => 'Bearer ' . $accessToken,
+                    'Authorization' => $this->getAccessToken(),
                     'Content-Type'  => 'application/json',
                     'Accept'        => 'application/json',
                 ],
@@ -157,6 +162,10 @@ class EldoradoClient
                 $respBody = (string) $e->getResponse()->getBody();
                 $respJson = json_decode($respBody, true);
                 $errMsg   = $this->extractError($respJson, $e->getMessage());
+                // 429 限流：清掉缓存 token，避免下次调用仍用旧 token 触发同样错误
+                if ($e->getResponse()->getStatusCode() === 429) {
+                    cache('eldorado_access_token_' . $this->account->id, null);
+                }
             }
             $this->log(GameAccountApiLog::TYPE_UPDATE_PRICE, $url, $requestData, $respJson, false, $errMsg, $duration, $gameProductId);
             throw new \RuntimeException('Eldorado 改价失败: ' . $errMsg);
@@ -191,14 +200,19 @@ class EldoradoClient
     }
 
     /**
-     * 从响应体中提取可读错误信息，兼容 message 字符串和 messages 数组两种格式
+     * 从响应体中提取可读错误信息，兼容 message 字符串和 messages 数组两种格式。
+     * 429 限流统一返回友好提示。
      */
     private function extractError(?array $json, string $fallback = '未知错误'): string
     {
         if (!$json) {
             return $fallback;
         }
-        // messages 数组格式（如 429 限流）
+        // 429 限流：统一返回友好提示
+        if (($json['code'] ?? 0) === 429) {
+            return 'ELD改价太频繁，请5分钟后尝试';
+        }
+        // messages 数组格式
         if (!empty($json['messages']) && is_array($json['messages'])) {
             $msg = $json['messages'][0] ?? '';
             return is_string($msg) ? $msg : ($msg['text'] ?? $fallback);

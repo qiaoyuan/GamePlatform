@@ -14,6 +14,7 @@ use think\model\relation\BelongsTo;
  * @property string $name     任务名称
  * @property string $url      目标链接
  * @property string $category 产品分类
+ * @property int    $crawl_interval 爬取间隔（分钟），0=不限；ELD 建议 5
  * @property int    $status   状态 0-停用 1-启用
  * @property string $last_crawl_at 最后爬取时间
  * @property string $created_at
@@ -26,7 +27,7 @@ class CrawlTarget extends Base
     protected $pk    = 'id';
 
     /** @var string[] */
-    protected $field = ['id', 'game_product_id', 'version', 'name', 'url', 'category', 'status', 'last_crawl_at', 'created_at', 'updated_at', 'deleted_at'];
+    protected $field = ['id', 'game_product_id', 'version', 'name', 'url', 'category', 'crawl_interval', 'status', 'last_crawl_at', 'created_at', 'updated_at', 'deleted_at'];
 
     /** @var array<string, string> */
     protected $type = [
@@ -36,6 +37,7 @@ class CrawlTarget extends Base
         'name'           => 'string',
         'url'           => 'string',
         'category'      => 'string',
+        'crawl_interval' => 'int',
         'status'        => 'int',
         'last_crawl_at' => 'string',
         'created_at'    => 'string',

@@ -28,7 +28,7 @@ export default {
     open(row) {
       this.setForm(row)
     },
-    setForm({ id, name, url, category, status, game_product_id, game_product_name, version }) {
+    setForm({ id, name, url, category, crawl_interval, status, game_product_id, game_product_name, version }) {
       this.form = {
         name: { label: '任务名称', value: name, rules: [{ required: true, message: '请输入任务名称', trigger: 'blur' }] },
         version: {
@@ -55,10 +55,20 @@ export default {
           value: category || '物品',
           formType: 'select',
           options: [
-            { label: 'G2G物品', value: '物品' },
+            { label: 'G2G物品',   value: '物品' },
             { label: 'G2G游戏币', value: '游戏币' },
+            { label: 'ELD物品',   value: 'ELD物品' },
+            { label: 'ELD游戏币', value: 'ELD游戏币' },
           ],
           rules: [{ required: true, message: '请选择产品分类', trigger: 'change' }],
+        },
+        crawl_interval: {
+          label: '爬取间隔(分钟)',
+          value: crawl_interval ?? (String(category).startsWith('ELD') ? 5 : 0),
+          formType: 'number',
+          attrs: { min: 0, step: 1 },
+          required: false,
+          tip: '0=不限制；ELD 建议设为 5（平台每 5 分钟限改价两次）',
         },
         status: { label: '状态', value: status ?? 1, formType: 'status' },
       }

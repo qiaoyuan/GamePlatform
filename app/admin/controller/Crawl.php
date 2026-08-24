@@ -34,6 +34,7 @@ class Crawl extends BaseController
             ['v' => 'version',         'label' => '数据版本',   'width' => 90, 'search' => 'version', 'searchType' => 'match', 'sort' => 'version'],
             ['v' => 'url',           'label' => '目标链接',   'width' => 300, 'searchType' => 'like'],
             ['v' => 'category_name',  'label' => '产品分类',   'width' => 120, 'search' => 'category', 'searchType' => 'multiple', 'searchList' => CrawlTargetModel::getCategoryList(), 'sort' => 'category'],
+            ['v' => 'crawl_interval',  'label' => '爬取间隔(分钟)', 'width' => 120, 'search' => false],
             ['v' => 'status',          'label' => '状态',       'render' => 'status', 'sort' => 'status'],
             ['v' => 'last_crawl_at',   'label' => '最后爬取时间', 'width' => 160, 'searchType' => 'daterange', 'sort' => 'last_crawl_at'],
             ['v' => 'created_at',    'label' => '创建时间',   'width' => 160, 'searchType' => 'daterange', 'sort' => 'created_at'],

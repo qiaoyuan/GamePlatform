@@ -16,7 +16,7 @@ use think\facade\Log;
  *
  * 架构：Python 爬虫把竞品数据写入 crawl_data，并写一条 crawl_notify 通知；
  *       PHP 用 price:strategy:consume 命令消费通知，执行绑定该竞品池的策略，
- *       算出出价后复用 GameProductPriceService::change() 调 G2G 改价（改价在 PHP 侧）。
+ *       算出出价后复用 GameProductPriceService::change() 调平台接口改价（改价在 PHP 侧）。
  *
  * 职责：
  * 1. 读取策略的维度配置(config.dimensions)，首期支持 type=lowest（跟竞品最低价）。
@@ -348,7 +348,7 @@ class PriceStrategyService
             return [PriceStrategyLog::STATUS_SKIP, $current, $lowest, '出价与现价一致，无需改价；' . $competitorContext, $competitorId];
         }
 
-        // 5. 应用改价（复用与手动改价相同的内部逻辑，改价在 PHP 侧调 G2G）
+        // 5. 应用改价（按产品关联账号的平台路由到对应客户端）
         try {
             GameProductPriceService::change($product, $bid);
             return [PriceStrategyLog::STATUS_SUCCESS, $bid, $lowest, '改价成功；' . $competitorContext, $competitorId];
