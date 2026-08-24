@@ -34,13 +34,14 @@ class DataClean extends Base
     protected function configure(): void
     {
         $this->setName('data:clean')
+            ->addArgument('days', \think\console\input\Argument::OPTIONAL, '保留天数，默认 7', '7')
             ->setDescription('清理过期爬虫数据（crawl_data / price_strategy_log / crawl_notify）');
     }
 
     protected function execute(Input $input, Output $output): void
     {
         // 支持从命令行参数覆盖保留天数，不传则默认 7 天
-        $days = (int) ($input->hasArgument('action') ? $input->getArgument('action') : 0);
+        $days = (int) $input->getArgument('days');
         if ($days <= 0) {
             $days = 7;
         }
