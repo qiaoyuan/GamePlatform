@@ -9,7 +9,7 @@ use think\model\relation\BelongsTo;
  * @property int $game_account_id 关联游戏账号id
  * @property string $product_id 产品ID(自有)
  * @property string $title 产品名称
- * @property int $platform 平台 1:G2G
+ * @property int $platform 平台 1:G2G 2:Eldorado
  * @property float $price 价格
  * @property int $stock 库存
  * @property string $currency 货币

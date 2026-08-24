@@ -1,0 +1,237 @@
+<?php
+declare(strict_types=1);
+
+namespace app\common\service;
+
+use app\common\model\GameAccount;
+use app\common\model\GameAccountApiLog;
+use GuzzleHttp\Client;
+use GuzzleHttp\Exception\GuzzleException;
+
+/**
+ * Eldorado 平台 API 客户端
+ *
+ * 认证：POST /api/authentication/seller/token
+ *   body JSON: {"clientId":"...","clientSecret":"..."}
+ *   返回:  {"accessToken":"...","expiresIn":899,"tokenType":"Bearer"}
+ *
+ * 改价：PUT /api/v1/currency-management/me/offers/{offerId}/change-price
+ *   header: Authorization: Bearer {accessToken}
+ *   body JSON: {"amount": 0.04, "currency": "USD"}
+ */
+class EldoradoClient
+{
+    private GameAccount $account;
+    private Client $http;
+
+    public function __construct(GameAccount $account)
+    {
+        $this->account = $account;
+        $this->http = new Client([
+            'base_uri' => config('eldorado.base_uri', 'https://www.eldorado.gg'),
+            'timeout'  => config('eldorado.timeout', 15),
+        ]);
+    }
+
+    /**
+     * 获取 access_token（优先读缓存，按账号 id 隔离缓存 key）
+     *
+     * @throws \RuntimeException 获取失败时抛出
+     */
+    public function getAccessToken(): string
+    {
+        $cacheKey = 'eldorado_access_token_' . $this->account->id;
+        $token = cache($cacheKey);
+        if ($token) {
+            return $token;
+        }
+        $token = $this->refreshAccessToken();
+        cache($cacheKey, $token, config('eldorado.token_cache_ttl', 800));
+        return $token;
+    }
+
+    /**
+     * 强制刷新 access_token（不读缓存），并记录调用日志
+     *
+     * @throws \RuntimeException 刷新失败时抛出
+     */
+    public function refreshAccessToken(): string
+    {
+        $url   = '/api/authentication/seller/token';
+        $requestData = [
+            'clientId'     => $this->account->client_id,
+            'clientSecret' => $this->account->client_secret,
+        ];
+        $start = microtime(true);
+
+        try {
+            $res  = $this->http->post($url, [
+                'headers' => ['Content-Type' => 'application/json', 'Accept' => 'application/json'],
+                'json'    => $requestData,
+            ]);
+            $body = (string) $res->getBody();
+            $json = json_decode($body, true) ?? [];
+            $duration = (int) ((microtime(true) - $start) * 1000);
+
+            // 平台返回字段为 accessToken（驼峰）
+            $accessToken = $json['accessToken'] ?? '';
+            $success     = $accessToken !== '';
+
+            $this->log(
+                GameAccountApiLog::TYPE_REFRESH_TOKEN,
+                $url,
+                $this->maskSensitive($requestData),
+                $json,
+                $success,
+                $success ? '' : $this->extractError($json, 'token 获取失败'),
+                $duration
+            );
+
+            if (!$success) {
+                throw new \RuntimeException(
+                    'Eldorado token 获取失败: ' . $this->extractError($json)
+                );
+            }
+            return $accessToken;
+        } catch (GuzzleException $e) {
+            $duration = (int) ((microtime(true) - $start) * 1000);
+            $this->log(GameAccountApiLog::TYPE_REFRESH_TOKEN, $url, $this->maskSensitive($requestData), null, false, $e->getMessage(), $duration);
+            throw new \RuntimeException('Eldorado token 请求异常: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * 改价
+     *
+     * @param string $offerId       Eldorado 平台 offer ID（即 product_id）
+     * @param float  $price         新价格（USD）
+     * @param int    $gameProductId 本地产品 ID（仅用于日志关联）
+     * @throws \RuntimeException 改价失败时抛出
+     */
+    public function updatePrice(string $offerId, float $price, int $gameProductId = 0): array
+    {
+        $accessToken = $this->getAccessToken();
+        $url         = '/api/v1/currency-management/me/offers/' . $offerId . '/change-price';
+        $requestData = [
+            'amount'   => $price,
+            'currency' => 'USD',
+        ];
+        $start = microtime(true);
+
+        try {
+            $res  = $this->http->put($url, [
+                'headers' => [
+                    'Authorization' => 'Bearer ' . $accessToken,
+                    'Content-Type'  => 'application/json',
+                    'Accept'        => 'application/json',
+                ],
+                'json' => $requestData,
+            ]);
+            $body = (string) $res->getBody();
+            $json = json_decode($body, true) ?? [];
+            $duration = (int) ((microtime(true) - $start) * 1000);
+
+            $statusCode = $res->getStatusCode();
+            $success    = $statusCode >= 200 && $statusCode < 300;
+
+            $this->log(
+                GameAccountApiLog::TYPE_UPDATE_PRICE,
+                $url,
+                $requestData,
+                $json,
+                $success,
+                $success ? '' : $this->extractError($json, '改价失败'),
+                $duration,
+                $gameProductId
+            );
+
+            if (!$success) {
+                throw new \RuntimeException('Eldorado 改价失败: ' . $this->extractError($json));
+            }
+            return $json;
+        } catch (GuzzleException $e) {
+            $duration = (int) ((microtime(true) - $start) * 1000);
+            $respJson = null;
+            $errMsg   = $e->getMessage();
+            if ($e instanceof \GuzzleHttp\Exception\RequestException && $e->hasResponse()) {
+                $respBody = (string) $e->getResponse()->getBody();
+                $respJson = json_decode($respBody, true);
+                $errMsg   = $this->extractError($respJson, $e->getMessage());
+            }
+            $this->log(GameAccountApiLog::TYPE_UPDATE_PRICE, $url, $requestData, $respJson, false, $errMsg, $duration, $gameProductId);
+            throw new \RuntimeException('Eldorado 改价失败: ' . $errMsg);
+        }
+    }
+
+    /**
+     * 记录调用日志
+     */
+    private function log(
+        string $type,
+        string $url,
+        array  $requestData,
+        ?array $responseData,
+        bool   $success,
+        string $errorMsg,
+        int    $durationMs,
+        int    $gameProductId = 0
+    ): void {
+        GameAccountApiLog::record([
+            'game_account_id' => $this->account->id,
+            'game_product_id' => $gameProductId,
+            'type'            => $type,
+            'request_url'     => config('eldorado.base_uri', 'https://www.eldorado.gg') . $url,
+            'request_data'    => $requestData,
+            'response_data'   => $responseData ? $this->maskSensitive($responseData) : [],
+            'status'          => $success ? GameAccountApiLog::STATUS_SUCCESS : GameAccountApiLog::STATUS_FAIL,
+            'error_msg'       => mb_substr($errorMsg, 0, 500),
+            'duration_ms'     => $durationMs,
+            'created_at'      => dateNow(),
+        ]);
+    }
+
+    /**
+     * 从响应体中提取可读错误信息，兼容 message 字符串和 messages 数组两种格式
+     */
+    private function extractError(?array $json, string $fallback = '未知错误'): string
+    {
+        if (!$json) {
+            return $fallback;
+        }
+        // messages 数组格式（如 429 限流）
+        if (!empty($json['messages']) && is_array($json['messages'])) {
+            $msg = $json['messages'][0] ?? '';
+            return is_string($msg) ? $msg : ($msg['text'] ?? $fallback);
+        }
+        // message 字符串格式
+        if (!empty($json['message']) && is_string($json['message'])) {
+            return $json['message'];
+        }
+        return $fallback;
+    }
+
+    /**
+     * 递归脱敏：token / secret 类字段只保留首尾各 4 位；跳过非字符串 key（数字索引数组）
+     */
+    private function maskSensitive(array $data): array
+    {
+        $sensitiveKeys = ['accesstoken', 'client_secret', 'clientsecret', 'authorization'];
+        foreach ($data as $key => $value) {
+            if (is_array($value)) {
+                $data[$key] = $this->maskSensitive($value);
+            } elseif (is_string($key) && is_string($value) && in_array(strtolower($key), $sensitiveKeys, true)) {
+                $data[$key] = $this->maskToken($value);
+            }
+        }
+        return $data;
+    }
+
+    private function maskToken(string $token): string
+    {
+        $len = strlen($token);
+        if ($len <= 8) {
+            return str_repeat('*', $len);
+        }
+        return substr($token, 0, 4) . '***' . substr($token, -4);
+    }
+}

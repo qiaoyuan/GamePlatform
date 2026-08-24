@@ -15,10 +15,10 @@ class GameAccount extends BaseController
             ['v' => 'id',                  'label' => 'ID',         'width' => 80,  'searchType' => 'number',    'sort' => 'id'],
             ['v' => 'user_id',             'label' => '用户ID',      'width' => 120, 'searchType' => 'like',      'sort' => 'user_id'],
             ['v' => 'account_name',        'label' => '账号名称',    'width' => 120, 'searchType' => 'like',      'sort' => 'account_name'],
-            ['v' => 'platform',            'label' => '平台',        'width' => 80,  'searchType' => 'match',     'sort' => 'platform'],
-            ['v' => 'active_device_token', 'label' => '设备令牌',    'width' => 200, 'hidden' => true],
-            ['v' => 'long_lived_token',    'label' => '长期令牌',    'width' => 200, 'hidden' => true],
-            ['v' => 'refresh_token',       'label' => '刷新令牌',    'width' => 200, 'hidden' => true],
+            ['v' => 'platform_name', 'label' => '平台', 'width' => 90, 'search' => 'platform', 'searchType' => 'multiple', 'searchList' => GameAccountModel::getPlatformList(), 'sort' => 'platform'],
+            ['v' => 'active_device_token', 'label' => '设备令牌',    'width' => 200, 'disabled' => true],
+            ['v' => 'long_lived_token',    'label' => '长期令牌',    'width' => 200, 'disabled' => true],
+            ['v' => 'refresh_token',       'label' => '刷新令牌',    'width' => 200, 'disabled' => true],
             ['v' => 'status',              'label' => '状态',        'width' => 80,  'searchType' => 'match',     'sort' => 'status'],
             ['v' => 'created_at',          'label' => '创建时间',    'width' => 160, 'searchType' => 'daterange', 'sort' => 'created_at'],
             ['v' => 'updated_at',          'label' => '更新时间',    'width' => 160, 'sort' => 'updated_at'],
@@ -35,7 +35,8 @@ class GameAccount extends BaseController
             ->selectData();
         if (!is_numeric($lists)) {
             $lists->each(function (GameAccountModel $item) {
-                $item->status_name = GameAccountModel::$STATUS_MAP[$item->status] ?? '';
+                $item->status_name   = GameAccountModel::$STATUS_MAP[$item->status]   ?? '';
+                $item->platform_name = GameAccountModel::$PLATFORM_MAP[$item->platform] ?? $item->platform;
             });
         }
         $this->success('', [
@@ -85,12 +86,12 @@ class GameAccount extends BaseController
     }
 
     /**
-     * 编辑
+     * 编辑（platform 不可改，排除后不参与校验）
      */
     #[Permission(title: '编辑账号')]
     public function edit(): void
     {
-        $this->mEdit(GameAccountModel::class);
+        $this->mEdit(GameAccountModel::class, ['except' => ['platform']]);
     }
 
     /**

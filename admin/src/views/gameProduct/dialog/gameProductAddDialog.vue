@@ -35,7 +35,7 @@ export default {
           label: '平台',
           value: platform || 1,
           formType: 'select',
-          options: [{ label: 'G2G', value: 1 }],
+          options: [{ label: 'G2G', value: 1 }, { label: 'Eldorado', value: 2 }],
         },
         // 新增时价格可填写初始值；编辑已有产品时价格只读，修改须用列表「改价」按钮（会同步 G2G 平台）
         price: id

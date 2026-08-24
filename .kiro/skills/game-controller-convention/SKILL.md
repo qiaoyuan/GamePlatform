@@ -71,6 +71,7 @@ description: 游戏数据平台 Controller 开发规范。当新增/修改 app/a
 - `searchList`：下拉数据源，可为接口路径字符串（如 `/gameAccount/select`）或数组 `[{label, value}]`。
 - `render`：前端渲染方式，如 `image`、`status`、`boolean`。
 - `replace`：`true` 时用 `searchList` 的映射替换显示值。
+- `disabled`：`true` 时列初始不显示（用户可通过列配置手动开启）。**注意：`hidden` 键无效，必须用 `disabled: true` 才能控制列的初始隐藏。**
 
 时间列固定写法：
 ```php

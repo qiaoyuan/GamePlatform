@@ -49,18 +49,26 @@ class CrawlTarget extends Base
     const CATEGORY_ITEM = '物品';
     /** G2G 游戏币分类 */
     const CATEGORY_CURRENCY = '游戏币';
+    /** Eldorado 物品分类 */
+    const CATEGORY_ELD_ITEM = 'ELD物品';
+    /** Eldorado 游戏币分类 */
+    const CATEGORY_ELD_CURRENCY = 'ELD游戏币';
 
     /** @var array<string, string> 产品分类显示文案 */
     public static $CATEGORY_MAP = [
-        self::CATEGORY_ITEM     => 'G2G物品',
-        self::CATEGORY_CURRENCY => 'G2G游戏币',
+        self::CATEGORY_ITEM         => 'G2G物品',
+        self::CATEGORY_CURRENCY     => 'G2G游戏币',
+        self::CATEGORY_ELD_ITEM     => 'ELD物品',
+        self::CATEGORY_ELD_CURRENCY => 'ELD游戏币',
     ];
 
     public static function getCategoryList(): array
     {
         return [
-            ['value' => self::CATEGORY_ITEM, 'label' => 'G2G物品'],
-            ['value' => self::CATEGORY_CURRENCY, 'label' => 'G2G游戏币'],
+            ['value' => self::CATEGORY_ITEM,         'label' => 'G2G物品'],
+            ['value' => self::CATEGORY_CURRENCY,     'label' => 'G2G游戏币'],
+            ['value' => self::CATEGORY_ELD_ITEM,     'label' => 'ELD物品'],
+            ['value' => self::CATEGORY_ELD_CURRENCY, 'label' => 'ELD游戏币'],
         ];
     }
 
