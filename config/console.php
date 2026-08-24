@@ -10,6 +10,7 @@ use app\common\command\Validate;
 use app\common\command\Permission;
 use app\common\command\PriceStrategyRun;
 use app\common\command\PriceStrategyConsume;
+use app\common\command\DataClean;
 use app\common\command\View;
 
 return [
@@ -24,5 +25,6 @@ return [
         'domain' => Domain::class,
         'price:strategy:run' => PriceStrategyRun::class,
         'price:strategy:consume' => PriceStrategyConsume::class,
+        'data:clean'             => DataClean::class,
     ],
 ];
