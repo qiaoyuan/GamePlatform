@@ -1,359 +1,1006 @@
 <?php
 
-/*
- * This file is part of Composer.
- *
- * (c) Nils Adermann <naderman@naderman.de>
- *     Jordi Boggiano <j.boggiano@seld.be>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
- */
+
+
+
+
+
+
+
+
+
 
 namespace Composer;
 
 use Composer\Autoload\ClassLoader;
 use Composer\Semver\VersionParser;
 
-/**
- * This class is copied in every Composer installed project and available to all
- *
- * See also https://getcomposer.org/doc/07-runtime.md#installed-versions
- *
- * To require its presence, you can require `composer-runtime-api ^2.0`
- *
- * @final
- */
+
+
+
+
+
+
+
 class InstalledVersions
 {
-    /**
-     * @var mixed[]|null
-     * @psalm-var array{root: array{name: string, pretty_version: string, version: string, reference: string|null, type: string, install_path: string, aliases: string[], dev: bool}, versions: array<string, array{pretty_version?: string, version?: string, reference?: string|null, type?: string, install_path?: string, aliases?: string[], dev_requirement: bool, replaced?: string[], provided?: string[]}>}|array{}|null
-     */
-    private static $installed;
+private static $installed = array (
+  'root' => 
+  array (
+    'pretty_version' => 'dev-master',
+    'version' => 'dev-master',
+    'aliases' => 
+    array (
+    ),
+    'reference' => '460b20b06e6387619d5b92743dbf0b4645bb7d3a',
+    'name' => 'aaron/base',
+  ),
+  'versions' => 
+  array (
+    'aaron/base' => 
+    array (
+      'pretty_version' => 'dev-master',
+      'version' => 'dev-master',
+      'aliases' => 
+      array (
+      ),
+      'reference' => '460b20b06e6387619d5b92743dbf0b4645bb7d3a',
+    ),
+    'aferrandini/phpqrcode' => 
+    array (
+      'pretty_version' => '1.0.1',
+      'version' => '1.0.1.0',
+      'aliases' => 
+      array (
+      ),
+      'reference' => '3c1c0454d43710ab5bbe19a51ad4cb41c22e3d46',
+    ),
+    'bacon/bacon-qr-code' => 
+    array (
+      'pretty_version' => 'v3.0.0',
+      'version' => '3.0.0.0',
+      'aliases' => 
+      array (
+      ),
+      'reference' => '510de6eca6248d77d31b339d62437cc995e2fb41',
+    ),
+    'cache/adapter-common' => 
+    array (
+      'pretty_version' => '1.3.0',
+      'version' => '1.3.0.0',
+      'aliases' => 
+      array (
+      ),
+      'reference' => '8788309be72aa7be69b88cdc0687549c74a7d479',
+    ),
+    'cache/hierarchical-cache' => 
+    array (
+      'pretty_version' => '1.2.0',
+      'version' => '1.2.0.0',
+      'aliases' => 
+      array (
+      ),
+      'reference' => 'dedffd0a74f72c1db76e57ce29885836944e27f3',
+    ),
+    'cache/redis-adapter' => 
+    array (
+      'pretty_version' => '1.2.0',
+      'version' => '1.2.0.0',
+      'aliases' => 
+      array (
+      ),
+      'reference' => '558fd52bd813930c8e6dc83ffd8044ad1abec242',
+    ),
+    'cache/simple-cache-bridge' => 
+    array (
+      'pretty_version' => '1.2.0',
+      'version' => '1.2.0.0',
+      'aliases' => 
+      array (
+      ),
+      'reference' => '63c0179d9afeb34ed383870a64d19eb9a3fea0c1',
+    ),
+    'cache/tag-interop' => 
+    array (
+      'pretty_version' => '1.1.0',
+      'version' => '1.1.0.0',
+      'aliases' => 
+      array (
+      ),
+      'reference' => 'b062b1d735357da50edf8387f7a8696f3027d328',
+    ),
+    'carbonphp/carbon-doctrine-types' => 
+    array (
+      'pretty_version' => '3.2.0',
+      'version' => '3.2.0.0',
+      'aliases' => 
+      array (
+      ),
+      'reference' => '18ba5ddfec8976260ead6e866180bd5d2f71aa1d',
+    ),
+    'dasprid/enum' => 
+    array (
+      'pretty_version' => '1.0.6',
+      'version' => '1.0.6.0',
+      'aliases' => 
+      array (
+      ),
+      'reference' => '8dfd07c6d2cf31c8da90c53b83c026c7696dda90',
+    ),
+    'easywechat-composer/easywechat-composer' => 
+    array (
+      'pretty_version' => '1.4.1',
+      'version' => '1.4.1.0',
+      'aliases' => 
+      array (
+      ),
+      'reference' => '3fc6a7ab6d3853c0f4e2922539b56cc37ef361cd',
+    ),
+    'endroid/qr-code' => 
+    array (
+      'pretty_version' => '5.0.9',
+      'version' => '5.0.9.0',
+      'aliases' => 
+      array (
+      ),
+      'reference' => '3dcdfab4c9122874f3915d8bf80a43b9df11852d',
+    ),
+    'ezyang/htmlpurifier' => 
+    array (
+      'pretty_version' => 'v4.16.0',
+      'version' => '4.16.0.0',
+      'aliases' => 
+      array (
+      ),
+      'reference' => '523407fb06eb9e5f3d59889b3978d5bfe94299c8',
+    ),
+    'guzzlehttp/guzzle' => 
+    array (
+      'pretty_version' => '7.8.1',
+      'version' => '7.8.1.0',
+      'aliases' => 
+      array (
+      ),
+      'reference' => '41042bc7ab002487b876a0683fc8dce04ddce104',
+    ),
+    'guzzlehttp/promises' => 
+    array (
+      'pretty_version' => '2.0.2',
+      'version' => '2.0.2.0',
+      'aliases' => 
+      array (
+      ),
+      'reference' => 'bbff78d96034045e58e13dedd6ad91b5d1253223',
+    ),
+    'guzzlehttp/psr7' => 
+    array (
+      'pretty_version' => '2.6.2',
+      'version' => '2.6.2.0',
+      'aliases' => 
+      array (
+      ),
+      'reference' => '45b30f99ac27b5ca93cb4831afe16285f57b8221',
+    ),
+    'hyperf/context' => 
+    array (
+      'pretty_version' => 'v3.1.31',
+      'version' => '3.1.31.0',
+      'aliases' => 
+      array (
+      ),
+      'reference' => '2e6156b70cee08e2c082e191753077177c0c023e',
+    ),
+    'hyperf/contract' => 
+    array (
+      'pretty_version' => 'v3.1.38',
+      'version' => '3.1.38.0',
+      'aliases' => 
+      array (
+      ),
+      'reference' => '08e40b72563c7ef954095455e7e72bd8350fc9c3',
+    ),
+    'hyperf/engine' => 
+    array (
+      'pretty_version' => 'v2.11.0',
+      'version' => '2.11.0.0',
+      'aliases' => 
+      array (
+      ),
+      'reference' => '26e0b65fc2a63a00266e7124e221c6f3fb2c8e95',
+    ),
+    'hyperf/engine-contract' => 
+    array (
+      'pretty_version' => 'v1.10.1',
+      'version' => '1.10.1.0',
+      'aliases' => 
+      array (
+      ),
+      'reference' => '2714a8ba6d6b916e5bd373ff680df9569a4c9eef',
+    ),
+    'hyperf/pimple' => 
+    array (
+      'pretty_version' => 'v2.2.2',
+      'version' => '2.2.2.0',
+      'aliases' => 
+      array (
+      ),
+      'reference' => '7bd07745c256b83679471c06ec2a11e901d37277',
+    ),
+    'illuminate/container' => 
+    array (
+      'pretty_version' => 'v11.22.0',
+      'version' => '11.22.0.0',
+      'aliases' => 
+      array (
+      ),
+      'reference' => '85e3396fde3139eae3f37128222c9a7746ca4bbb',
+    ),
+    'illuminate/contracts' => 
+    array (
+      'pretty_version' => 'v11.22.0',
+      'version' => '11.22.0.0',
+      'aliases' => 
+      array (
+      ),
+      'reference' => 'af9b459f195d57f279ec30a45446ddaeb3337bcb',
+    ),
+    'lcobucci/clock' => 
+    array (
+      'pretty_version' => '3.2.0',
+      'version' => '3.2.0.0',
+      'aliases' => 
+      array (
+      ),
+      'reference' => '6f28b826ea01306b07980cb8320ab30b966cd715',
+    ),
+    'lcobucci/jwt' => 
+    array (
+      'pretty_version' => '5.3.0',
+      'version' => '5.3.0.0',
+      'aliases' => 
+      array (
+      ),
+      'reference' => '08071d8d2c7f4b00222cc4b1fb6aa46990a80f83',
+    ),
+    'league/flysystem' => 
+    array (
+      'pretty_version' => '2.5.0',
+      'version' => '2.5.0.0',
+      'aliases' => 
+      array (
+      ),
+      'reference' => '8aaffb653c5777781b0f7f69a5d937baf7ab6cdb',
+    ),
+    'league/mime-type-detection' => 
+    array (
+      'pretty_version' => '1.15.0',
+      'version' => '1.15.0.0',
+      'aliases' => 
+      array (
+      ),
+      'reference' => 'ce0f4d1e8a6f4eb0ddff33f57c69c50fd09f4301',
+    ),
+    'maennchen/zipstream-php' => 
+    array (
+      'pretty_version' => '3.1.0',
+      'version' => '3.1.0.0',
+      'aliases' => 
+      array (
+      ),
+      'reference' => 'b8174494eda667f7d13876b4a7bfef0f62a7c0d1',
+    ),
+    'markbaker/complex' => 
+    array (
+      'pretty_version' => '3.0.2',
+      'version' => '3.0.2.0',
+      'aliases' => 
+      array (
+      ),
+      'reference' => '95c56caa1cf5c766ad6d65b6344b807c1e8405b9',
+    ),
+    'markbaker/matrix' => 
+    array (
+      'pretty_version' => '3.0.1',
+      'version' => '3.0.1.0',
+      'aliases' => 
+      array (
+      ),
+      'reference' => '728434227fe21be27ff6d86621a1b13107a2562c',
+    ),
+    'monolog/monolog' => 
+    array (
+      'pretty_version' => '3.7.0',
+      'version' => '3.7.0.0',
+      'aliases' => 
+      array (
+      ),
+      'reference' => 'f4393b648b78a5408747de94fca38beb5f7e9ef8',
+    ),
+    'nesbot/carbon' => 
+    array (
+      'pretty_version' => '2.72.4',
+      'version' => '2.72.4.0',
+      'aliases' => 
+      array (
+      ),
+      'reference' => '117671bd1a44c819b941dcd152bd0268466464e0',
+    ),
+    'overtrue/socialite' => 
+    array (
+      'pretty_version' => '4.11.1',
+      'version' => '4.11.1.0',
+      'aliases' => 
+      array (
+      ),
+      'reference' => 'de873dab83b8c0d6d94716b0c8c4dc0336d391af',
+    ),
+    'overtrue/wechat' => 
+    array (
+      'pretty_version' => '5.35.2',
+      'version' => '5.35.2.0',
+      'aliases' => 
+      array (
+      ),
+      'reference' => 'a9235a1d236a1892fccc989bd73008f2fe20094f',
+    ),
+    'phpoffice/phpspreadsheet' => 
+    array (
+      'pretty_version' => '1.29.0',
+      'version' => '1.29.0.0',
+      'aliases' => 
+      array (
+      ),
+      'reference' => 'fde2ccf55eaef7e86021ff1acce26479160a0fa0',
+    ),
+    'pimple/pimple' => 
+    array (
+      'pretty_version' => 'v3.5.0',
+      'version' => '3.5.0.0',
+      'aliases' => 
+      array (
+      ),
+      'reference' => 'a94b3a4db7fb774b3d78dad2315ddc07629e1bed',
+    ),
+    'psr/cache' => 
+    array (
+      'pretty_version' => '2.0.0',
+      'version' => '2.0.0.0',
+      'aliases' => 
+      array (
+      ),
+      'reference' => '213f9dbc5b9bfbc4f8db86d2838dc968752ce13b',
+    ),
+    'psr/cache-implementation' => 
+    array (
+      'provided' => 
+      array (
+        0 => '^1.0',
+        1 => '1.0|2.0',
+      ),
+    ),
+    'psr/clock' => 
+    array (
+      'pretty_version' => '1.0.0',
+      'version' => '1.0.0.0',
+      'aliases' => 
+      array (
+      ),
+      'reference' => 'e41a24703d4560fd0acb709162f73b8adfc3aa0d',
+    ),
+    'psr/clock-implementation' => 
+    array (
+      'provided' => 
+      array (
+        0 => '1.0',
+      ),
+    ),
+    'psr/container' => 
+    array (
+      'pretty_version' => '2.0.2',
+      'version' => '2.0.2.0',
+      'aliases' => 
+      array (
+      ),
+      'reference' => 'c71ecc56dfe541dbd90c5360474fbc405f8d5963',
+    ),
+    'psr/container-implementation' => 
+    array (
+      'provided' => 
+      array (
+        0 => '1.1|2.0',
+      ),
+    ),
+    'psr/event-dispatcher' => 
+    array (
+      'pretty_version' => '1.0.0',
+      'version' => '1.0.0.0',
+      'aliases' => 
+      array (
+      ),
+      'reference' => 'dbefd12671e8a14ec7f180cab83036ed26714bb0',
+    ),
+    'psr/event-dispatcher-implementation' => 
+    array (
+      'provided' => 
+      array (
+        0 => '1.0',
+      ),
+    ),
+    'psr/http-client' => 
+    array (
+      'pretty_version' => '1.0.3',
+      'version' => '1.0.3.0',
+      'aliases' => 
+      array (
+      ),
+      'reference' => 'bb5906edc1c324c9a05aa0873d40117941e5fa90',
+    ),
+    'psr/http-client-implementation' => 
+    array (
+      'provided' => 
+      array (
+        0 => '1.0',
+      ),
+    ),
+    'psr/http-factory' => 
+    array (
+      'pretty_version' => '1.0.2',
+      'version' => '1.0.2.0',
+      'aliases' => 
+      array (
+      ),
+      'reference' => 'e616d01114759c4c489f93b099585439f795fe35',
+    ),
+    'psr/http-factory-implementation' => 
+    array (
+      'provided' => 
+      array (
+        0 => '1.0',
+      ),
+    ),
+    'psr/http-message' => 
+    array (
+      'pretty_version' => '1.1',
+      'version' => '1.1.0.0',
+      'aliases' => 
+      array (
+      ),
+      'reference' => 'cb6ce4845ce34a8ad9e68117c10ee90a29919eba',
+    ),
+    'psr/http-message-implementation' => 
+    array (
+      'provided' => 
+      array (
+        0 => '1.0',
+      ),
+    ),
+    'psr/log' => 
+    array (
+      'pretty_version' => '3.0.0',
+      'version' => '3.0.0.0',
+      'aliases' => 
+      array (
+      ),
+      'reference' => 'fe5ea303b0887d5caefd3d431c3e61ad47037001',
+    ),
+    'psr/log-implementation' => 
+    array (
+      'provided' => 
+      array (
+        0 => '3.0.0',
+      ),
+    ),
+    'psr/simple-cache' => 
+    array (
+      'pretty_version' => '1.0.1',
+      'version' => '1.0.1.0',
+      'aliases' => 
+      array (
+      ),
+      'reference' => '408d5eafb83c57f6365a3ca330ff23aa4a5fa39b',
+    ),
+    'psr/simple-cache-implementation' => 
+    array (
+      'provided' => 
+      array (
+        0 => '^1.0',
+        1 => '1.0|2.0',
+      ),
+    ),
+    'ralouphie/getallheaders' => 
+    array (
+      'pretty_version' => '3.0.3',
+      'version' => '3.0.3.0',
+      'aliases' => 
+      array (
+      ),
+      'reference' => '120b605dfeb996808c31b6477290a714d356e822',
+    ),
+    'symfony/cache' => 
+    array (
+      'pretty_version' => 'v5.4.42',
+      'version' => '5.4.42.0',
+      'aliases' => 
+      array (
+      ),
+      'reference' => '6f5f750692bd5a212e01a4f1945fd856bceef89e',
+    ),
+    'symfony/cache-contracts' => 
+    array (
+      'pretty_version' => 'v2.5.3',
+      'version' => '2.5.3.0',
+      'aliases' => 
+      array (
+      ),
+      'reference' => 'fee6db04d913094e2fb55ff8e7db5685a8134463',
+    ),
+    'symfony/cache-implementation' => 
+    array (
+      'provided' => 
+      array (
+        0 => '1.0|2.0',
+      ),
+    ),
+    'symfony/deprecation-contracts' => 
+    array (
+      'pretty_version' => 'v3.3.0',
+      'version' => '3.3.0.0',
+      'aliases' => 
+      array (
+      ),
+      'reference' => '7c3aff79d10325257a001fcf92d991f24fc967cf',
+    ),
+    'symfony/event-dispatcher' => 
+    array (
+      'pretty_version' => 'v6.4.8',
+      'version' => '6.4.8.0',
+      'aliases' => 
+      array (
+      ),
+      'reference' => '8d7507f02b06e06815e56bb39aa0128e3806208b',
+    ),
+    'symfony/event-dispatcher-contracts' => 
+    array (
+      'pretty_version' => 'v3.5.0',
+      'version' => '3.5.0.0',
+      'aliases' => 
+      array (
+      ),
+      'reference' => '8f93aec25d41b72493c6ddff14e916177c9efc50',
+    ),
+    'symfony/event-dispatcher-implementation' => 
+    array (
+      'provided' => 
+      array (
+        0 => '2.0|3.0',
+      ),
+    ),
+    'symfony/http-foundation' => 
+    array (
+      'pretty_version' => 'v6.1.12',
+      'version' => '6.1.12.0',
+      'aliases' => 
+      array (
+      ),
+      'reference' => 'bd1bcfb0eba14de22c4d086c5023e608f37366ed',
+    ),
+    'symfony/polyfill-mbstring' => 
+    array (
+      'pretty_version' => 'v1.29.0',
+      'version' => '1.29.0.0',
+      'aliases' => 
+      array (
+      ),
+      'reference' => '9773676c8a1bb1f8d4340a62efe641cf76eda7ec',
+    ),
+    'symfony/polyfill-php73' => 
+    array (
+      'pretty_version' => 'v1.30.0',
+      'version' => '1.30.0.0',
+      'aliases' => 
+      array (
+      ),
+      'reference' => 'ec444d3f3f6505bb28d11afa41e75faadebc10a1',
+    ),
+    'symfony/polyfill-php80' => 
+    array (
+      'pretty_version' => 'v1.29.0',
+      'version' => '1.29.0.0',
+      'aliases' => 
+      array (
+      ),
+      'reference' => '87b68208d5c1188808dd7839ee1e6c8ec3b02f1b',
+    ),
+    'symfony/process' => 
+    array (
+      'pretty_version' => 'v7.1.1',
+      'version' => '7.1.1.0',
+      'aliases' => 
+      array (
+      ),
+      'reference' => 'febf90124323a093c7ee06fdb30e765ca3c20028',
+    ),
+    'symfony/service-contracts' => 
+    array (
+      'pretty_version' => 'v3.5.0',
+      'version' => '3.5.0.0',
+      'aliases' => 
+      array (
+      ),
+      'reference' => 'bd1d9e59a81d8fa4acdcea3f617c581f7475a80f',
+    ),
+    'symfony/translation' => 
+    array (
+      'pretty_version' => 'v6.4.8',
+      'version' => '6.4.8.0',
+      'aliases' => 
+      array (
+      ),
+      'reference' => 'a002933b13989fc4bd0b58e04bf7eec5210e438a',
+    ),
+    'symfony/translation-contracts' => 
+    array (
+      'pretty_version' => 'v3.4.1',
+      'version' => '3.4.1.0',
+      'aliases' => 
+      array (
+      ),
+      'reference' => '06450585bf65e978026bda220cdebca3f867fde7',
+    ),
+    'symfony/translation-implementation' => 
+    array (
+      'provided' => 
+      array (
+        0 => '2.3|3.0',
+      ),
+    ),
+    'symfony/var-exporter' => 
+    array (
+      'pretty_version' => 'v6.4.9',
+      'version' => '6.4.9.0',
+      'aliases' => 
+      array (
+      ),
+      'reference' => 'f9a060622e0d93777b7f8687ec4860191e16802e',
+    ),
+    'topthink/framework' => 
+    array (
+      'pretty_version' => 'v8.0.3',
+      'version' => '8.0.3.0',
+      'aliases' => 
+      array (
+      ),
+      'reference' => '5e59fb1e2bcb400c6f82e99d1a40dd058afc8563',
+    ),
+    'topthink/think-filesystem' => 
+    array (
+      'pretty_version' => 'v2.0.2',
+      'version' => '2.0.2.0',
+      'aliases' => 
+      array (
+      ),
+      'reference' => 'c08503232fcae0c3c7fefae5e6b5c841ffe09f2f',
+    ),
+    'topthink/think-helper' => 
+    array (
+      'pretty_version' => 'v3.1.6',
+      'version' => '3.1.6.0',
+      'aliases' => 
+      array (
+      ),
+      'reference' => '769acbe50a4274327162f9c68ec2e89a38eb2aff',
+    ),
+    'topthink/think-image' => 
+    array (
+      'pretty_version' => 'v1.0.7',
+      'version' => '1.0.7.0',
+      'aliases' => 
+      array (
+      ),
+      'reference' => '8586cf47f117481c6d415b20f7dedf62e79d5512',
+    ),
+    'topthink/think-multi-app' => 
+    array (
+      'pretty_version' => 'v1.0.17',
+      'version' => '1.0.17.0',
+      'aliases' => 
+      array (
+      ),
+      'reference' => '4055a6187296ac16c0bc7bbab4ed5d92f82f791c',
+    ),
+    'topthink/think-orm' => 
+    array (
+      'pretty_version' => 'v3.0.14',
+      'version' => '3.0.14.0',
+      'aliases' => 
+      array (
+      ),
+      'reference' => '7b0b8ea6ca5e020217f6ba7ae34d547e148a675b',
+    ),
+    'topthink/think-queue' => 
+    array (
+      'pretty_version' => 'v3.0.9',
+      'version' => '3.0.9.0',
+      'aliases' => 
+      array (
+      ),
+      'reference' => '654812b47dd7c708c4443deed27f212f8382e8da',
+    ),
+    'yansongda/artful' => 
+    array (
+      'pretty_version' => 'v1.1.1',
+      'version' => '1.1.1.0',
+      'aliases' => 
+      array (
+      ),
+      'reference' => '4118bce8a6cd506580dd36957c833ce222d0dc2e',
+    ),
+    'yansongda/pay' => 
+    array (
+      'pretty_version' => 'v3.7.9',
+      'version' => '3.7.9.0',
+      'aliases' => 
+      array (
+      ),
+      'reference' => '2ea20b79f1210f8a5538df6ae54bd6c574a46a33',
+    ),
+    'yansongda/supports' => 
+    array (
+      'pretty_version' => 'v4.0.10',
+      'version' => '4.0.10.0',
+      'aliases' => 
+      array (
+      ),
+      'reference' => '11cc73776e6d4d763a84c8c733f64820abdc44e5',
+    ),
+  ),
+);
+private static $canGetVendors;
+private static $installedByVendor = array();
 
-    /**
-     * @var bool|null
-     */
-    private static $canGetVendors;
 
-    /**
-     * @var array[]
-     * @psalm-var array<string, array{root: array{name: string, pretty_version: string, version: string, reference: string|null, type: string, install_path: string, aliases: string[], dev: bool}, versions: array<string, array{pretty_version?: string, version?: string, reference?: string|null, type?: string, install_path?: string, aliases?: string[], dev_requirement: bool, replaced?: string[], provided?: string[]}>}>
-     */
-    private static $installedByVendor = array();
 
-    /**
-     * Returns a list of all package names which are present, either by being installed, replaced or provided
-     *
-     * @return string[]
-     * @psalm-return list<string>
-     */
-    public static function getInstalledPackages()
-    {
-        $packages = array();
-        foreach (self::getInstalled() as $installed) {
-            $packages[] = array_keys($installed['versions']);
-        }
 
-        if (1 === \count($packages)) {
-            return $packages[0];
-        }
 
-        return array_keys(array_flip(\call_user_func_array('array_merge', $packages)));
-    }
 
-    /**
-     * Returns a list of all package names with a specific type e.g. 'library'
-     *
-     * @param  string   $type
-     * @return string[]
-     * @psalm-return list<string>
-     */
-    public static function getInstalledPackagesByType($type)
-    {
-        $packagesByType = array();
 
-        foreach (self::getInstalled() as $installed) {
-            foreach ($installed['versions'] as $name => $package) {
-                if (isset($package['type']) && $package['type'] === $type) {
-                    $packagesByType[] = $name;
-                }
-            }
-        }
+public static function getInstalledPackages()
+{
+$packages = array();
+foreach (self::getInstalled() as $installed) {
+$packages[] = array_keys($installed['versions']);
+}
 
-        return $packagesByType;
-    }
+if (1 === \count($packages)) {
+return $packages[0];
+}
 
-    /**
-     * Checks whether the given package is installed
-     *
-     * This also returns true if the package name is provided or replaced by another package
-     *
-     * @param  string $packageName
-     * @param  bool   $includeDevRequirements
-     * @return bool
-     */
-    public static function isInstalled($packageName, $includeDevRequirements = true)
-    {
-        foreach (self::getInstalled() as $installed) {
-            if (isset($installed['versions'][$packageName])) {
-                return $includeDevRequirements || !isset($installed['versions'][$packageName]['dev_requirement']) || $installed['versions'][$packageName]['dev_requirement'] === false;
-            }
-        }
+return array_keys(array_flip(\call_user_func_array('array_merge', $packages)));
+}
 
-        return false;
-    }
 
-    /**
-     * Checks whether the given package satisfies a version constraint
-     *
-     * e.g. If you want to know whether version 2.3+ of package foo/bar is installed, you would call:
-     *
-     *   Composer\InstalledVersions::satisfies(new VersionParser, 'foo/bar', '^2.3')
-     *
-     * @param  VersionParser $parser      Install composer/semver to have access to this class and functionality
-     * @param  string        $packageName
-     * @param  string|null   $constraint  A version constraint to check for, if you pass one you have to make sure composer/semver is required by your package
-     * @return bool
-     */
-    public static function satisfies(VersionParser $parser, $packageName, $constraint)
-    {
-        $constraint = $parser->parseConstraints((string) $constraint);
-        $provided = $parser->parseConstraints(self::getVersionRanges($packageName));
 
-        return $provided->matches($constraint);
-    }
 
-    /**
-     * Returns a version constraint representing all the range(s) which are installed for a given package
-     *
-     * It is easier to use this via isInstalled() with the $constraint argument if you need to check
-     * whether a given version of a package is installed, and not just whether it exists
-     *
-     * @param  string $packageName
-     * @return string Version constraint usable with composer/semver
-     */
-    public static function getVersionRanges($packageName)
-    {
-        foreach (self::getInstalled() as $installed) {
-            if (!isset($installed['versions'][$packageName])) {
-                continue;
-            }
 
-            $ranges = array();
-            if (isset($installed['versions'][$packageName]['pretty_version'])) {
-                $ranges[] = $installed['versions'][$packageName]['pretty_version'];
-            }
-            if (array_key_exists('aliases', $installed['versions'][$packageName])) {
-                $ranges = array_merge($ranges, $installed['versions'][$packageName]['aliases']);
-            }
-            if (array_key_exists('replaced', $installed['versions'][$packageName])) {
-                $ranges = array_merge($ranges, $installed['versions'][$packageName]['replaced']);
-            }
-            if (array_key_exists('provided', $installed['versions'][$packageName])) {
-                $ranges = array_merge($ranges, $installed['versions'][$packageName]['provided']);
-            }
 
-            return implode(' || ', $ranges);
-        }
 
-        throw new \OutOfBoundsException('Package "' . $packageName . '" is not installed');
-    }
 
-    /**
-     * @param  string      $packageName
-     * @return string|null If the package is being replaced or provided but is not really installed, null will be returned as version, use satisfies or getVersionRanges if you need to know if a given version is present
-     */
-    public static function getVersion($packageName)
-    {
-        foreach (self::getInstalled() as $installed) {
-            if (!isset($installed['versions'][$packageName])) {
-                continue;
-            }
 
-            if (!isset($installed['versions'][$packageName]['version'])) {
-                return null;
-            }
+public static function isInstalled($packageName)
+{
+foreach (self::getInstalled() as $installed) {
+if (isset($installed['versions'][$packageName])) {
+return true;
+}
+}
 
-            return $installed['versions'][$packageName]['version'];
-        }
+return false;
+}
 
-        throw new \OutOfBoundsException('Package "' . $packageName . '" is not installed');
-    }
 
-    /**
-     * @param  string      $packageName
-     * @return string|null If the package is being replaced or provided but is not really installed, null will be returned as version, use satisfies or getVersionRanges if you need to know if a given version is present
-     */
-    public static function getPrettyVersion($packageName)
-    {
-        foreach (self::getInstalled() as $installed) {
-            if (!isset($installed['versions'][$packageName])) {
-                continue;
-            }
 
-            if (!isset($installed['versions'][$packageName]['pretty_version'])) {
-                return null;
-            }
 
-            return $installed['versions'][$packageName]['pretty_version'];
-        }
 
-        throw new \OutOfBoundsException('Package "' . $packageName . '" is not installed');
-    }
 
-    /**
-     * @param  string      $packageName
-     * @return string|null If the package is being replaced or provided but is not really installed, null will be returned as reference
-     */
-    public static function getReference($packageName)
-    {
-        foreach (self::getInstalled() as $installed) {
-            if (!isset($installed['versions'][$packageName])) {
-                continue;
-            }
 
-            if (!isset($installed['versions'][$packageName]['reference'])) {
-                return null;
-            }
 
-            return $installed['versions'][$packageName]['reference'];
-        }
 
-        throw new \OutOfBoundsException('Package "' . $packageName . '" is not installed');
-    }
 
-    /**
-     * @param  string      $packageName
-     * @return string|null If the package is being replaced or provided but is not really installed, null will be returned as install path. Packages of type metapackages also have a null install path.
-     */
-    public static function getInstallPath($packageName)
-    {
-        foreach (self::getInstalled() as $installed) {
-            if (!isset($installed['versions'][$packageName])) {
-                continue;
-            }
 
-            return isset($installed['versions'][$packageName]['install_path']) ? $installed['versions'][$packageName]['install_path'] : null;
-        }
 
-        throw new \OutOfBoundsException('Package "' . $packageName . '" is not installed');
-    }
 
-    /**
-     * @return array
-     * @psalm-return array{name: string, pretty_version: string, version: string, reference: string|null, type: string, install_path: string, aliases: string[], dev: bool}
-     */
-    public static function getRootPackage()
-    {
-        $installed = self::getInstalled();
 
-        return $installed[0]['root'];
-    }
+public static function satisfies(VersionParser $parser, $packageName, $constraint)
+{
+$constraint = $parser->parseConstraints($constraint);
+$provided = $parser->parseConstraints(self::getVersionRanges($packageName));
 
-    /**
-     * Returns the raw installed.php data for custom implementations
-     *
-     * @deprecated Use getAllRawData() instead which returns all datasets for all autoloaders present in the process. getRawData only returns the first dataset loaded, which may not be what you expect.
-     * @return array[]
-     * @psalm-return array{root: array{name: string, pretty_version: string, version: string, reference: string|null, type: string, install_path: string, aliases: string[], dev: bool}, versions: array<string, array{pretty_version?: string, version?: string, reference?: string|null, type?: string, install_path?: string, aliases?: string[], dev_requirement: bool, replaced?: string[], provided?: string[]}>}
-     */
-    public static function getRawData()
-    {
-        @trigger_error('getRawData only returns the first dataset loaded, which may not be what you expect. Use getAllRawData() instead which returns all datasets for all autoloaders present in the process.', E_USER_DEPRECATED);
+return $provided->matches($constraint);
+}
 
-        if (null === self::$installed) {
-            // only require the installed.php file if this file is loaded from its dumped location,
-            // and not from its source location in the composer/composer package, see https://github.com/composer/composer/issues/9937
-            if (substr(__DIR__, -8, 1) !== 'C') {
-                self::$installed = include __DIR__ . '/installed.php';
-            } else {
-                self::$installed = array();
-            }
-        }
 
-        return self::$installed;
-    }
 
-    /**
-     * Returns the raw data of all installed.php which are currently loaded for custom implementations
-     *
-     * @return array[]
-     * @psalm-return list<array{root: array{name: string, pretty_version: string, version: string, reference: string|null, type: string, install_path: string, aliases: string[], dev: bool}, versions: array<string, array{pretty_version?: string, version?: string, reference?: string|null, type?: string, install_path?: string, aliases?: string[], dev_requirement: bool, replaced?: string[], provided?: string[]}>}>
-     */
-    public static function getAllRawData()
-    {
-        return self::getInstalled();
-    }
 
-    /**
-     * Lets you reload the static array from another file
-     *
-     * This is only useful for complex integrations in which a project needs to use
-     * this class but then also needs to execute another project's autoloader in process,
-     * and wants to ensure both projects have access to their version of installed.php.
-     *
-     * A typical case would be PHPUnit, where it would need to make sure it reads all
-     * the data it needs from this class, then call reload() with
-     * `require $CWD/vendor/composer/installed.php` (or similar) as input to make sure
-     * the project in which it runs can then also use this class safely, without
-     * interference between PHPUnit's dependencies and the project's dependencies.
-     *
-     * @param  array[] $data A vendor/composer/installed.php data set
-     * @return void
-     *
-     * @psalm-param array{root: array{name: string, pretty_version: string, version: string, reference: string|null, type: string, install_path: string, aliases: string[], dev: bool}, versions: array<string, array{pretty_version?: string, version?: string, reference?: string|null, type?: string, install_path?: string, aliases?: string[], dev_requirement: bool, replaced?: string[], provided?: string[]}>} $data
-     */
-    public static function reload($data)
-    {
-        self::$installed = $data;
-        self::$installedByVendor = array();
-    }
 
-    /**
-     * @return array[]
-     * @psalm-return list<array{root: array{name: string, pretty_version: string, version: string, reference: string|null, type: string, install_path: string, aliases: string[], dev: bool}, versions: array<string, array{pretty_version?: string, version?: string, reference?: string|null, type?: string, install_path?: string, aliases?: string[], dev_requirement: bool, replaced?: string[], provided?: string[]}>}>
-     */
-    private static function getInstalled()
-    {
-        if (null === self::$canGetVendors) {
-            self::$canGetVendors = method_exists('Composer\Autoload\ClassLoader', 'getRegisteredLoaders');
-        }
 
-        $installed = array();
 
-        if (self::$canGetVendors) {
-            foreach (ClassLoader::getRegisteredLoaders() as $vendorDir => $loader) {
-                if (isset(self::$installedByVendor[$vendorDir])) {
-                    $installed[] = self::$installedByVendor[$vendorDir];
-                } elseif (is_file($vendorDir.'/composer/installed.php')) {
-                    /** @var array{root: array{name: string, pretty_version: string, version: string, reference: string|null, type: string, install_path: string, aliases: string[], dev: bool}, versions: array<string, array{pretty_version?: string, version?: string, reference?: string|null, type?: string, install_path?: string, aliases?: string[], dev_requirement: bool, replaced?: string[], provided?: string[]}>} $required */
-                    $required = require $vendorDir.'/composer/installed.php';
-                    $installed[] = self::$installedByVendor[$vendorDir] = $required;
-                    if (null === self::$installed && strtr($vendorDir.'/composer', '\\', '/') === strtr(__DIR__, '\\', '/')) {
-                        self::$installed = $installed[count($installed) - 1];
-                    }
-                }
-            }
-        }
 
-        if (null === self::$installed) {
-            // only require the installed.php file if this file is loaded from its dumped location,
-            // and not from its source location in the composer/composer package, see https://github.com/composer/composer/issues/9937
-            if (substr(__DIR__, -8, 1) !== 'C') {
-                /** @var array{root: array{name: string, pretty_version: string, version: string, reference: string|null, type: string, install_path: string, aliases: string[], dev: bool}, versions: array<string, array{pretty_version?: string, version?: string, reference?: string|null, type?: string, install_path?: string, aliases?: string[], dev_requirement: bool, replaced?: string[], provided?: string[]}>} $required */
-                $required = require __DIR__ . '/installed.php';
-                self::$installed = $required;
-            } else {
-                self::$installed = array();
-            }
-        }
 
-        if (self::$installed !== array()) {
-            $installed[] = self::$installed;
-        }
 
-        return $installed;
-    }
+public static function getVersionRanges($packageName)
+{
+foreach (self::getInstalled() as $installed) {
+if (!isset($installed['versions'][$packageName])) {
+continue;
+}
+
+$ranges = array();
+if (isset($installed['versions'][$packageName]['pretty_version'])) {
+$ranges[] = $installed['versions'][$packageName]['pretty_version'];
+}
+if (array_key_exists('aliases', $installed['versions'][$packageName])) {
+$ranges = array_merge($ranges, $installed['versions'][$packageName]['aliases']);
+}
+if (array_key_exists('replaced', $installed['versions'][$packageName])) {
+$ranges = array_merge($ranges, $installed['versions'][$packageName]['replaced']);
+}
+if (array_key_exists('provided', $installed['versions'][$packageName])) {
+$ranges = array_merge($ranges, $installed['versions'][$packageName]['provided']);
+}
+
+return implode(' || ', $ranges);
+}
+
+throw new \OutOfBoundsException('Package "' . $packageName . '" is not installed');
+}
+
+
+
+
+
+public static function getVersion($packageName)
+{
+foreach (self::getInstalled() as $installed) {
+if (!isset($installed['versions'][$packageName])) {
+continue;
+}
+
+if (!isset($installed['versions'][$packageName]['version'])) {
+return null;
+}
+
+return $installed['versions'][$packageName]['version'];
+}
+
+throw new \OutOfBoundsException('Package "' . $packageName . '" is not installed');
+}
+
+
+
+
+
+public static function getPrettyVersion($packageName)
+{
+foreach (self::getInstalled() as $installed) {
+if (!isset($installed['versions'][$packageName])) {
+continue;
+}
+
+if (!isset($installed['versions'][$packageName]['pretty_version'])) {
+return null;
+}
+
+return $installed['versions'][$packageName]['pretty_version'];
+}
+
+throw new \OutOfBoundsException('Package "' . $packageName . '" is not installed');
+}
+
+
+
+
+
+public static function getReference($packageName)
+{
+foreach (self::getInstalled() as $installed) {
+if (!isset($installed['versions'][$packageName])) {
+continue;
+}
+
+if (!isset($installed['versions'][$packageName]['reference'])) {
+return null;
+}
+
+return $installed['versions'][$packageName]['reference'];
+}
+
+throw new \OutOfBoundsException('Package "' . $packageName . '" is not installed');
+}
+
+
+
+
+
+public static function getRootPackage()
+{
+$installed = self::getInstalled();
+
+return $installed[0]['root'];
+}
+
+
+
+
+
+
+
+
+public static function getRawData()
+{
+@trigger_error('getRawData only returns the first dataset loaded, which may not be what you expect. Use getAllRawData() instead which returns all datasets for all autoloaders present in the process.', E_USER_DEPRECATED);
+
+return self::$installed;
+}
+
+
+
+
+
+
+
+public static function getAllRawData()
+{
+return self::getInstalled();
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+public static function reload($data)
+{
+self::$installed = $data;
+self::$installedByVendor = array();
+}
+
+
+
+
+
+private static function getInstalled()
+{
+if (null === self::$canGetVendors) {
+self::$canGetVendors = method_exists('Composer\Autoload\ClassLoader', 'getRegisteredLoaders');
+}
+
+$installed = array();
+
+if (self::$canGetVendors) {
+foreach (ClassLoader::getRegisteredLoaders() as $vendorDir => $loader) {
+if (isset(self::$installedByVendor[$vendorDir])) {
+$installed[] = self::$installedByVendor[$vendorDir];
+} elseif (is_file($vendorDir.'/composer/installed.php')) {
+$installed[] = self::$installedByVendor[$vendorDir] = require $vendorDir.'/composer/installed.php';
+}
+}
+}
+
+$installed[] = self::$installed;
+
+return $installed;
+}
 }
