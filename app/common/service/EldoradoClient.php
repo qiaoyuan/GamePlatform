@@ -46,12 +46,13 @@ class EldoradoClient
     public function getAccessToken(): string
     {
         $cacheKey = 'eldorado_access_token_' . $this->account->id;
-        $token = cache('redis')->get($cacheKey);
+        $cache = cache()->store('redis');
+        $token = $cache->get($cacheKey);
         if ($token) {
             return $token;
         }
         $token = $this->refreshAccessToken();
-        cache('redis')->set($cacheKey, $token, config('eldorado.token_cache_ttl', 800));
+        $cache->set($cacheKey, $token, config('eldorado.token_cache_ttl', 800));
         return $token;
     }
 
@@ -164,7 +165,7 @@ class EldoradoClient
                 $errMsg   = $this->extractError($respJson, $e->getMessage());
                 // 429 限流：清掉缓存 token，避免下次调用仍用旧 token 触发同样错误
                 if ($e->getResponse()->getStatusCode() === 429) {
-                    cache('redis')->delete('eldorado_access_token_' . $this->account->id);
+                    cache()->store('redis')->delete('eldorado_access_token_' . $this->account->id);
                 }
             }
             $this->log(GameAccountApiLog::TYPE_UPDATE_PRICE, $url, $requestData, $respJson, false, $errMsg, $duration, $gameProductId);

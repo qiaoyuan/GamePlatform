@@ -42,12 +42,13 @@ class G2gClient
     public function getAccessToken(): string
     {
         $cacheKey = 'g2g_access_token_' . $this->account->id;
-        $token = cache('redis')->get($cacheKey);
+        $cache = cache()->store('redis');
+        $token = $cache->get($cacheKey);
         if ($token) {
             return $token;
         }
         $token = $this->refreshAccessToken();
-        cache('redis')->set($cacheKey, $token, config('g2g.token_cache_ttl', 600));
+        $cache->set($cacheKey, $token, config('g2g.token_cache_ttl', 600));
         return $token;
     }
 
