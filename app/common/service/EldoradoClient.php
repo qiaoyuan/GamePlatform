@@ -15,8 +15,8 @@ use GuzzleHttp\Exception\GuzzleException;
  *   body JSON: {"clientId":"...","clientSecret":"..."}
  *   返回:  {"accessToken":"...","expiresIn":899,"tokenType":"Bearer"}
  *
- * 改价：PUT /api/v1/currency-management/me/offers/{offerId}/change-price
- *   header: Authorization: Bearer {accessToken}
+ * 改价：PUT /api/predefinedOffersUser/me/{offerId}/changePrice
+ *   header: Authorization: {tokenType} {accessToken}
  *   body JSON: {"amount": 0.04, "currency": "USD"}
  */
 class EldoradoClient
@@ -46,12 +46,12 @@ class EldoradoClient
     public function getAccessToken(): string
     {
         $cacheKey = 'eldorado_access_token_' . $this->account->id;
-        $token = cache($cacheKey);
+        $token = cache('redis')->get($cacheKey);
         if ($token) {
             return $token;
         }
         $token = $this->refreshAccessToken();
-        cache($cacheKey, $token, config('eldorado.token_cache_ttl', 800));
+        cache('redis')->set($cacheKey, $token, config('eldorado.token_cache_ttl', 800));
         return $token;
     }
 
@@ -116,7 +116,7 @@ class EldoradoClient
      */
     public function updatePrice(string $offerId, float $price, int $gameProductId = 0): array
     {
-        $url         = '/api/v1/currency-management/me/offers/' . $offerId . '/change-price';
+        $url         = '/api/predefinedOffersUser/me/' . $offerId . '/changePrice';
         $requestData = [
             'amount'   => $price,
             'currency' => 'USD',
@@ -164,7 +164,7 @@ class EldoradoClient
                 $errMsg   = $this->extractError($respJson, $e->getMessage());
                 // 429 限流：清掉缓存 token，避免下次调用仍用旧 token 触发同样错误
                 if ($e->getResponse()->getStatusCode() === 429) {
-                    cache('eldorado_access_token_' . $this->account->id, null);
+                    cache('redis')->delete('eldorado_access_token_' . $this->account->id);
                 }
             }
             $this->log(GameAccountApiLog::TYPE_UPDATE_PRICE, $url, $requestData, $respJson, false, $errMsg, $duration, $gameProductId);
