@@ -15,7 +15,9 @@ use GuzzleHttp\Exception\GuzzleException;
  *   body JSON: {"clientId":"...","clientSecret":"..."}
  *   返回:  {"accessToken":"...","expiresIn":899,"tokenType":"Bearer"}
  *
- * 改价：PUT /api/predefinedOffersUser/me/{offerId}/changePrice
+ * 改价（两个接口有独立限额，各自冷却 3 分钟，两个都冷却中则直接跳过）：
+ *   PUT /api/predefinedOffersUser/me/{offerId}/changePrice        [接口 A]
+ *   PUT /api/v1/currency-management/me/offers/{offerId}/change-price [接口 B]
  *   header: Authorization: {tokenType} {accessToken}
  *   body JSON: {"amount": 0.04, "currency": "USD"}
  */
@@ -23,6 +25,15 @@ class EldoradoClient
 {
     private GameAccount $account;
     private Client $http;
+
+    /** 两个改价接口路径，按顺序尝试（哪个未被风控就用哪个） */
+    private const PRICE_URLS = [
+        'A' => '/api/predefinedOffersUser/me/%s/changePrice',
+        'B' => '/api/v1/currency-management/me/offers/%s/change-price',
+    ];
+
+    /** 单个接口 429 后的冷却时长（秒）*/
+    private const RATE_LIMIT_TTL = 300;
 
     public function __construct(GameAccount $account)
     {
@@ -33,11 +44,6 @@ class EldoradoClient
         ]);
     }
 
-    /**
-     * 获取 access_token（优先读缓存，按账号 id 隔离缓存 key）
-     *
-     * @throws \RuntimeException 获取失败时抛出
-     */
     /**
      * 获取完整的 Authorization 头值（tokenType + ' ' + accessToken），优先读缓存
      *
@@ -110,14 +116,46 @@ class EldoradoClient
     /**
      * 改价
      *
+     * 逻辑：
+     * 1. 检查两个改价接口是否都在 429 冷却中，都冷却中则直接抛异常跳过（不发请求）。
+     * 2. 按 A → B 顺序选取第一个未冷却的接口发起请求。
+     * 3. 任意接口返回 429 → 写该产品对应接口 3 分钟冷却标记；token 按账号共用，同步清掉。
+     *    冷却 key 以 offerId 为维度，不同产品互不影响。
+     *
      * @param string $offerId       Eldorado 平台 offer ID（即 product_id）
      * @param float  $price         新价格（USD）
      * @param int    $gameProductId 本地产品 ID（仅用于日志关联）
-     * @throws \RuntimeException 改价失败时抛出
+     * @throws \RuntimeException 改价失败或风控中时抛出
      */
     public function updatePrice(string $offerId, float $price, int $gameProductId = 0): array
     {
-        $url         = '/api/predefinedOffersUser/me/' . $offerId . '/changePrice';
+        $redisCache = cache()->store('redis');
+        $accountId  = $this->account->id;
+
+        // 各接口的 429 冷却缓存 key（按产品 offerId 隔离，不同产品冷却互不影响；token 仍按账号共用）
+        $rateLimitKeys = [
+            'A' => 'eld_rl_A_' . $offerId,
+            'B' => 'eld_rl_B_' . $offerId,
+        ];
+
+        // 检查哪些接口还未冷却
+        $availableKeys = [];
+        foreach ($rateLimitKeys as $tag => $rlKey) {
+            if (!$redisCache->get($rlKey)) {
+                $availableKeys[$tag] = $rlKey;
+            }
+        }
+
+        // 两个接口都在冷却中 → 直接跳过，不发请求
+        if (empty($availableKeys)) {
+            throw new \RuntimeException('ELD风控限制中，请稍后再试（两个改价接口均在5分钟冷却中）');
+        }
+
+        // 取第一个可用接口（优先 A）
+        $tag         = array_key_first($availableKeys);
+        $url         = sprintf(self::PRICE_URLS[$tag], $offerId);
+        $rateLimitKey = $rateLimitKeys[$tag];
+
         $requestData = [
             'amount'   => $price,
             'currency' => 'USD',
@@ -163,9 +201,11 @@ class EldoradoClient
                 $respBody = (string) $e->getResponse()->getBody();
                 $respJson = json_decode($respBody, true);
                 $errMsg   = $this->extractError($respJson, $e->getMessage());
-                // 429 限流：清掉缓存 token，避免下次调用仍用旧 token 触发同样错误
+
                 if ($e->getResponse()->getStatusCode() === 429) {
-                    cache()->store('redis')->delete('eldorado_access_token_' . $this->account->id);
+                    // 标记当前产品的当前接口 3 分钟冷却；token 按账号共用，同样清掉让下次重新取
+                    $redisCache->set($rateLimitKey, 1, self::RATE_LIMIT_TTL);
+                    $redisCache->delete('eldorado_access_token_' . $this->account->id);
                 }
             }
             $this->log(GameAccountApiLog::TYPE_UPDATE_PRICE, $url, $requestData, $respJson, false, $errMsg, $duration, $gameProductId);
