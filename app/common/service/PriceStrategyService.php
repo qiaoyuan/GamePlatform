@@ -9,6 +9,7 @@ use app\common\model\CrawlTarget;
 use app\common\model\GameProduct;
 use app\common\model\PriceStrategy;
 use app\common\model\PriceStrategyLog;
+use app\common\model\PriceStrategyProduct;
 use think\facade\Log;
 
 /**
@@ -175,7 +176,8 @@ class PriceStrategyService
     }
 
     /**
-     * 执行单个策略：使用爬虫目标绑定的唯一产品，按目标当前版本竞品算价并记录日志。
+     * 执行单个策略：从 price_strategy_product 取该策略绑定的所有产品，
+     * 每个产品按策略绑定的爬虫目标当前版本竞品算价并各自记录日志。
      *
      * @return array{total:int, success:int, skip:int, fail:int}
      */
@@ -196,30 +198,30 @@ class PriceStrategyService
             ));
         }
         $version = $version ?? $currentVersion;
-        $gameProductId = (int) $target->game_product_id;
-        if ($gameProductId <= 0) {
-            throw new \RuntimeException('爬虫目标未绑定游戏产品: ' . $target->id);
+
+        // 从 price_strategy_product 取该策略绑定的所有产品 ID
+        $boundProductIds = PriceStrategyProduct::where('price_strategy_id', $strategy->id)
+            ->column('game_product_id');
+        if (empty($boundProductIds)) {
+            throw new \RuntimeException('策略未绑定任何产品: strategyId=' . $strategy->id);
         }
 
         $dimension = $this->firstDimension($strategy->config);
 
-        // 一个爬虫目标只服务一个游戏产品，策略执行不再使用旧的多产品绑定表决定改价对象。
         $products = GameProduct::with(['gameAccount'])
-            ->where('id', $gameProductId)
+            ->whereIn('id', $boundProductIds)
             ->select();
         if (count($products) === 0) {
-            throw new \RuntimeException('爬虫目标绑定的游戏产品不存在: ' . $gameProductId);
+            throw new \RuntimeException('策略绑定的产品均不存在: strategyId=' . $strategy->id);
         }
 
-        // 只取该目标当前版本、且属于该目标游戏产品的竞品，避免历史版本或其他产品参与竞价。
+        // 竞品数据按爬虫目标+版本查，所有绑定产品共用同一批竞品
         $competitors = CrawlData::where('target_id', $strategy->crawl_target_id)
-            ->where('game_product_id', $gameProductId)
             ->where('version', $version)
             ->select();
 
         foreach ($products as $product) {
             $stat['total']++;
-            // 改价前价格必须在 handleProduct 之前取：改价成功时 handleProduct 会把 $product->price 改成新价
             $oldPrice = (float) $product->price;
             [$status, $newPrice, $refPrice, $message, $competitorId] = $this->handleProduct($product, $competitors, $dimension);
             $message = mb_substr(
