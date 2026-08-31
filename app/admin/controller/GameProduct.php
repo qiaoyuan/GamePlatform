@@ -28,6 +28,10 @@ class GameProduct extends BaseController
                 // 关联账号的平台：改价/同步走的都是账号平台，前端按钮显隐必须按这个判断，
                 // 不能用产品自身的 platform（两者可能不一致）。账号不存在时为 0
                 $item->account_platform = $item->gameAccount ? (int) $item->gameAccount->platform : 0;
+                // 同步状态：offer_data 有值即视为已同步；G2G 没有这个接口，显示 '--'
+                $item->offer_sync_text = $item->account_platform === GameAccount::PLATFORM_ELDORADO
+                    ? (empty($item->offer_data) ? '未同步' : '已同步')
+                    : '--';
             });
         }
         $this->success('', [
@@ -181,6 +185,9 @@ class GameProduct extends BaseController
             ['v' => 'currency', 'label' => '货币'],
             ['v' => 'sold_count', 'label' => '已出售数', 'searchType' => 'number', 'sort' => 'sold_count'],
             ['v' => 'sales_amount', 'label' => '销售金额', 'searchType' => 'number', 'sort' => 'sales_amount'],
+            // 线上数据同步状态：ELD 看 offer_data 有无值，G2G 恒为 '--'。
+            // offer_data 是 JSON 字段，不做搜索/排序
+            ['v' => 'offer_sync_text', 'label' => '同步状态', 'search' => false],
             ['v' => 'status', 'label' => '状态', 'render' => 'status', 'sort' => 'status'],
             ['v' => 'created_at', 'label' => '创建时间', 'search' => 'created_at', 'searchType' => 'daterange', 'sort' => 'created_at'],
         ];
