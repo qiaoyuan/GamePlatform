@@ -8,6 +8,7 @@ use app\common\model\GameAccount;
 use app\common\annotation\Permission;
 use app\common\service\GameProductPriceService;
 use app\common\service\GameProductOfferSyncService;
+use think\facade\Log;
 
 class GameProduct extends BaseController
 {
@@ -34,10 +35,29 @@ class GameProduct extends BaseController
         ]);
     }
 
+    /**
+     * 新增产品。ELD 平台的产品新增后自动执行一次「同步线上数据」，
+     * 直接把线上的价格/库存/币种和 offer_data 落库，省去手动点按钮那一步
+     * （ELD 改价依赖 offer_data，没有它改不了价）。
+     *
+     * 同步失败（令牌失效/限流/网络异常等）不影响新增结果，只记日志，
+     * 用户后续可手动点「同步线上数据」重试。
+     */
     #[Permission(title: '添加游戏产品')]
     public function add(): void
     {
-        $this->mAdd(Model::class);
+        $this->mAdd(Model::class, [], [], function (Model $product) {
+            $account = $product->gameAccount;
+            if ($account && (int) $account->platform === GameAccount::PLATFORM_ELDORADO) {
+                try {
+                    GameProductOfferSyncService::sync($product);
+                } catch (\Throwable $e) {
+                    Log::warning('[GameProduct] 新增后自动同步线上数据失败 productId='
+                        . $product->id . ': ' . $e->getMessage());
+                }
+            }
+            return $product;
+        });
     }
 
     #[Permission(title: '编辑游戏产品')]
