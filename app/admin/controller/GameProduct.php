@@ -7,6 +7,7 @@ use app\common\model\GameProduct as Model;
 use app\common\model\GameAccount;
 use app\common\annotation\Permission;
 use app\common\service\GameProductPriceService;
+use app\common\service\GameProductOfferSyncService;
 
 class GameProduct extends BaseController
 {
@@ -91,6 +92,34 @@ class GameProduct extends BaseController
             $this->error($e->getMessage());
         }
         $this->success('改价成功', ['price' => $price]);
+    }
+
+    /**
+     * 同步线上平台数据：拉取 ELD offer 详情，裁出需要的字段写入 offer_data，
+     * 并把价格/库存/币种同步成线上现值。仅 Eldorado 平台支持，G2G 无此接口。
+     */
+    #[Permission(title: '同步线上数据')]
+    public function syncOffer(): void
+    {
+        $id = input('id');
+        if (!$id) {
+            $this->error('参数不足');
+        }
+        $product = Model::with(['gameAccount'])->find($id);
+        if (!$product) {
+            $this->error('产品不存在');
+        }
+        try {
+            $offerData = GameProductOfferSyncService::sync($product);
+        } catch (\RuntimeException $e) {
+            $this->error($e->getMessage());
+        }
+        $this->success('同步成功', [
+            'price'      => $product->price,
+            'stock'      => $product->stock,
+            'currency'   => $product->currency,
+            'offer_data' => $offerData,
+        ]);
     }
 
     public function select(): void

@@ -16,6 +16,7 @@ use think\model\relation\BelongsTo;
  * @property int $sold_count 已出售数
  * @property float $sales_amount 销售金额
  * @property int $status 状态
+ * @property array|null $offer_data 线上平台offer数据(JSON)，ELD同步写入
  * @property string $created_at
  * @property string $updated_at
  * @property string $deleted_at
@@ -36,6 +37,7 @@ class GameProduct extends Base
         'sold_count',
         'sales_amount',
         'status',
+        'offer_data',
         'created_at',
         'updated_at',
         'deleted_at',
@@ -43,6 +45,7 @@ class GameProduct extends Base
     protected $type = [
         'price' => 'float',
         'sales_amount' => 'float',
+        'offer_data' => 'array',
     ];
 
     const DEFAULT_CURRENCY = 'USD';

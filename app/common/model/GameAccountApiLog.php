@@ -8,7 +8,7 @@ namespace app\common\model;
  * @property int $id
  * @property int $game_account_id 关联游戏账号id
  * @property int $game_product_id 关联产品id(非该商品操作则为0)
- * @property string $type 调用类型 refresh_token/update_price
+ * @property string $type 调用类型 refresh_token/update_price/sync_offer
  * @property string $request_url 请求地址
  * @property string $request_data 请求参数(敏感字段已脱敏)
  * @property string $response_data 响应内容
@@ -44,6 +44,7 @@ class GameAccountApiLog extends Base
 
     const TYPE_REFRESH_TOKEN = 'refresh_token';
     const TYPE_UPDATE_PRICE = 'update_price';
+    const TYPE_SYNC_OFFER = 'sync_offer';
 
     const STATUS_FAIL = 0;
     const STATUS_SUCCESS = 1;

@@ -20,6 +20,9 @@ use GuzzleHttp\Exception\GuzzleException;
  *   PUT /api/v1/currency-management/me/offers/{offerId}/change-price [接口 B]
  *   header: Authorization: {tokenType} {accessToken}
  *   body JSON: {"amount": 0.04, "currency": "USD"}
+ *
+ * 同步线上数据：GET /api/v1/currency-management/me/offers/{offerId}
+ *   与改价共用同一个账号级 token
  */
 class EldoradoClient
 {
@@ -213,6 +216,65 @@ class EldoradoClient
             }
             $this->log(GameAccountApiLog::TYPE_UPDATE_PRICE, $url, $requestData, $respJson, false, $errMsg, $duration, $gameProductId);
             throw new \RuntimeException('Eldorado 改价失败: ' . $errMsg);
+        }
+    }
+
+    /**
+     * 获取线上 offer 详情（同步线上平台数据用）
+     *
+     * GET /api/v1/currency-management/me/offers/{offerId}
+     * 鉴权与改价共用同一个账号级 token（getAccessToken()）。
+     *
+     * @param string $offerId       Eldorado 平台 offer ID（即 product_id）
+     * @param int    $gameProductId 本地产品 ID（仅用于日志关联）
+     * @return array 平台原始响应（含 offer / user / userOrderInfo 等）
+     * @throws \RuntimeException 获取失败时抛出
+     */
+    public function getOfferDetail(string $offerId, int $gameProductId = 0): array
+    {
+        $url   = '/api/v1/currency-management/me/offers/' . $offerId;
+        $start = microtime(true);
+
+        try {
+            $res = $this->http->get($url, [
+                'headers' => [
+                    'Authorization' => $this->getAccessToken(),
+                    'Accept'        => 'application/json',
+                ],
+            ]);
+            $body     = (string) $res->getBody();
+            $json     = json_decode($body, true) ?? [];
+            $duration = (int) ((microtime(true) - $start) * 1000);
+
+            $statusCode = $res->getStatusCode();
+            $success    = $statusCode >= 200 && $statusCode < 300 && !empty($json['offer']);
+
+            $this->log(
+                GameAccountApiLog::TYPE_SYNC_OFFER,
+                $url,
+                [],
+                $json,
+                $success,
+                $success ? '' : $this->extractError($json, '获取offer详情失败'),
+                $duration,
+                $gameProductId
+            );
+
+            if (!$success) {
+                throw new \RuntimeException('Eldorado 获取offer详情失败: ' . $this->extractError($json, '响应中无 offer 数据'));
+            }
+            return $json;
+        } catch (GuzzleException $e) {
+            $duration = (int) ((microtime(true) - $start) * 1000);
+            $respJson = null;
+            $errMsg   = $e->getMessage();
+            if ($e instanceof \GuzzleHttp\Exception\RequestException && $e->hasResponse()) {
+                $respBody = (string) $e->getResponse()->getBody();
+                $respJson = json_decode($respBody, true);
+                $errMsg   = $this->extractError($respJson, $e->getMessage());
+            }
+            $this->log(GameAccountApiLog::TYPE_SYNC_OFFER, $url, [], $respJson, false, $errMsg, $duration, $gameProductId);
+            throw new \RuntimeException('Eldorado 获取offer详情失败: ' . $errMsg);
         }
     }
 
