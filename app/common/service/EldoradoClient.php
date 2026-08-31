@@ -315,15 +315,23 @@ class EldoradoClient
      */
     protected function buildOfferPayload(array $offerData, float $price): array
     {
-        $pricing            = $offerData['details']['pricing'] ?? [];
-        $augmentedGame      = $offerData['augmentedGame'] ?? [];
-        $quantity           = (int) ($pricing['quantity'] ?? 0);
-        $minQuantity        = (int) ($pricing['minQuantity'] ?? 0);
-        $currency           = (string) ($pricing['pricePerUnit']['currency'] ?? '');
-        $deliveryMethod     = (string) ($offerData['details']['deliveryMethod'] ?? '');
-        $gameId             = (string) ($augmentedGame['gameId'] ?? '');
-        $category           = (string) ($augmentedGame['category'] ?? '');
-        $tradeEnvironmentId = (string) ($augmentedGame['tradeEnvironmentId'] ?? '');
+        $details                = $offerData['details'] ?? [];
+        $pricing                = $details['pricing'] ?? [];
+        $augmentedGame          = $offerData['augmentedGame'] ?? [];
+        $quantity               = (int) ($pricing['quantity'] ?? 0);
+        $minQuantity            = (int) ($pricing['minQuantity'] ?? 0);
+        $currency               = (string) ($pricing['pricePerUnit']['currency'] ?? '');
+        $volumeDiscounts        = is_array($pricing['volumeDiscounts'] ?? null) ? $pricing['volumeDiscounts'] : [];
+        $description            = (string) ($details['description'] ?? '');
+        $guaranteedDeliveryTime = (string) ($details['guaranteedDeliveryTime'] ?? '');
+        $deliveryMethod         = (string) ($details['deliveryMethod'] ?? '');
+        $gameId                 = (string) ($augmentedGame['gameId'] ?? '');
+        $category               = (string) ($augmentedGame['category'] ?? '');
+        // tradeEnvironmentId 可能是 "0"（无子环境），只能用 === '' 判空，不能用 empty
+        $tradeEnvironmentId     = (string) ($augmentedGame['tradeEnvironmentId'] ?? '');
+        $offerAttributes        = $this->normalizeOfferAttributes(
+            is_array($augmentedGame['offerAttributes'] ?? null) ? $augmentedGame['offerAttributes'] : []
+        );
 
         $missing = [];
         if ($quantity <= 0) {
@@ -350,24 +358,73 @@ class EldoradoClient
             );
         }
 
+        // 整单覆盖语义：offer_data 里的字段必须原样回传，漏传会把线上对应配置清空。
+        // 唯一被替换的是 pricePerUnit.amount。
         return [
             'details' => [
-                'pricing' => [
-                    'quantity'     => $quantity,
-                    'minQuantity'  => $minQuantity,
-                    'pricePerUnit' => [
+                'description'            => $description,
+                'guaranteedDeliveryTime' => $guaranteedDeliveryTime,
+                'pricing'                => [
+                    'quantity'        => $quantity,
+                    'minQuantity'     => $minQuantity,
+                    'volumeDiscounts' => $volumeDiscounts,
+                    'pricePerUnit'    => [
                         'amount'   => $price,
                         'currency' => $currency,
                     ],
                 ],
-                'deliveryMethod' => $deliveryMethod,
+                'deliveryMethod'         => $deliveryMethod,
             ],
             'augmentedGame' => [
                 'gameId'             => $gameId,
                 'category'           => $category,
                 'tradeEnvironmentId' => $tradeEnvironmentId,
+                'offerAttributes'    => $offerAttributes,
             ],
         ];
+    }
+
+    /**
+     * 归一化 offerAttributes 为平台要求的提交格式（实测 HTTP 201 通过）：
+     *   [{"value":"divine-orb","name":"Orbs","id":"path-of-exile-2-orbs",
+     *     "type":"Select","display":"NameWithValue"}]
+     *
+     * 关键点：value 必须是字符串（值 id）。GET 响应里 attributes[].value 是对象
+     * {"name":...,"id":...,"imageLocation":...}，直接回传会被平台以
+     * "invalid values: value" 拒绝，这里统一降级成 value.id。
+     * 外层 name/id/type/display 原样保留，其中 id 是属性定义 id，不是值 id。
+     */
+    protected function normalizeOfferAttributes(array $attributes): array
+    {
+        $normalized = [];
+        foreach ($attributes as $item) {
+            if (!is_array($item)) {
+                continue;
+            }
+            $value = $item['value'] ?? null;
+            if (is_array($value)) {
+                $valueId = isset($value['id'])
+                    ? trim((string) $value['id'])
+                    : trim((string) ($value[0]['id'] ?? ''));
+            } else {
+                $valueId = trim((string) $value);
+            }
+            // 兼容早期只存了 {"id": 值id} 的旧数据
+            if ($valueId === '' && !isset($item['value'])) {
+                $valueId = trim((string) ($item['id'] ?? ''));
+            }
+            if ($valueId === '') {
+                continue;
+            }
+            $normalized[] = [
+                'value'   => $valueId,
+                'name'    => (string) ($item['name'] ?? ''),
+                'id'      => (string) ($item['id'] ?? ''),
+                'type'    => (string) ($item['type'] ?? ''),
+                'display' => (string) ($item['display'] ?? ''),
+            ];
+        }
+        return $normalized;
     }
 
     /**

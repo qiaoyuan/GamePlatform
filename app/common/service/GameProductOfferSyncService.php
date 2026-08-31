@@ -145,15 +145,57 @@ class GameProductOfferSyncService
     }
 
     /**
-     * 取 offer 属性：优先 offerAttributeIdValues，回退 attributes，都没有则空数组。
+     * 取 offer 属性，直接产出改价接口可提交的结构（已用真实商品验证 HTTP 201）：
+     *   {"value":"divine-orb","name":"Orbs","id":"path-of-exile-2-orbs",
+     *    "type":"Select","display":"NameWithValue"}
+     *
+     * 与 GET 响应的唯一差别：GET 的 attributes[].value 是对象
+     *   {"name":"Divine Orb","id":"divine-orb","imageLocation":"Divine-Orb.png"}
+     * 提交时必须降级成字符串 value.id（"divine-orb"），直接回传对象会被平台以
+     * "invalid values: value" 拒绝。外层 name/id/type/display 原样保留，
+     * 其中 id 是属性定义 id（path-of-exile-2-orbs），别和值 id 混淆。
+     *
+     * 无属性的商品（如魔兽金币）attributes 为空，这里返回空数组，
+     * 改价时提交 "offerAttributes": [] —— 与线上一致，不会误清配置。
      */
     protected static function pickOfferAttributes(array $offer): array
     {
-        foreach (['offerAttributeIdValues', 'attributes'] as $key) {
-            if (!empty($offer[$key]) && is_array($offer[$key])) {
-                return $offer[$key];
-            }
+        // offerAttributeIdValues 非空时，视为平台已给出可提交结构，原样采用
+        if (!empty($offer['offerAttributeIdValues']) && is_array($offer['offerAttributeIdValues'])) {
+            return $offer['offerAttributeIdValues'];
         }
-        return [];
+
+        $attributes = $offer['attributes'] ?? null;
+        if (!is_array($attributes)) {
+            return [];
+        }
+
+        $result = [];
+        foreach ($attributes as $attr) {
+            if (!is_array($attr)) {
+                continue;
+            }
+            $value = $attr['value'] ?? null;
+            // 单选(Select)：value 是对象，取其 id；平台若已给字符串则原样用。
+            // 多选类型暂无真实样本，value 为列表时取第一项 id 兜底。
+            if (is_array($value)) {
+                $valueId = isset($value['id'])
+                    ? trim((string) $value['id'])
+                    : trim((string) ($value[0]['id'] ?? ''));
+            } else {
+                $valueId = trim((string) $value);
+            }
+            if ($valueId === '') {
+                continue;
+            }
+            $result[] = [
+                'value'   => $valueId,
+                'name'    => (string) ($attr['name'] ?? ''),
+                'id'      => (string) ($attr['id'] ?? ''),
+                'type'    => (string) ($attr['type'] ?? ''),
+                'display' => (string) ($attr['display'] ?? ''),
+            ];
+        }
+        return $result;
     }
 }
