@@ -37,8 +37,9 @@ return [
             'hostport'        => env('database.hostport', '3306'),
             // 数据库连接参数
             'params'          => [],
-            // 数据库编码默认采用utf8
-            'charset'         => env('database.charset', 'utf8'),
+            // 数据库编码默认 utf8mb4：库内所有表均为 utf8mb4，若连接用 utf8(=utf8mb3)，
+            // 写入含 emoji 等 4 字节字符时 MySQL 8+ 会报 3988 collation 转换错误
+            'charset'         => env('database.charset', 'utf8mb4'),
             // 数据库表前缀
             'prefix'          => env('database.prefix', ''),
 

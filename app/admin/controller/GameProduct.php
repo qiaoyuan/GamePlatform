@@ -24,6 +24,9 @@ class GameProduct extends BaseController
                 $item->account_display = $item->gameAccount
                     ? ($item->gameAccount->account_name ?: $item->gameAccount->user_id)
                     : '--';
+                // 关联账号的平台：改价/同步走的都是账号平台，前端按钮显隐必须按这个判断，
+                // 不能用产品自身的 platform（两者可能不一致）。账号不存在时为 0
+                $item->account_platform = $item->gameAccount ? (int) $item->gameAccount->platform : 0;
             });
         }
         $this->success('', [

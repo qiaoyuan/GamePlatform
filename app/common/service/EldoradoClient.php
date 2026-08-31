@@ -15,10 +15,14 @@ use GuzzleHttp\Exception\GuzzleException;
  *   body JSON: {"clientId":"...","clientSecret":"..."}
  *   返回:  {"accessToken":"...","expiresIn":899,"tokenType":"Bearer"}
  *
- * 改价（两个接口有独立限额，各自冷却 10 分钟，两个都冷却中则直接跳过）：
+ * 改价（当前在用）：updateOfferPrice() —— 整单提交
+ *   POST /api/v1/currency-management/me/offers
+ *   Content-Type: application/json-patch+json
+ *   除价格外的字段取自已同步的 offer_data
+ *
+ * 改价（旧方式，保留不再默认调用）：updatePrice() —— 单接口改价，A/B 双接口互为降级
  *   PUT /api/predefinedOffersUser/me/{offerId}/changePrice        [接口 A]
  *   PUT /api/v1/currency-management/me/offers/{offerId}/change-price [接口 B]
- *   header: Authorization: {tokenType} {accessToken}
  *   body JSON: {"amount": 0.04, "currency": "USD"}
  *
  * 同步线上数据：GET /api/v1/currency-management/me/offers/{offerId}
@@ -217,6 +221,153 @@ class EldoradoClient
             $this->log(GameAccountApiLog::TYPE_UPDATE_PRICE, $url, $requestData, $respJson, false, $errMsg, $duration, $gameProductId);
             throw new \RuntimeException('Eldorado 改价失败: ' . $errMsg);
         }
+    }
+
+    /**
+     * 改价（当前在用的方式）：整单提交 offer
+     *
+     * POST /api/v1/currency-management/me/offers
+     *   Content-Type: application/json-patch+json
+     *
+     * 除价格以外的参数（quantity / minQuantity / currency / deliveryMethod /
+     * gameId / category / tradeEnvironmentId）全部来自「同步线上数据」写入的 offer_data，
+     * 只有 pricePerUnit.amount 用调用方传入的新价格覆盖。
+     *
+     * 注意：本接口会连带提交 quantity（库存）。offer_data 是同步那一刻的快照，
+     * 若线上库存之后有变动，改价会把库存写回快照值，因此改价前建议先同步。
+     *
+     * @param string $offerId       Eldorado 平台 offer ID（即 product_id，仅用于风控冷却 key 与日志）
+     * @param array  $offerData     同步下来的 offer_data
+     * @param float  $price         新价格（pricePerUnit.amount）
+     * @param int    $gameProductId 本地产品 ID（仅用于日志关联）
+     * @throws \RuntimeException 参数不全 / 风控中 / 改价失败时抛出
+     */
+    public function updateOfferPrice(string $offerId, array $offerData, float $price, int $gameProductId = 0): array
+    {
+        $requestData = $this->buildOfferPayload($offerData, $price);
+
+        $redisCache   = cache()->store('redis');
+        $rateLimitKey = 'eld_rl_' . self::RATE_LIMIT_KEY_VERSION . '_C_' . $offerId;
+        if ($redisCache->get($rateLimitKey)) {
+            throw new \RuntimeException('ELD风控限制中，请稍后再试（改价接口在10分钟冷却中）');
+        }
+
+        $url   = '/api/v1/currency-management/me/offers';
+        $start = microtime(true);
+
+        try {
+            $res = $this->http->post($url, [
+                'headers' => [
+                    'Authorization' => $this->getAccessToken(),
+                    // 平台要求该接口使用 json-patch+json，显式声明以覆盖 Guzzle 默认的 application/json
+                    'Content-Type'  => 'application/json-patch+json',
+                    'Accept'        => '*/*',
+                ],
+                'json' => $requestData,
+            ]);
+            $body     = (string) $res->getBody();
+            $json     = json_decode($body, true) ?? [];
+            $duration = (int) ((microtime(true) - $start) * 1000);
+
+            $statusCode = $res->getStatusCode();
+            $success    = $statusCode >= 200 && $statusCode < 300;
+
+            $this->log(
+                GameAccountApiLog::TYPE_UPDATE_PRICE,
+                $url,
+                $requestData,
+                $json,
+                $success,
+                $success ? '' : $this->extractError($json, '改价失败'),
+                $duration,
+                $gameProductId
+            );
+
+            if (!$success) {
+                throw new \RuntimeException('Eldorado 改价失败: ' . $this->extractError($json));
+            }
+            return $json;
+        } catch (GuzzleException $e) {
+            $duration = (int) ((microtime(true) - $start) * 1000);
+            $respJson = null;
+            $errMsg   = $e->getMessage();
+            if ($e instanceof \GuzzleHttp\Exception\RequestException && $e->hasResponse()) {
+                $respBody = (string) $e->getResponse()->getBody();
+                $respJson = json_decode($respBody, true);
+                $errMsg   = $this->extractError($respJson, $e->getMessage());
+
+                if ($e->getResponse()->getStatusCode() === 429) {
+                    // 标记该产品 10 分钟冷却；token 按账号共用，同样清掉让下次重新取
+                    $redisCache->set($rateLimitKey, 1, self::RATE_LIMIT_TTL);
+                    $redisCache->delete('eldorado_access_token_' . $this->account->id);
+                }
+            }
+            $this->log(GameAccountApiLog::TYPE_UPDATE_PRICE, $url, $requestData, $respJson, false, $errMsg, $duration, $gameProductId);
+            throw new \RuntimeException('Eldorado 改价失败: ' . $errMsg);
+        }
+    }
+
+    /**
+     * 用 offer_data + 新价格组装整单改价的请求体。
+     * 字段形状与平台要求一一对应，缺少关键字段时直接抛异常，避免把空值提交上去覆盖线上配置。
+     *
+     * @throws \RuntimeException offer_data 不完整时抛出
+     */
+    protected function buildOfferPayload(array $offerData, float $price): array
+    {
+        $pricing            = $offerData['details']['pricing'] ?? [];
+        $augmentedGame      = $offerData['augmentedGame'] ?? [];
+        $quantity           = (int) ($pricing['quantity'] ?? 0);
+        $minQuantity        = (int) ($pricing['minQuantity'] ?? 0);
+        $currency           = (string) ($pricing['pricePerUnit']['currency'] ?? '');
+        $deliveryMethod     = (string) ($offerData['details']['deliveryMethod'] ?? '');
+        $gameId             = (string) ($augmentedGame['gameId'] ?? '');
+        $category           = (string) ($augmentedGame['category'] ?? '');
+        $tradeEnvironmentId = (string) ($augmentedGame['tradeEnvironmentId'] ?? '');
+
+        $missing = [];
+        if ($quantity <= 0) {
+            $missing[] = 'quantity';
+        }
+        if ($currency === '') {
+            $missing[] = 'currency';
+        }
+        if ($deliveryMethod === '') {
+            $missing[] = 'deliveryMethod';
+        }
+        if ($gameId === '') {
+            $missing[] = 'gameId';
+        }
+        if ($category === '') {
+            $missing[] = 'category';
+        }
+        if ($tradeEnvironmentId === '') {
+            $missing[] = 'tradeEnvironmentId';
+        }
+        if ($missing) {
+            throw new \RuntimeException(
+                '线上数据不完整（缺少 ' . implode('、', $missing) . '），请先点「同步线上数据」再改价'
+            );
+        }
+
+        return [
+            'details' => [
+                'pricing' => [
+                    'quantity'     => $quantity,
+                    'minQuantity'  => $minQuantity,
+                    'pricePerUnit' => [
+                        'amount'   => $price,
+                        'currency' => $currency,
+                    ],
+                ],
+                'deliveryMethod' => $deliveryMethod,
+            ],
+            'augmentedGame' => [
+                'gameId'             => $gameId,
+                'category'           => $category,
+                'tradeEnvironmentId' => $tradeEnvironmentId,
+            ],
+        ];
     }
 
     /**

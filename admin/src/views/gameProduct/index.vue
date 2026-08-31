@@ -44,8 +44,10 @@ export default {
             title: '同步线上数据',
             type: 'success',
             p: 'gameProduct/syncOffer',
-            // 仅 Eldorado 平台有该接口，G2G 不显示这个按钮
-            show: row => Number(row.platform) === PLATFORM_ELDORADO,
+            // 仅 Eldorado 平台有该接口，G2G 不显示这个按钮。
+            // 按「关联账号的平台」判断（后端也是按账号平台路由），
+            // 不能用产品自身的 platform：产品表的 platform 可能与账号平台不一致
+            show: row => Number(row.account_platform) === PLATFORM_ELDORADO,
             click: row => this.syncOffer(row),
           },
         ],
