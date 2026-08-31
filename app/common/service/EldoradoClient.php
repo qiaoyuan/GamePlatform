@@ -15,7 +15,7 @@ use GuzzleHttp\Exception\GuzzleException;
  *   body JSON: {"clientId":"...","clientSecret":"..."}
  *   返回:  {"accessToken":"...","expiresIn":899,"tokenType":"Bearer"}
  *
- * 改价（两个接口有独立限额，各自冷却 3 分钟，两个都冷却中则直接跳过）：
+ * 改价（两个接口有独立限额，各自冷却 10 分钟，两个都冷却中则直接跳过）：
  *   PUT /api/predefinedOffersUser/me/{offerId}/changePrice        [接口 A]
  *   PUT /api/v1/currency-management/me/offers/{offerId}/change-price [接口 B]
  *   header: Authorization: {tokenType} {accessToken}
@@ -33,7 +33,10 @@ class EldoradoClient
     ];
 
     /** 单个接口 429 后的冷却时长（秒）*/
-    private const RATE_LIMIT_TTL = 300;
+    private const RATE_LIMIT_TTL = 420;
+
+    /** 冷却 key 版本号，升版本即废弃历史 key（旧 key 自然过期，不再被读取）*/
+    private const RATE_LIMIT_KEY_VERSION = 'v2';
 
     public function __construct(GameAccount $account)
     {
@@ -119,7 +122,7 @@ class EldoradoClient
      * 逻辑：
      * 1. 检查两个改价接口是否都在 429 冷却中，都冷却中则直接抛异常跳过（不发请求）。
      * 2. 按 A → B 顺序选取第一个未冷却的接口发起请求。
-     * 3. 任意接口返回 429 → 写该产品对应接口 3 分钟冷却标记；token 按账号共用，同步清掉。
+     * 3. 任意接口返回 429 → 写该产品对应接口 10 分钟冷却标记；token 按账号共用，同步清掉。
      *    冷却 key 以 offerId 为维度，不同产品互不影响。
      *
      * @param string $offerId       Eldorado 平台 offer ID（即 product_id）
@@ -134,8 +137,8 @@ class EldoradoClient
 
         // 各接口的 429 冷却缓存 key（按产品 offerId 隔离，不同产品冷却互不影响；token 仍按账号共用）
         $rateLimitKeys = [
-            'A' => 'eld_rl_A_' . $offerId,
-            'B' => 'eld_rl_B_' . $offerId,
+            'A' => 'eld_rl_' . self::RATE_LIMIT_KEY_VERSION . '_A_' . $offerId,
+            'B' => 'eld_rl_' . self::RATE_LIMIT_KEY_VERSION . '_B_' . $offerId,
         ];
 
         // 检查哪些接口还未冷却
@@ -148,7 +151,7 @@ class EldoradoClient
 
         // 两个接口都在冷却中 → 直接跳过，不发请求
         if (empty($availableKeys)) {
-            throw new \RuntimeException('ELD风控限制中，请稍后再试（两个改价接口均在5分钟冷却中）');
+            throw new \RuntimeException('ELD风控限制中，请稍后再试（两个改价接口均在10分钟冷却中）');
         }
 
         // 取第一个可用接口（优先 A）
@@ -203,7 +206,7 @@ class EldoradoClient
                 $errMsg   = $this->extractError($respJson, $e->getMessage());
 
                 if ($e->getResponse()->getStatusCode() === 429) {
-                    // 标记当前产品的当前接口 3 分钟冷却；token 按账号共用，同样清掉让下次重新取
+                    // 标记当前产品的当前接口 10 分钟冷却；token 按账号共用，同样清掉让下次重新取
                     $redisCache->set($rateLimitKey, 1, self::RATE_LIMIT_TTL);
                     $redisCache->delete('eldorado_access_token_' . $this->account->id);
                 }
@@ -251,7 +254,7 @@ class EldoradoClient
         }
         // 429 限流：统一返回友好提示
         if (($json['code'] ?? 0) === 429) {
-            return 'ELD改价太频繁，请5分钟后尝试';
+            return 'ELD改价太频繁，请10分钟后尝试';
         }
         // messages 数组格式
         if (!empty($json['messages']) && is_array($json['messages'])) {
