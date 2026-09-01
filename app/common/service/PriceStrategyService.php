@@ -185,7 +185,7 @@ class PriceStrategyService
             try {
                 $resolvedVersion = $this->resolveNotifyVersion($notify);
                 $dedupeKey = $notify->crawl_target_id . ':' . $resolvedVersion;
-                $dedupeUpdated = CrawlNotify::where('id', $notify->id)
+                CrawlNotify::where('id', $notify->id)
                     ->where('status', CrawlNotify::STATUS_PROCESSING)
                     ->where('worker_id', $workerId)
                     ->update([
@@ -193,12 +193,17 @@ class PriceStrategyService
                         'dedupe_key' => $dedupeKey,
                         'updated_at' => $now,
                     ]);
-                if ($dedupeUpdated !== 1) {
-                    throw new \RuntimeException('设置通知幂等键失败或处理权已丢失: notifyId=' . $notify->id);
-                }
-                $notify = CrawlNotify::find($notify->id);
-                if (!$notify) {
-                    throw new \RuntimeException('领取后通知不存在: notifyId=' . $candidate->id);
+                // MySQL 默认返回实际发生变化的行数。重试时 version/dedupe_key 已经相同，
+                // 或同一秒内 updated_at 未变化，UPDATE 返回 0 也可能仍然持有处理权，
+                // 因此必须读取当前状态确认，不能把 affected rows=0 直接视为丢失租约。
+                $notify = CrawlNotify::where('id', $notify->id)
+                    ->where('status', CrawlNotify::STATUS_PROCESSING)
+                    ->where('worker_id', $workerId)
+                    ->find();
+                if (!$notify
+                    || (int) $notify->version !== $resolvedVersion
+                    || (string) $notify->dedupe_key !== $dedupeKey) {
+                    throw new \RuntimeException('设置通知幂等键失败或处理权已丢失: notifyId=' . $candidate->id);
                 }
                 return $notify;
             } catch (\Throwable $e) {
@@ -280,7 +285,11 @@ class PriceStrategyService
                 'heartbeat_at' => date('Y-m-d H:i:s'),
                 'updated_at'   => date('Y-m-d H:i:s'),
             ]);
-        if ($updated !== 1) {
+        // 同一秒内连续心跳时字段值可能没有变化，MySQL 会返回 0；此时再查租约归属。
+        if ($updated !== 1 && !CrawlNotify::where('id', $notifyId)
+            ->where('status', CrawlNotify::STATUS_PROCESSING)
+            ->where('worker_id', $workerId)
+            ->find()) {
             throw new \RuntimeException('通知处理权已丢失: notifyId=' . $notifyId);
         }
     }
