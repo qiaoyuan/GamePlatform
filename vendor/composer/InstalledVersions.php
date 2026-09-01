@@ -32,7 +32,7 @@ private static $installed = array (
     'aliases' => 
     array (
     ),
-    'reference' => '460b20b06e6387619d5b92743dbf0b4645bb7d3a',
+    'reference' => '18a5aacec4039432a5bba304ac377cbd40b98bab',
     'name' => 'aaron/base',
   ),
   'versions' => 
@@ -44,7 +44,7 @@ private static $installed = array (
       'aliases' => 
       array (
       ),
-      'reference' => '460b20b06e6387619d5b92743dbf0b4645bb7d3a',
+      'reference' => '18a5aacec4039432a5bba304ac377cbd40b98bab',
     ),
     'aferrandini/phpqrcode' => 
     array (
