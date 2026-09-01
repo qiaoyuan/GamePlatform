@@ -67,15 +67,6 @@
         <el-input-number v-model="form.round_precision" :min="0" :max="8" :step="1" />
       </el-form-item>
 
-      <el-divider content-position="left">四、改价频率与状态</el-divider>
-      <el-form-item label="改价频率(分钟)">
-        <el-input-number v-model="form.interval_minutes" :min="0" :step="1" />
-        <span class="tip">0=不定时；&gt;0 由定时任务按此频率执行</span>
-      </el-form-item>
-      <el-form-item label="爬后自动执行">
-        <el-switch v-model="form.auto_run" :active-value="1" :inactive-value="0" />
-        <span class="tip">爬取该竞品池完成后立即执行一次</span>
-      </el-form-item>
       <el-form-item label="状态">
         <el-switch v-model="form.status" :active-value="1" :inactive-value="0" active-text="启用" inactive-text="停用" />
       </el-form-item>
@@ -90,8 +81,6 @@ const defaultForm = () => ({
   id: null,
   name: '',
   crawl_target_id: '',
-  auto_run: 1,
-  interval_minutes: 0,
   status: 1,
   blacklist_text: '',
   whitelist_text: '',
@@ -161,8 +150,6 @@ export default {
         id: info.id,
         name: info.name,
         crawl_target_id: info.crawl_target_id,
-        auto_run: info.auto_run,
-        interval_minutes: info.interval_minutes,
         status: info.status,
         blacklist_text: (dim.blacklist_stores || []).join('\n'),
         whitelist_text: (dim.whitelist_stores || []).join('\n'),
@@ -208,8 +195,6 @@ export default {
       const payload = {
         name: this.form.name,
         crawl_target_id: this.form.crawl_target_id,
-        auto_run: this.form.auto_run,
-        interval_minutes: Number(this.form.interval_minutes) || 0,
         status: this.form.status,
         config: { dimensions: [dimension] },
       }
