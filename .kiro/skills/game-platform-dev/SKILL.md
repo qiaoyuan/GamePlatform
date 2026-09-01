@@ -13,6 +13,7 @@ description: 游戏数据平台后台（ThinkPHP admin）的开发总览。当�
 | `game-controller-convention` | 编辑 `app/admin/controller/*.php` | CRUD 标准方法、`columns()` 表头规范、关联字段/虚拟字段处理 |
 | `game-validate-convention` | 编辑 `app/common/validate/*.php` | `add`/`edit` 校验场景规范 |
 | `game-routing-convention` | 涉及权限菜单、路由、前端 views 目录 | `#[Permission]` 注解、`php think permission` 同步、url→视图映射、前端页面骨架 |
+| `game-worker-convention` | 编辑通知队列、常驻命令、改价消费或部署 Supervisor | 通知版本、原子领取、幂等、心跳租约、重试、部署与清理 |
 
 参考实现见 `app/admin/controller/GameAccount.php` + `app/common/model/GameAccount.php`（基础 CRUD）、`app/admin/controller/GameProduct.php`（带关联查询与枚举翻译字段）。
 

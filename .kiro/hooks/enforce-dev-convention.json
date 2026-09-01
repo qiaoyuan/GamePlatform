@@ -10,6 +10,16 @@
         "type": "agent",
         "prompt": "刚保存了一个后台 PHP 文件。根据文件路径激活对应的专项 skill 并做规范核对：\n\n1. 路径含 app/common/model/：激活 game-model-convention，确认继承 Base、$field 含 created_at/updated_at/deleted_at、@property/$table/$pk/$type 齐全、枚举未重复定义。\n2. 路径含 app/admin/controller/：激活 game-controller-convention，确认实现 columns()（时间列用 daterange）、index 用 tableList()->selectData()、增删改状态方法带 #[Permission]、虚拟字段/关联字段处理正确（含空值防御）。若涉及新增控制器或权限注解变化，同时激活 game-routing-convention 核对 parentUrl 挂靠位置和是否需要运行 php think permission 同步。\n3. 路径含 app/common/validate/：激活 game-validate-convention，确认 add/edit 场景齐全，edit 含 id。\n4. 若发现本次改动引入了新的、值得沉淀的通用约定，提示是否需要更新对应专项 skill 的 SKILL.md。\n\n只在发现不符合规范的地方给出具体、简短的修改建议；完全符合规范则简单确认通过，不要啰嗦。"
       }
+    },
+    {
+      "name": "改价Worker队列规范核对",
+      "trigger": "PostFileSave",
+      "description": "保存改价通知、常驻Worker或队列表结构后，核对版本绑定、原子领取、幂等、租约与重试约束。",
+      "matcher": "(app/common/(command/PriceStrategyConsume|service/PriceStrategyService|model/CrawlNotify)\\.php|sql/(crawl_notify|alter_crawl_notify_add_worker_fields)\\.sql)$",
+      "action": {
+        "type": "agent",
+        "prompt": "激活 game-worker-convention，核对刚保存的改价 Worker/通知队列文件。重点检查：通知是否绑定准确 version；领取是否为带状态条件的原子 CAS；dedupe_key、worker_id、heartbeat 和失败退避是否保持一致；同值 UPDATE 返回 0 时是否重新核对租约而非误判丢失；是否会把产品改价失败的通知标成 done；部署约定是否仍保持单 Worker。只报告具体不符合项，完全符合则简短确认。"
+      }
     }
   ]
 }
