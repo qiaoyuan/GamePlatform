@@ -10,7 +10,9 @@ declare(strict_types=1);
  * - 策略 auto_run=1；
  * - 策略绑定当前 crawl_notify 的 crawl_target_id。
  *
- * 本脚本不接收也不默认执行某个策略 ID，适合由宝塔计划任务每 30 秒调用一次。
+ * 兼容手工诊断：只消费一条通知后退出。
+ * 正式环境应由 Supervisor 直接常驻运行 php think price:strategy:consume，
+ * 不要再通过宝塔计划任务周期调用本脚本。
  */
 
 if (PHP_SAPI !== 'cli') {
@@ -40,7 +42,7 @@ if (!flock($lockHandle, LOCK_EX | LOCK_NB)) {
     exit(0);
 }
 
-$command = escapeshellarg($phpBinary) . ' ' . escapeshellarg($thinkFile) . ' price:strategy:consume';
+$command = escapeshellarg($phpBinary) . ' ' . escapeshellarg($thinkFile) . ' price:strategy:consume --once';
 $descriptors = [
     0 => ['file', '/dev/null', 'r'],
     1 => ['pipe', 'w'],

@@ -10,6 +10,7 @@ use app\common\model\GameProduct;
 use app\common\model\PriceStrategy;
 use app\common\model\PriceStrategyLog;
 use app\common\model\PriceStrategyProduct;
+use think\facade\Db;
 use think\facade\Log;
 
 /**
@@ -47,63 +48,265 @@ use think\facade\Log;
  */
 class PriceStrategyService
 {
+    private const MAX_ATTEMPTS = 5;
+    private const RETRY_DELAYS = [5, 30, 120, 600, 1800];
+
     /**
-     * 消费爬取完成通知：取待处理通知，逐条执行绑定该竞品池的策略，并标记处理结果。
-     * 供 price:strategy:consume 命令调用（信号驱动的主入口）。
+     * 兼容一次性调用：持续领取，直至当前没有可执行通知。
      *
      * @return array{notifies:int, strategies:int}
      */
     public function consumeNotify(): array
     {
-        $pending = CrawlNotify::where('status', CrawlNotify::STATUS_PENDING)
-            ->order('id', 'asc')
-            ->select();
-        $processedTargets = [];
+        $workerId = $this->makeWorkerId();
         $result = ['notifies' => 0, 'strategies' => 0];
-        foreach ($pending as $notify) {
-            $targetId = (int) $notify->crawl_target_id;
-            try {
-                $target = CrawlTarget::find($targetId);
-                if (!$target) {
-                    throw new \RuntimeException('爬虫目标不存在: ' . $targetId);
-                }
-                // 以本次消费开始时的目标版本作为快照，避免执行过程中目标版本变化导致混用数据。
-                $version = (int) ($target->version ?? 0);
-                $executionKey = $targetId . ':' . $version;
-                if (isset($processedTargets[$executionKey])) {
-                    // 同一轮消费中，同一目标同一版本只执行一次，避免重复通知重复改价。
-                    $agg = ['strategies' => 0, 'success' => 0, 'skip' => 0, 'fail' => 0];
-                    $duplicated = true;
-                } else {
-                    $agg = $this->runByCrawlTarget($targetId, $version);
-                    $processedTargets[$executionKey] = true;
-                    $duplicated = false;
-                }
-                $notify->status = CrawlNotify::STATUS_DONE;
-                $notify->processed_at = date('Y-m-d H:i:s');
-                $notify->message = $duplicated
-                    ? sprintf('目标%d版本%d已执行，跳过重复策略', $targetId, $version)
-                    : sprintf(
-                        '目标%d版本%d执行策略%d个: 成功%d/跳过%d/失败%d',
-                        $targetId,
-                        $version,
-                        $agg['strategies'],
-                        $agg['success'],
-                        $agg['skip'],
-                        $agg['fail']
-                    );
-                $notify->save();
-                $result['notifies']++;
-                $result['strategies'] += $agg['strategies'];
-            } catch (\Throwable $e) {
-                $notify->status = CrawlNotify::STATUS_FAIL;
-                $notify->processed_at = date('Y-m-d H:i:s');
-                $notify->message = mb_substr($e->getMessage(), 0, 480);
-                $notify->save();
-                Log::error('[PriceStrategyService] 消费通知异常 notifyId=' . $notify->id . ': ' . $e->getMessage());
-            }
+        while (($one = $this->consumeOneNotify($workerId)) !== null) {
+            $result['notifies']++;
+            $result['strategies'] += $one['strategies'];
         }
         return $result;
+    }
+
+    /**
+     * 原子领取并消费一条通知。返回 null 表示当前队列为空。
+     *
+     * @return array{notify_id:int,status:string,strategies:int,attempts:int}|null
+     */
+    public function consumeOneNotify(string $workerId, ?callable $heartbeat = null): ?array
+    {
+        $notify = $this->claimNextNotify($workerId);
+        if ($notify === null) {
+            return null;
+        }
+
+        $targetId = (int) $notify->crawl_target_id;
+        $version = (int) $notify->version;
+        $touch = function () use ($notify, $workerId, $heartbeat): void {
+            $this->touchNotify((int) $notify->id, $workerId);
+            if ($heartbeat !== null) {
+                $heartbeat();
+            }
+        };
+
+        try {
+            $touch();
+            $agg = $this->runByCrawlTarget($targetId, $version, $touch);
+            if ($agg['fail'] > 0) {
+                throw new \RuntimeException(sprintf(
+                    '目标%d版本%d存在%d个改价失败项',
+                    $targetId,
+                    $version,
+                    $agg['fail']
+                ));
+            }
+
+            $message = sprintf(
+                '目标%d版本%d执行策略%d个: 成功%d/跳过%d/失败%d',
+                $targetId,
+                $version,
+                $agg['strategies'],
+                $agg['success'],
+                $agg['skip'],
+                $agg['fail']
+            );
+            $updated = CrawlNotify::where('id', $notify->id)
+                ->where('status', CrawlNotify::STATUS_PROCESSING)
+                ->where('worker_id', $workerId)
+                ->update([
+                    'status'       => CrawlNotify::STATUS_DONE,
+                    'message'      => mb_substr($message, 0, 500),
+                    'processed_at' => date('Y-m-d H:i:s'),
+                    'available_at' => null,
+                    'worker_id'    => '',
+                    'started_at'   => null,
+                    'heartbeat_at' => null,
+                    'updated_at'   => date('Y-m-d H:i:s'),
+                ]);
+            if ($updated !== 1) {
+                throw new \RuntimeException('通知处理权已丢失，拒绝覆盖状态: notifyId=' . $notify->id);
+            }
+            return [
+                'notify_id'  => (int) $notify->id,
+                'status'     => 'done',
+                'strategies' => $agg['strategies'],
+                'attempts'   => (int) $notify->attempts,
+            ];
+        } catch (\Throwable $e) {
+            $status = $this->retryOrFailNotify($notify, $workerId, $e);
+            return [
+                'notify_id'  => (int) $notify->id,
+                'status'     => $status,
+                'strategies' => 0,
+                'attempts'   => (int) $notify->attempts,
+            ];
+        }
+    }
+
+    /**
+     * 用 compare-and-set 领取任务；多个 Worker 读到同一行时只有一个能更新成功。
+     */
+    public function claimNextNotify(string $workerId): ?CrawlNotify
+    {
+        for ($i = 0; $i < 20; $i++) {
+            $now = date('Y-m-d H:i:s');
+            $candidate = CrawlNotify::where('status', CrawlNotify::STATUS_PENDING)
+                ->where(function ($query) use ($now) {
+                    $query->whereNull('available_at')->whereOr('available_at', '<=', $now);
+                })
+                ->order('id', 'asc')
+                ->find();
+            if (!$candidate) {
+                return null;
+            }
+
+            $claimed = CrawlNotify::where('id', $candidate->id)
+                ->where('status', CrawlNotify::STATUS_PENDING)
+                ->where(function ($query) use ($now) {
+                    $query->whereNull('available_at')->whereOr('available_at', '<=', $now);
+                })
+                ->update([
+                    'status'       => CrawlNotify::STATUS_PROCESSING,
+                    'attempts'     => Db::raw('attempts + 1'),
+                    'worker_id'    => $workerId,
+                    'started_at'   => $now,
+                    'heartbeat_at' => $now,
+                    'updated_at'   => $now,
+                ]);
+            if ($claimed !== 1) {
+                continue;
+            }
+
+            /** @var CrawlNotify $notify */
+            $notify = CrawlNotify::find($candidate->id);
+            if (!$notify) {
+                continue;
+            }
+            $resolvedVersion = null;
+            try {
+                $resolvedVersion = $this->resolveNotifyVersion($notify);
+                $dedupeKey = $notify->crawl_target_id . ':' . $resolvedVersion;
+                $dedupeUpdated = CrawlNotify::where('id', $notify->id)
+                    ->where('status', CrawlNotify::STATUS_PROCESSING)
+                    ->where('worker_id', $workerId)
+                    ->update([
+                        'version'    => $resolvedVersion,
+                        'dedupe_key' => $dedupeKey,
+                        'updated_at' => $now,
+                    ]);
+                if ($dedupeUpdated !== 1) {
+                    throw new \RuntimeException('设置通知幂等键失败或处理权已丢失: notifyId=' . $notify->id);
+                }
+                $notify = CrawlNotify::find($notify->id);
+                if (!$notify) {
+                    throw new \RuntimeException('领取后通知不存在: notifyId=' . $candidate->id);
+                }
+                return $notify;
+            } catch (\Throwable $e) {
+                $dedupeVersion = $resolvedVersion ?? (int) ($notify->version ?? 0);
+                $dedupeKey = $notify->crawl_target_id . ':' . $dedupeVersion;
+                $duplicate = CrawlNotify::where('dedupe_key', $dedupeKey)
+                    ->where('id', '<>', $notify->id)
+                    ->find();
+                if ($duplicate) {
+                    CrawlNotify::where('id', $notify->id)
+                        ->where('status', CrawlNotify::STATUS_PROCESSING)
+                        ->where('worker_id', $workerId)
+                        ->update([
+                            'status'       => CrawlNotify::STATUS_DONE,
+                            'message'      => mb_substr('重复通知，已由通知' . $duplicate->id . '占用幂等键' . $dedupeKey, 0, 500),
+                            'processed_at' => $now,
+                            'available_at' => null,
+                            'worker_id'    => '',
+                            'started_at'   => null,
+                            'heartbeat_at' => null,
+                            'updated_at'   => $now,
+                        ]);
+                    continue;
+                }
+                $this->retryOrFailNotify($notify, $workerId, $e);
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * 回收真正失去心跳的处理中任务。运行中的 Worker 会在每个策略/产品前后续租。
+     */
+    public function recoverStaleNotifies(int $staleAfterSeconds): int
+    {
+        $cutoff = date('Y-m-d H:i:s', time() - max(60, $staleAfterSeconds));
+        $now = date('Y-m-d H:i:s');
+        return CrawlNotify::where('status', CrawlNotify::STATUS_PROCESSING)
+            ->whereRaw('COALESCE(heartbeat_at, started_at) < ?', [$cutoff])
+            ->update([
+                'status'       => CrawlNotify::STATUS_PENDING,
+                'available_at' => $now,
+                'worker_id'    => '',
+                'started_at'   => null,
+                'heartbeat_at' => null,
+                'message'      => 'Worker心跳超时，已重新进入待处理队列',
+                'updated_at'   => $now,
+            ]);
+    }
+
+    public function makeWorkerId(): string
+    {
+        $host = gethostname() ?: 'unknown-host';
+        return mb_substr($host . ':' . getmypid() . ':' . bin2hex(random_bytes(4)), 0, 100);
+    }
+
+    private function resolveNotifyVersion(CrawlNotify $notify): int
+    {
+        if ($notify->version !== null && $notify->version !== '') {
+            return (int) $notify->version;
+        }
+
+        // 只为旧生产者保留兼容路径；新版 Python 必须把实际 version 写入通知。
+        $target = CrawlTarget::find((int) $notify->crawl_target_id);
+        if (!$target) {
+            throw new \RuntimeException('爬虫目标不存在: ' . $notify->crawl_target_id);
+        }
+        Log::warning('[PriceStrategyService] 通知缺少version，临时使用目标当前版本 notifyId=' . $notify->id);
+        return (int) ($target->version ?? 0);
+    }
+
+    private function touchNotify(int $notifyId, string $workerId): void
+    {
+        $updated = CrawlNotify::where('id', $notifyId)
+            ->where('status', CrawlNotify::STATUS_PROCESSING)
+            ->where('worker_id', $workerId)
+            ->update([
+                'heartbeat_at' => date('Y-m-d H:i:s'),
+                'updated_at'   => date('Y-m-d H:i:s'),
+            ]);
+        if ($updated !== 1) {
+            throw new \RuntimeException('通知处理权已丢失: notifyId=' . $notifyId);
+        }
+    }
+
+    private function retryOrFailNotify(CrawlNotify $notify, string $workerId, \Throwable $e): string
+    {
+        $attempts = max(1, (int) $notify->attempts);
+        $failed = $attempts >= self::MAX_ATTEMPTS;
+        $delay = self::RETRY_DELAYS[min($attempts - 1, count(self::RETRY_DELAYS) - 1)];
+        $now = date('Y-m-d H:i:s');
+        CrawlNotify::where('id', $notify->id)
+            ->where('status', CrawlNotify::STATUS_PROCESSING)
+            ->where('worker_id', $workerId)
+            ->update([
+                'status'       => $failed ? CrawlNotify::STATUS_FAIL : CrawlNotify::STATUS_PENDING,
+                'available_at' => $failed ? null : date('Y-m-d H:i:s', time() + $delay),
+                'processed_at' => $failed ? $now : null,
+                'worker_id'    => '',
+                'started_at'   => null,
+                'heartbeat_at' => null,
+                'message'      => mb_substr(($failed ? '最终失败: ' : '等待重试: ') . $e->getMessage(), 0, 500),
+                'updated_at'   => $now,
+            ]);
+        Log::error('[PriceStrategyService] 消费通知异常 notifyId=' . $notify->id
+            . ' attempts=' . $attempts . ': ' . $e->getMessage());
+        return $failed ? 'failed' : 'retry';
     }
 
     private function getCrawlTargetVersion(int $crawlTargetId): int
@@ -121,7 +324,7 @@ class PriceStrategyService
      *
      * @return array{strategies:int, success:int, skip:int, fail:int}
      */
-    public function runByCrawlTarget(int $crawlTargetId, ?int $version = null): array
+    public function runByCrawlTarget(int $crawlTargetId, ?int $version = null, ?callable $heartbeat = null): array
     {
         $version = $version ?? $this->getCrawlTargetVersion($crawlTargetId);
         $strategies = PriceStrategy::where('crawl_target_id', $crawlTargetId)
@@ -130,10 +333,11 @@ class PriceStrategyService
             ->select();
         $agg = ['strategies' => 0, 'success' => 0, 'skip' => 0, 'fail' => 0];
         foreach ($strategies as $strategy) {
+            $heartbeat && $heartbeat();
             // 先统计已匹配并尝试执行的策略，避免策略内部异常时错误显示为 0 个。
             $agg['strategies']++;
             try {
-                $stat = $this->runStrategy($strategy, $version);
+                $stat = $this->runStrategy($strategy, $version, $heartbeat);
                 $agg['success'] += $stat['success'];
                 $agg['skip']    += $stat['skip'];
                 $agg['fail']    += $stat['fail'];
@@ -181,7 +385,7 @@ class PriceStrategyService
      *
      * @return array{total:int, success:int, skip:int, fail:int}
      */
-    public function runStrategy(PriceStrategy $strategy, ?int $version = null): array
+    public function runStrategy(PriceStrategy $strategy, ?int $version = null, ?callable $heartbeat = null): array
     {
         $stat = ['total' => 0, 'success' => 0, 'skip' => 0, 'fail' => 0];
 
@@ -189,15 +393,8 @@ class PriceStrategyService
         if (!$target) {
             throw new \RuntimeException('策略绑定的爬虫目标不存在: ' . $strategy->crawl_target_id);
         }
-        $currentVersion = (int) ($target->version ?? 0);
-        if ($version !== null && $version !== $currentVersion) {
-            throw new \RuntimeException(sprintf(
-                '爬虫目标版本已变化，拒绝使用版本%d，当前版本为%d',
-                $version,
-                $currentVersion
-            ));
-        }
-        $version = $version ?? $currentVersion;
+        // 通知绑定的是不可变快照版本；即便目标已经开始下一轮爬取，也必须按通知版本读取。
+        $version = $version ?? (int) ($target->version ?? 0);
 
         // 从 price_strategy_product 取该策略绑定的所有产品 ID
         $boundProductIds = PriceStrategyProduct::where('price_strategy_id', $strategy->id)
@@ -221,6 +418,7 @@ class PriceStrategyService
             ->select();
 
         foreach ($products as $product) {
+            $heartbeat && $heartbeat();
             $stat['total']++;
             $oldPrice = (float) $product->price;
             [$status, $newPrice, $refPrice, $message, $competitorId] = $this->handleProduct($product, $competitors, $dimension);
@@ -254,6 +452,7 @@ class PriceStrategyService
             } else {
                 $stat['skip']++;
             }
+            $heartbeat && $heartbeat();
         }
 
         $strategy->last_run_at = date('Y-m-d H:i:s');

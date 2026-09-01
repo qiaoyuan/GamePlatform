@@ -1,9 +1,16 @@
--- 爬取完成通知表（Python 爬虫爬完一个目标后写入，PHP 定时消费后执行改价策略）
+-- 爬取完成通知表（Python 爬虫爬完一个目标后写入，PHP 常驻 Worker 消费）
 CREATE TABLE `crawl_notify` (
   `id` int unsigned NOT NULL AUTO_INCREMENT,
   `crawl_target_id` int unsigned NOT NULL DEFAULT 0 COMMENT '爬取目标ID(crawl_target.id)',
+  `version` int unsigned DEFAULT NULL COMMENT '本次爬取数据版本',
   `crawled_count` int NOT NULL DEFAULT 0 COMMENT '本次爬取条数',
-  `status` tinyint NOT NULL DEFAULT 0 COMMENT '处理状态 0-待处理 1-已处理 2-处理失败',
+  `status` tinyint NOT NULL DEFAULT 0 COMMENT '处理状态 0-待处理 1-已处理 2-处理失败 3-处理中',
+  `attempts` int unsigned NOT NULL DEFAULT 0 COMMENT '已领取次数',
+  `available_at` datetime DEFAULT NULL COMMENT '下次可领取时间',
+  `started_at` datetime DEFAULT NULL COMMENT '本次领取时间',
+  `heartbeat_at` datetime DEFAULT NULL COMMENT 'Worker最近心跳时间',
+  `worker_id` varchar(100) NOT NULL DEFAULT '' COMMENT '当前Worker标识',
+  `dedupe_key` varchar(100) DEFAULT NULL COMMENT '目标版本幂等键',
   `message` varchar(500) NOT NULL DEFAULT '' COMMENT '处理结果说明',
   `crawled_at` datetime DEFAULT NULL COMMENT 'Python 爬取完成时间',
   `processed_at` datetime DEFAULT NULL COMMENT 'PHP 处理时间',
@@ -11,5 +18,8 @@ CREATE TABLE `crawl_notify` (
   `updated_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `idx_status` (`status`),
-  KEY `idx_crawl_target_id` (`crawl_target_id`)
+  KEY `idx_claim` (`status`,`available_at`,`id`),
+  KEY `idx_stale` (`status`,`heartbeat_at`),
+  KEY `idx_crawl_target_id` (`crawl_target_id`),
+  UNIQUE KEY `uk_dedupe_key` (`dedupe_key`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='爬取完成通知(Python->PHP 握手)';
