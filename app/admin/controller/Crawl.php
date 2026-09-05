@@ -48,7 +48,7 @@ class Crawl extends BaseController
     #[Permission(title: '竞品爬取', isMenu: 1, parentUrl: 'gameProduct/index', isHideSub: 1)]
     public function index(): void
     {
-        $lists = $this->tableList(CrawlTargetModel::class, ['id' => 'DESC'])
+        $lists = $this->scopeOwnedData($this->tableList(CrawlTargetModel::class, ['id' => 'DESC']), 'crawl_target')
             ->with(['gameProduct'])
             ->selectData();
         if (!is_numeric($lists)) {
@@ -70,7 +70,10 @@ class Crawl extends BaseController
     public function select(): void
     {
         $this->success('', [
-            'list' => CrawlTargetModel::field('name as label,id as value')->where('status', 1)->select(),
+            'list' => $this->scopeOwnedData(
+                CrawlTargetModel::field('name as label,id as value')->where('status', 1),
+                'crawl_target'
+            )->select(),
         ]);
     }
 
@@ -80,7 +83,7 @@ class Crawl extends BaseController
     #[Permission(title: '查看详情')]
     public function get(): void
     {
-        $row = CrawlTargetModel::with(['gameProduct'])->find(input('id'));
+        $row = $this->scopeOwnedData(CrawlTargetModel::with(['gameProduct']), 'crawl_target')->find(input('id'));
         if ($row) {
             $row->game_product_name = $row->gameProduct ? $row->gameProduct->title : '--';
             $this->success('', ['info' => $row]);
@@ -105,6 +108,7 @@ class Crawl extends BaseController
     public function edit(): void
     {
         $targetId = (int) input('id', 0);
+        $this->assertOwnedData('crawl_target', $targetId);
         $this->ensureGameProduct($targetId);
         // 版本由新增时初始化，编辑接口不允许覆盖。
         $this->mEdit(CrawlTargetModel::class, ['except' => ['version']]);
@@ -116,6 +120,7 @@ class Crawl extends BaseController
     #[Permission(title: '删除目标')]
     public function delete(): void
     {
+        $this->assertOwnedData('crawl_target', $this->getInputPk());
         $this->mDelete(CrawlTargetModel::class);
     }
 
@@ -125,6 +130,7 @@ class Crawl extends BaseController
     #[Permission(title: '修改状态')]
     public function status(): void
     {
+        $this->assertOwnedData('crawl_target', input('id'));
         $status = input('status', 0);
         CrawlTargetModel::update(['status' => $status], ['id' => input('id')]);
         $this->success('修改成功', ['status' => $status]);
@@ -136,6 +142,7 @@ class Crawl extends BaseController
     private function ensureGameProduct(int $excludeTargetId = 0): void
     {
         $gameProductId = (int) input('game_product_id', 0);
+        $this->assertOwnedData('game_product', $gameProductId, '请选择当前账号名下的游戏产品');
         if ($gameProductId <= 0 || !GameProduct::where('id', $gameProductId)->find()) {
             $this->error('请选择有效的游戏产品');
         }
@@ -165,6 +172,7 @@ class Crawl extends BaseController
         if (empty($id)) {
             $this->systemError('缺少目标ID');
         }
+        $this->assertOwnedData('crawl_target', $id);
 
         try {
             $service = new CrawlService;

@@ -15,7 +15,10 @@ class GameProduct extends BaseController
     #[Permission(title: '游戏产品', isMenu: 1, parentUrl: 'user', isHideSub: 1)]
     public function index(): void
     {
-        $lists = $this->tableList(Model::class, ['id' => 'DESC'], ['title', 'product_id'], [GameAccount::class])
+        $lists = $this->scopeOwnedData(
+            $this->tableList(Model::class, ['id' => 'DESC'], ['title', 'product_id'], [GameAccount::class]),
+            'game_product'
+        )
             ->with(['gameAccount'])
             ->selectData();
         if (!is_numeric($lists)) {
@@ -50,6 +53,7 @@ class GameProduct extends BaseController
     #[Permission(title: '添加游戏产品')]
     public function add(): void
     {
+        $this->assertOwnedData('game_account', input('game_account_id'), '请选择当前账号名下的游戏账号');
         $this->mAdd(Model::class, [], [], function (Model $product) {
             $account = $product->gameAccount;
             if ($account && (int) $account->platform === GameAccount::PLATFORM_ELDORADO) {
@@ -67,6 +71,8 @@ class GameProduct extends BaseController
     #[Permission(title: '编辑游戏产品')]
     public function edit(): void
     {
+        $this->assertOwnedData('game_product', input('id'));
+        $this->assertOwnedData('game_account', input('game_account_id'), '请选择当前账号名下的游戏账号');
         // price 不允许在常规编辑中修改：改价需要同步 G2G 平台，只能走 updatePrice() 接口
         $this->mEdit(Model::class, ['except' => ['price']]);
     }
@@ -74,19 +80,21 @@ class GameProduct extends BaseController
     #[Permission(title: '删除游戏产品')]
     public function delete(): void
     {
+        $this->assertOwnedData('game_product', $this->getInputPk());
         $this->mDelete(Model::class);
     }
 
     public function get(): void
     {
         $this->success('', [
-            'detail' => Model::with(['gameAccount'])->find(input('id')),
+            'detail' => $this->scopeOwnedData(Model::with(['gameAccount']), 'game_product')->find(input('id')),
         ]);
     }
 
     #[Permission(title: '修改状态')]
     public function status(): void
     {
+        $this->assertOwnedData('game_product', $this->getInputPk());
         $status = input('status', 0);
         Model::update(['status' => $status], ['id' => $this->getInputPk()]);
         $this->success('修改成功', ['status' => $status]);
@@ -104,6 +112,7 @@ class GameProduct extends BaseController
         if (!$id || $price === null || $price === '') {
             $this->error('参数不足');
         }
+        $this->assertOwnedData('game_product', $id);
         $price = (float)$price;
         if ($price <= 0) {
             $this->error('价格必须大于0');
@@ -132,6 +141,7 @@ class GameProduct extends BaseController
         if (!$id) {
             $this->error('参数不足');
         }
+        $this->assertOwnedData('game_product', $id);
         $product = Model::with(['gameAccount'])->find($id);
         if (!$product) {
             $this->error('产品不存在');
@@ -152,7 +162,7 @@ class GameProduct extends BaseController
     public function select(): void
     {
         $this->success('', [
-            'list' => $this->tableList(Model::class, [], ['title', 'product_id'])
+            'list' => $this->scopeOwnedData($this->tableList(Model::class, [], ['title', 'product_id']), 'game_product')
                 ->field('title as label,id as value')
                 ->select()
         ]);

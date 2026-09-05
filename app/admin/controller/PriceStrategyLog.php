@@ -23,7 +23,7 @@ class PriceStrategyLog extends BaseController
                 'width'      => 150,
                 'search'     => 'price_strategy_id',
                 'searchType' => 'multiple',
-                'searchList' => PriceStrategy::whereNull('deleted_at')
+                'searchList' => $this->scopeOwnedData(PriceStrategy::whereNull('deleted_at'), 'price_strategy')
                     ->field('name as label,id as value')
                     ->select()
                     ->toArray(),
@@ -58,7 +58,7 @@ class PriceStrategyLog extends BaseController
     #[Permission(title: '改价日志', isMenu: 1, parentUrl: 'priceStrategy/index', isHideSub: 1)]
     public function index(): void
     {
-        $lists = $this->tableList(Model::class, ['id' => 'DESC'])
+        $lists = $this->scopeOwnedData($this->tableList(Model::class, ['id' => 'DESC']), 'price_strategy_log')
             ->with(['strategy', 'gameProduct'])
             ->selectData();
         if (!is_numeric($lists)) {
@@ -75,6 +75,7 @@ class PriceStrategyLog extends BaseController
     #[Permission(title: '删除日志')]
     public function delete(): void
     {
+        $this->assertOwnedData('price_strategy_log', $this->getInputPk());
         $this->mDelete(Model::class);
     }
 }

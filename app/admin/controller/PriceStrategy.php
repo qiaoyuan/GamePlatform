@@ -66,7 +66,7 @@ class PriceStrategy extends BaseController
     #[Permission(title: '改价策略', isMenu: 1, parentUrl: 'gameProduct/index', isHideSub: 1)]
     public function index(): void
     {
-        $lists = $this->tableList(Model::class, ['id' => 'DESC'], ['name'])
+        $lists = $this->scopeOwnedData($this->tableList(Model::class, ['id' => 'DESC'], ['name']), 'price_strategy')
             ->with(['crawlTarget'])
             ->withCount(['products'])
             ->selectData();
@@ -151,7 +151,7 @@ class PriceStrategy extends BaseController
      */
     public function get(): void
     {
-        $row = Model::find(input('id'));
+        $row = $this->scopeOwnedData(Model::where([]), 'price_strategy')->find(input('id'));
         $row ? $this->success('', ['info' => $row]) : $this->success('暂无数据');
     }
 
@@ -161,6 +161,7 @@ class PriceStrategy extends BaseController
     #[Permission(title: '添加策略')]
     public function add(): void
     {
+        $this->assertOwnedData('crawl_target', input('crawl_target_id'), '请选择当前账号名下的竞品池');
         $this->mAdd(Model::class);
     }
 
@@ -170,6 +171,8 @@ class PriceStrategy extends BaseController
     #[Permission(title: '编辑策略')]
     public function edit(): void
     {
+        $this->assertOwnedData('price_strategy', input('id'));
+        $this->assertOwnedData('crawl_target', input('crawl_target_id'), '请选择当前账号名下的竞品池');
         $this->mEdit(Model::class);
     }
 
@@ -185,6 +188,7 @@ class PriceStrategy extends BaseController
         if (!$ids) {
             $this->error('请选择要更新的策略');
         }
+        $this->assertOwnedData('price_strategy', $ids);
 
         $rawPrice = input('filter_price', null);
         if ($rawPrice === '' || $rawPrice === null) {
@@ -215,6 +219,7 @@ class PriceStrategy extends BaseController
     #[Permission(title: '删除策略')]
     public function delete(): void
     {
+        $this->assertOwnedData('price_strategy', $this->getInputPk());
         $this->mDelete(Model::class, [], function ($list) {
             $ids = is_object($list) ? $list->column('id') : (array) $list;
             if ($ids) {
@@ -229,6 +234,7 @@ class PriceStrategy extends BaseController
     #[Permission(title: '修改状态')]
     public function status(): void
     {
+        $this->assertOwnedData('price_strategy', $this->getInputPk());
         $status = input('status', 0);
         Model::update(['status' => $status], ['id' => $this->getInputPk()]);
         $this->success('修改成功', ['status' => $status]);
@@ -241,9 +247,11 @@ class PriceStrategy extends BaseController
     public function boundProducts(): void
     {
         $id  = (int) input('id', 0);
+        $this->assertOwnedData('price_strategy', $id);
         $ids = PriceStrategyProduct::where('price_strategy_id', $id)->column('game_product_id');
         $list = $ids
-            ? GameProduct::whereIn('id', $ids)->field('id as value,title as label')->select()
+            ? $this->scopeOwnedData(GameProduct::whereIn('id', $ids), 'game_product')
+                ->field('id as value,title as label')->select()
             : [];
         $this->success('', ['list' => $list]);
     }
@@ -256,11 +264,15 @@ class PriceStrategy extends BaseController
     public function bindProducts(): void
     {
         $id = (int) input('id', 0);
+        $this->assertOwnedData('price_strategy', $id);
         if (!$id || !Model::find($id)) {
             $this->error('策略不存在');
         }
         $productIds = input('product_ids', []);
         $productIds = is_array($productIds) ? array_values(array_unique(array_filter(array_map('intval', $productIds)))) : [];
+        if ($productIds) {
+            $this->assertOwnedData('game_product', $productIds, '只能绑定当前账号名下的游戏产品');
+        }
 
         Db::transaction(function () use ($id, $productIds) {
             // 清空该策略原有绑定
@@ -289,6 +301,7 @@ class PriceStrategy extends BaseController
     public function execute(): void
     {
         $id       = (int) input('id', 0);
+        $this->assertOwnedData('price_strategy', $id);
         $strategy = Model::find($id);
         if (!$strategy) {
             $this->error('策略不存在');

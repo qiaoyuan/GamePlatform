@@ -59,8 +59,10 @@ class CompetitorProduct extends BaseController
     #[Permission(title: '竞品数据', isMenu: 1, parentUrl: 'crawl/index', isHideSub: 1)]
     public function index(): void
     {
-        $query = $this->tableList(Model::class, ['crawled_at' => 'DESC', 'price' => 'ASC'], ['seller_name', 'product_title'])
-            ->with(['crawlTarget.gameProduct']);
+        $query = $this->scopeOwnedData(
+            $this->tableList(Model::class, ['crawled_at' => 'DESC', 'price' => 'ASC'], ['seller_name', 'product_title']),
+            'crawl_data'
+        )->with(['crawlTarget.gameProduct']);
 
         // game_product_id 属于 crawl_target，不属于 crawl_data，先转换为目标 ID 再筛选竞品。
         $productIds = input('game_product_id_multiple', []);
@@ -73,9 +75,9 @@ class CompetitorProduct extends BaseController
             static fn (int $id): bool => $id > 0
         )));
         if ($productIds) {
-            $targetIds = CrawlTarget::whereIn('game_product_id', $productIds)
-                ->whereNull('deleted_at')
-                ->column('id');
+            $targetQuery = CrawlTarget::whereIn('game_product_id', $productIds)
+                ->whereNull('deleted_at');
+            $targetIds = $this->scopeOwnedData($targetQuery, 'crawl_target')->column('id');
             $query->whereIn('target_id', $targetIds ?: [-1]);
         }
 
@@ -99,7 +101,7 @@ class CompetitorProduct extends BaseController
      */
     public function get(): void
     {
-        $row = Model::with(['crawlTarget.gameProduct'])->find(input('id'));
+        $row = $this->scopeOwnedData(Model::with(['crawlTarget.gameProduct']), 'crawl_data')->find(input('id'));
         if ($row) {
             $row->target_name = $row->crawlTarget ? $row->crawlTarget->name : '--';
             $row->game_product_name = $row->crawlTarget && $row->crawlTarget->gameProduct
@@ -116,6 +118,7 @@ class CompetitorProduct extends BaseController
     #[Permission(title: '删除竞品数据')]
     public function delete(): void
     {
+        $this->assertOwnedData('crawl_data', $this->getInputPk());
         $this->mDelete(Model::class);
     }
 }

@@ -31,7 +31,7 @@ class GameAccount extends BaseController
     #[Permission(title: '游戏账号', isMenu: 1, parentUrl: 'gameProduct/index', isHideSub: 1)]
     public function index(): void
     {
-        $lists = $this->tableList(GameAccountModel::class, ['id' => 'DESC'])
+        $lists = $this->scopeOwnedData($this->tableList(GameAccountModel::class, ['id' => 'DESC']), 'game_account')
             ->selectData();
         if (!is_numeric($lists)) {
             $lists->each(function (GameAccountModel $item) {
@@ -51,7 +51,10 @@ class GameAccount extends BaseController
     public function select(): void
     {
         $this->success('', [
-            'list' => GameAccountModel::field('account_name as label,id as value')->where('status', 1)->select(),
+            'list' => $this->scopeOwnedData(
+                GameAccountModel::field('account_name as label,id as value')->where('status', 1),
+                'game_account'
+            )->select(),
         ]);
     }
 
@@ -72,7 +75,7 @@ class GameAccount extends BaseController
     #[Permission(title: '查看详情')]
     public function get(): void
     {
-        $row = GameAccountModel::find(input('id'));
+        $row = $this->scopeOwnedData(GameAccountModel::where([]), 'game_account')->find(input('id'));
         $row ? $this->success('', ['info' => $row]) : $this->success('暂无数据');
     }
 
@@ -82,7 +85,7 @@ class GameAccount extends BaseController
     #[Permission(title: '添加账号')]
     public function add(): void
     {
-        $this->mAdd(GameAccountModel::class);
+        $this->mAdd(GameAccountModel::class, ['append' => ['admin_id' => (int) $this->request->admin_id]]);
     }
 
     /**
@@ -91,7 +94,9 @@ class GameAccount extends BaseController
     #[Permission(title: '编辑账号')]
     public function edit(): void
     {
-        $this->mEdit(GameAccountModel::class, ['except' => ['platform']]);
+        $this->assertOwnedData('game_account', input('id'));
+        // 归属管理员和平台均不可通过普通编辑接口变更。
+        $this->mEdit(GameAccountModel::class, ['except' => ['platform', 'admin_id']]);
     }
 
     /**
@@ -100,6 +105,7 @@ class GameAccount extends BaseController
     #[Permission(title: '删除账号')]
     public function delete(): void
     {
+        $this->assertOwnedData('game_account', $this->getInputPk());
         $this->mDelete(GameAccountModel::class);
     }
 
@@ -109,6 +115,7 @@ class GameAccount extends BaseController
     #[Permission(title: '修改状态')]
     public function status(): void
     {
+        $this->assertOwnedData('game_account', input('id'));
         $status = input('status', 0);
         GameAccountModel::update(['status' => $status], ['id' => input('id')]);
         $this->success('修改成功', ['status' => $status]);

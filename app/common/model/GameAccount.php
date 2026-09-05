@@ -7,6 +7,7 @@ namespace app\common\model;
  * 游戏账号
  *
  * @property int    $id
+ * @property int    $admin_id            所属后台账号ID
  * @property string $user_id              用户ID（G2G 平台账号标识，Eldorado 可留空）
  * @property string $account_name         账号名称
  * @property int    $platform             平台 1-G2G 2-Eldorado
@@ -26,13 +27,14 @@ class GameAccount extends Base
     protected $pk    = 'id';
 
     /** @var string[] 字段列表 */
-    protected $field = ['id', 'user_id', 'account_name', 'platform', 'active_device_token', 'long_lived_token', 'refresh_token', 'client_id', 'client_secret', 'status', 'created_at', 'updated_at', 'deleted_at'];
+    protected $field = ['id', 'admin_id', 'user_id', 'account_name', 'platform', 'active_device_token', 'long_lived_token', 'refresh_token', 'client_id', 'client_secret', 'status', 'created_at', 'updated_at', 'deleted_at'];
 
     /**
      * @var array<string, string> 字段类型
      */
     protected $type = [
         'id'                  => 'int',
+        'admin_id'            => 'int',
         'user_id'             => 'string',
         'account_name'        => 'string',
         'platform'            => 'int',
