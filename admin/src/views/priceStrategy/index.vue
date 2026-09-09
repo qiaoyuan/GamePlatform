@@ -15,13 +15,14 @@
           size="mini"
           @click="onBatchPrice(selection)"
         >
-          批量更新价格
+          批量设置策略最低价
         </el-button>
       </template>
     </w-tabs-table>
     <PriceStrategyFormDialog ref="formDialog" @done="getList" />
     <PriceStrategyProductDialog ref="productDialog" @done="getList" />
     <PriceStrategyPriceDialog ref="priceDialog" @done="getList" />
+    <PriceStrategyBatchProductDialog ref="batchProductDialog" @done="getList" />
   </div>
 </template>
 
@@ -29,6 +30,7 @@
 import PriceStrategyFormDialog from './dialog/priceStrategyFormDialog'
 import PriceStrategyProductDialog from './dialog/priceStrategyProductDialog'
 import PriceStrategyPriceDialog from './dialog/priceStrategyPriceDialog'
+import PriceStrategyBatchProductDialog from './dialog/priceStrategyBatchProductDialog'
 
 export default {
   name: 'PriceStrategyIndex',
@@ -36,6 +38,7 @@ export default {
     PriceStrategyFormDialog,
     PriceStrategyProductDialog,
     PriceStrategyPriceDialog,
+    PriceStrategyBatchProductDialog,
   },
   data() {
     return {
@@ -58,6 +61,18 @@ export default {
             type: 'warning',
             p: 'priceStrategy/execute',
             click: row => this.doExecute(row),
+          },
+          {
+            title: '批量改价',
+            type: 'success',
+            p: 'priceStrategy/batchProductPrice',
+            click: row => this.$refs.batchProductDialog.open(row, 'price'),
+          },
+          {
+            title: '批量改库存',
+            type: 'primary',
+            p: 'priceStrategy/batchProductStock',
+            click: row => this.$refs.batchProductDialog.open(row, 'stock'),
           },
         ],
       },

@@ -46,11 +46,14 @@ export default {
   },
   methods: {
     open(rows) {
+      const firstPrice = Number(rows?.[0]?.filter_price)
       this.ids = (rows || [])
         .map(row => Number(row.id))
         .filter(id => Number.isInteger(id) && id > 0)
       this.updateAll = true
-      this.form = { filter_price: undefined }
+      this.form = {
+        filter_price: Number.isFinite(firstPrice) && firstPrice >= 0 ? firstPrice : undefined,
+      }
       this.visible = this.ids.length > 0
       this.$nextTick(() => this.$refs.form && this.$refs.form.clearValidate())
     },

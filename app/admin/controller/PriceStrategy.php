@@ -8,6 +8,9 @@ use app\common\annotation\Permission;
 use app\common\model\GameProduct;
 use app\common\model\PriceStrategy as Model;
 use app\common\model\PriceStrategyProduct;
+use app\common\model\GameAccount;
+use app\common\service\GameProductPriceService;
+use app\common\service\GameProductStockService;
 use app\common\service\PriceStrategyService;
 use think\facade\Db;
 
@@ -211,6 +214,121 @@ class PriceStrategy extends BaseController
         });
 
         $this->success('批量更新成功', ['count' => count($ids), 'filter_price' => $price]);
+    }
+
+    /**
+     * 把策略绑定的全部产品修改为同一价格。
+     * 未传 price 时默认使用该策略的最低价。
+     */
+    #[Permission(title: '批量修改产品价格')]
+    public function batchProductPrice(): void
+    {
+        [$strategy, $products] = $this->getBoundProducts((int) input('id', 0));
+
+        $rawPrice = input('price', null);
+        if ($rawPrice === '' || $rawPrice === null) {
+            $rawPrice = $this->getConfigPrice($strategy->config);
+        }
+        if (!is_numeric($rawPrice) || !is_finite((float) $rawPrice) || (float) $rawPrice <= 0) {
+            $this->error('请填写大于 0 的价格，或先为策略设置最低价');
+        }
+        $price = round((float) $rawPrice, 6);
+
+        $stat = ['total' => count($products), 'success' => 0, 'skip' => 0, 'fail' => 0, 'errors' => []];
+        foreach ($products as $product) {
+            try {
+                // 用户明确要求所有绑定产品都提交改价，
+                // 即使本地价格相同也调用平台，可用于校正线上价格。
+                GameProductPriceService::change($product, $price);
+                $stat['success']++;
+            } catch (\Throwable $e) {
+                $stat['fail']++;
+                $stat['errors'][] = $product->title . '：' . mb_substr($e->getMessage(), 0, 180);
+            }
+        }
+
+        $this->success($this->formatBatchResult('批量改价', $stat), $stat + ['price' => $price]);
+    }
+
+    /**
+     * 把策略绑定的全部产品修改为同一库存。
+     * ELD 会同步调用整单修改接口；其它平台只更新本地库存。
+     */
+    #[Permission(title: '批量修改产品库存')]
+    public function batchProductStock(): void
+    {
+        [, $products] = $this->getBoundProducts((int) input('id', 0));
+
+        $rawStock = input('stock', null);
+        if (filter_var($rawStock, FILTER_VALIDATE_INT) === false || (int) $rawStock <= 0) {
+            $this->error('库存必须是大于 0 的整数');
+        }
+        $stock = (int) $rawStock;
+
+        $stat = ['total' => count($products), 'success' => 0, 'skip' => 0, 'fail' => 0, 'errors' => []];
+        foreach ($products as $product) {
+            if ((int) $product->stock === $stock) {
+                $stat['skip']++;
+                continue;
+            }
+            try {
+                $account = $product->gameAccount;
+                if ($account && (int) $account->platform === GameAccount::PLATFORM_ELDORADO) {
+                    GameProductStockService::sync($product, $stock);
+                } else {
+                    $product->stock = $stock;
+                    $product->save();
+                }
+                $stat['success']++;
+            } catch (\Throwable $e) {
+                $stat['fail']++;
+                $stat['errors'][] = $product->title . '：' . mb_substr($e->getMessage(), 0, 180);
+            }
+        }
+
+        $this->success($this->formatBatchResult('批量改库存', $stat), $stat + ['stock' => $stock]);
+    }
+
+    /**
+     * @return array{0:Model,1:\think\model\Collection}
+     */
+    private function getBoundProducts(int $strategyId): array
+    {
+        if ($strategyId <= 0) {
+            $this->error('策略参数不足');
+        }
+        $this->assertOwnedData('price_strategy', $strategyId);
+        $strategy = Model::find($strategyId);
+        if (!$strategy) {
+            $this->error('策略不存在');
+        }
+
+        $productIds = PriceStrategyProduct::where('price_strategy_id', $strategyId)->column('game_product_id');
+        if (!$productIds) {
+            $this->error('该策略尚未绑定产品');
+        }
+        $this->assertOwnedData('game_product', $productIds, '策略中存在无权操作的产品');
+
+        $products = GameProduct::with(['gameAccount'])->whereIn('id', $productIds)->select();
+        if (count($products) !== count($productIds)) {
+            $this->error('部分绑定产品不存在，请重新绑定后再试');
+        }
+        return [$strategy, $products];
+    }
+
+    private function formatBatchResult(string $action, array $stat): string
+    {
+        $message = sprintf(
+            '%s完成：成功 %d，跳过 %d，失败 %d',
+            $action,
+            $stat['success'],
+            $stat['skip'],
+            $stat['fail']
+        );
+        if ($stat['errors']) {
+            $message .= '；' . $stat['errors'][0];
+        }
+        return $message;
     }
 
     /**
