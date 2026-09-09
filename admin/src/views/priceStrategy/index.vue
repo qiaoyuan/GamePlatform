@@ -62,12 +62,6 @@ export default {
             click: row => this.doExecute(row),
           },
           {
-            title: '批量改价',
-            type: 'success',
-            p: 'priceStrategy/batchProductPrice',
-            click: row => this.$refs.batchProductDialog.open(row, 'price'),
-          },
-          {
             title: '批量改库存',
             type: 'primary',
             p: 'priceStrategy/batchProductStock',

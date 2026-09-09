@@ -33,6 +33,7 @@
           :disabled="loading"
           style="width: 100%"
         />
+        <div class="tip">已自动带入该策略第一个绑定产品的当前库存</div>
       </el-form-item>
       <div class="warning">
         确认后将逐个更新该策略绑定的所有产品，ELD 产品会同步到线上平台。
@@ -72,7 +73,7 @@ export default {
     },
   },
   methods: {
-    open(row, mode) {
+    async open(row, mode) {
       this.strategy = row || {}
       this.mode = mode === 'stock' ? 'stock' : 'price'
       const minimumPrice = Number(this.strategy.filter_price)
@@ -81,6 +82,20 @@ export default {
         stock: undefined,
       }
       this.loading = false
+
+      if (this.mode === 'stock') {
+        try {
+          const res = await post('priceStrategy/batchProductStock', {
+            id: this.strategy.id,
+            preview: 1,
+          }, {}, false, false)
+          const stock = Number(res.data?.stock)
+          this.form.stock = Number.isInteger(stock) && stock > 0 ? stock : undefined
+        } catch (_) {
+          // 错误已由请求库统一提示；仍打开弹窗，允许手动填写库存。
+        }
+      }
+
       this.visible = true
       this.$nextTick(() => this.$refs.form && this.$refs.form.clearValidate())
     },

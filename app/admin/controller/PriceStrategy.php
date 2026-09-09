@@ -259,6 +259,16 @@ class PriceStrategy extends BaseController
     {
         [, $products] = $this->getBoundProducts((int) input('id', 0));
 
+        // 弹窗初始化时复用同一权限接口，实时返回第一个绑定产品的当前库存。
+        if ((int) input('preview', 0) === 1) {
+            $product = $products->first();
+            $this->success('', [
+                'stock' => (int) $product->stock,
+                'product_id' => (int) $product->id,
+                'product_title' => $product->title,
+            ]);
+        }
+
         $rawStock = input('stock', null);
         if (filter_var($rawStock, FILTER_VALIDATE_INT) === false || (int) $rawStock <= 0) {
             $this->error('库存必须是大于 0 的整数');
@@ -303,7 +313,9 @@ class PriceStrategy extends BaseController
             $this->error('策略不存在');
         }
 
-        $productIds = PriceStrategyProduct::where('price_strategy_id', $strategyId)->column('game_product_id');
+        $productIds = PriceStrategyProduct::where('price_strategy_id', $strategyId)
+            ->order('id', 'ASC')
+            ->column('game_product_id');
         if (!$productIds) {
             $this->error('该策略尚未绑定产品');
         }
