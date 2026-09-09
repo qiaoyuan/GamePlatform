@@ -224,17 +224,17 @@ class EldoradoClient
     }
 
     /**
-     * 改价（当前在用的方式）：整单提交 offer
+     * 修改 offer（改价/改库存共用）：整单提交 offer
      *
      * POST /api/v1/currency-management/me/offers
      *   Content-Type: application/json-patch+json
      *
-     * 除价格以外的参数（quantity / minQuantity / currency / deliveryMethod /
-     * gameId / category / tradeEnvironmentId）全部来自「同步线上数据」写入的 offer_data，
-     * 只有 pricePerUnit.amount 用调用方传入的新价格覆盖。
+     * quantity / minQuantity / currency / deliveryMethod / gameId / category /
+     * tradeEnvironmentId 来自调用方传入的 offer_data，
+     * pricePerUnit.amount 用调用方传入的价格覆盖。
      *
-     * 注意：本接口会连带提交 quantity（库存）。offer_data 是同步那一刻的快照，
-     * 若线上库存之后有变动，改价会把库存写回快照值，因此改价前建议先同步。
+     * 调用方改价时保持 offer_data 中的 quantity；改库存时先替换
+     * offer_data 中的 quantity，并保持当前价格。
      *
      * @param string $offerId       Eldorado 平台 offer ID（即 product_id，仅用于风控冷却 key 与日志）
      * @param array  $offerData     同步下来的 offer_data

@@ -8,6 +8,7 @@ use app\common\model\GameAccount;
 use app\common\annotation\Permission;
 use app\common\service\GameProductPriceService;
 use app\common\service\GameProductOfferSyncService;
+use app\common\service\GameProductStockService;
 use think\facade\Log;
 
 class GameProduct extends BaseController
@@ -71,10 +72,36 @@ class GameProduct extends BaseController
     #[Permission(title: '编辑游戏产品')]
     public function edit(): void
     {
-        $this->assertOwnedData('game_product', input('id'));
+        $id = input('id');
+        $this->assertOwnedData('game_product', $id);
         $this->assertOwnedData('game_account', input('game_account_id'), '请选择当前账号名下的游戏账号');
-        // price 不允许在常规编辑中修改：改价需要同步 G2G 平台，只能走 updatePrice() 接口
-        $this->mEdit(Model::class, ['except' => ['price']]);
+        $original = Model::find($id);
+        if (!$original) {
+            $this->error('产品不存在');
+        }
+        $originalStock = (int) $original->stock;
+
+        // ELD 的平台修改接口是整单提交，改库存与改价复用同一接口。
+        // 用事务包住本地编辑：平台调用失败时，stock 和 offer_data 一起回滚。
+        $error = transaction(function () use ($originalStock) {
+            // price 不允许在常规编辑中修改：单独改价只能走 updatePrice() 接口。
+            $this->mEdit(Model::class, ['except' => ['price']], [], function (Model $product) use ($originalStock) {
+                if ((int) $product->stock === $originalStock) {
+                    return $product;
+                }
+
+                $account = $product->gameAccount;
+                if ($account && (int) $account->platform === GameAccount::PLATFORM_ELDORADO) {
+                    try {
+                        GameProductStockService::sync($product, (int) $product->stock);
+                    } catch (\RuntimeException $e) {
+                        $this->error($e->getMessage());
+                    }
+                }
+                return $product;
+            });
+        }, $this);
+        $this->systemError($error);
     }
 
     #[Permission(title: '删除游戏产品')]
