@@ -248,7 +248,7 @@ class EldoradoClient
         $redisCache   = cache()->store('redis');
         $rateLimitKey = 'eld_rl_' . self::RATE_LIMIT_KEY_VERSION . '_C_' . $offerId;
         if ($redisCache->get($rateLimitKey)) {
-            throw new \RuntimeException('新接口存在限制中，请稍后再试（改价接口在3分钟冷却中）');
+//            throw new \RuntimeException('新接口存在限制中，请稍后再试（改价接口在3分钟冷却中）');
         }
 
         $url   = '/api/v1/currency-management/me/offers';
