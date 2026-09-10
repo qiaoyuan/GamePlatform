@@ -4,6 +4,7 @@
       ref="wTable"
       :module="module"
       :operates="operates"
+      @add="onAdd"
       @edit="onEdit"
     >
       <template #multiOperate="{ selection }">
@@ -45,7 +46,7 @@ export default {
       operates: {
         del: true,
         look: false,
-        add: false,
+        add: true,
         edit: true,
         multiDel: true,
         other: [
@@ -75,6 +76,9 @@ export default {
     getList() {
       this.$store.dispatch('cleanColumnOptions', this.module)
       this.$refs.wTable.getList()
+    },
+    onAdd() {
+      this.$refs.formDialog.open({})
     },
     onEdit(row) {
       this.$refs.formDialog.open(row)
