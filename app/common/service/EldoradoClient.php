@@ -40,7 +40,7 @@ class EldoradoClient
     ];
 
     /** 单个接口 429 后的冷却时长（秒）*/
-    private const RATE_LIMIT_TTL = 420;
+    private const RATE_LIMIT_TTL = 60;
 
     /** 冷却 key 版本号，升版本即废弃历史 key（旧 key 自然过期，不再被读取）*/
     private const RATE_LIMIT_KEY_VERSION = 'v2';
