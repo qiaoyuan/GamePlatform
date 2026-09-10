@@ -15,12 +15,12 @@ use GuzzleHttp\Exception\GuzzleException;
  *   body JSON: {"clientId":"...","clientSecret":"..."}
  *   返回:  {"accessToken":"...","expiresIn":899,"tokenType":"Bearer"}
  *
- * 改价（当前在用）：updateOfferPrice() —— 整单提交
+ * 改价：updateOfferPrice() —— 整单提交
  *   POST /api/v1/currency-management/me/offers
  *   Content-Type: application/json-patch+json
  *   除价格外的字段取自已同步的 offer_data
  *
- * 改价（旧方式，保留不再默认调用）：updatePrice() —— 单接口改价，A/B 双接口互为降级
+ * 改价（旧方式，保留但已关闭）：updatePrice() —— 单接口改价，A/B 双接口互为降级
  *   PUT /api/predefinedOffersUser/me/{offerId}/changePrice        [接口 A]
  *   PUT /api/v1/currency-management/me/offers/{offerId}/change-price [接口 B]
  *   body JSON: {"amount": 0.04, "currency": "USD"}
@@ -33,16 +33,19 @@ class EldoradoClient
     private GameAccount $account;
     private Client $http;
 
-    /** 两个改价接口路径，按顺序尝试（哪个未被风控就用哪个） */
+    /** 旧 A/B 改价接口保留但关闭，ELD 改价统一走 updateOfferPrice()。 */
+    private const LEGACY_PRICE_API_ENABLED = false;
+
+    /** 两个旧改价接口路径，按顺序尝试（仅在显式开启旧接口时使用） */
     private const PRICE_URLS = [
         'A' => '/api/predefinedOffersUser/me/%s/changePrice',
         'B' => '/api/v1/currency-management/me/offers/%s/change-price',
     ];
 
-    /** 单个接口 429 后的冷却时长（秒）*/
+    /** 单个旧接口 429 后的冷却时长（秒） */
     private const RATE_LIMIT_TTL = 180;
 
-    /** 冷却 key 版本号，升版本即废弃历史 key（旧 key 自然过期，不再被读取）*/
+    /** 冷却 key 版本号，升版本即废弃历史 key（旧 key 自然过期，不再被读取） */
     private const RATE_LIMIT_KEY_VERSION = 'v2';
 
     public function __construct(GameAccount $account)
@@ -124,7 +127,7 @@ class EldoradoClient
     }
 
     /**
-     * 改价
+     * 旧 A/B 改价方式，代码保留但当前已关闭。
      *
      * 逻辑：
      * 1. 检查两个改价接口是否都在 429 冷却中，都冷却中则直接抛异常跳过（不发请求）。
@@ -135,10 +138,15 @@ class EldoradoClient
      * @param string $offerId       Eldorado 平台 offer ID（即 product_id）
      * @param float  $price         新价格（USD）
      * @param int    $gameProductId 本地产品 ID（仅用于日志关联）
-     * @throws \RuntimeException 改价失败或风控中时抛出
+     * @throws \RuntimeException 旧接口关闭 / 改价失败 / 风控中时抛出
+     * @deprecated ELD 改价统一使用 updateOfferPrice()
      */
     public function updatePrice(string $offerId, float $price, int $gameProductId = 0): array
     {
+        if (!self::LEGACY_PRICE_API_ENABLED) {
+            throw new \RuntimeException('ELD旧改价接口已关闭，请使用新整单改价接口');
+        }
+
         $redisCache = cache()->store('redis');
         $accountId  = $this->account->id;
 
@@ -155,7 +163,6 @@ class EldoradoClient
                 $availableKeys[$tag] = $rlKey;
             }
         }
-
         // 两个接口都在冷却中 → 直接跳过，不发请求
         if (empty($availableKeys)) {
             throw new \RuntimeException('ELD风控限制中，请稍后再试（两个改价接口均在10分钟冷却中）');
@@ -198,7 +205,6 @@ class EldoradoClient
                 $duration,
                 $gameProductId
             );
-
             if (!$success) {
                 throw new \RuntimeException('Eldorado 改价失败: ' . $this->extractError($json));
             }
@@ -235,21 +241,15 @@ class EldoradoClient
      * 调用方改价时保持 offer_data 中的 quantity；改库存时先替换
      * offer_data 中的 quantity，并保持当前价格。
      *
-     * @param string $offerId       Eldorado 平台 offer ID（即 product_id，仅用于风控冷却 key 与日志）
+     * @param string $offerId       Eldorado 平台 offer ID（即 product_id，仅用于日志）
      * @param array  $offerData     同步下来的 offer_data
      * @param float  $price         新价格（pricePerUnit.amount）
      * @param int    $gameProductId 本地产品 ID（仅用于日志关联）
-     * @throws \RuntimeException 参数不全 / 风控中 / 改价失败时抛出
+     * @throws \RuntimeException 参数不全 / 改价失败时抛出
      */
     public function updateOfferPrice(string $offerId, array $offerData, float $price, int $gameProductId = 0): array
     {
         $requestData = $this->buildOfferPayload($offerData, $price);
-
-        $redisCache   = cache()->store('redis');
-        $rateLimitKey = 'eld_rl_' . self::RATE_LIMIT_KEY_VERSION . '_C_' . $offerId;
-        if ($redisCache->get($rateLimitKey)) {
-//            throw new \RuntimeException('新接口存在限制中，请稍后再试（改价接口在3分钟冷却中）');
-        }
 
         $url   = '/api/v1/currency-management/me/offers';
         $start = microtime(true);
@@ -295,10 +295,6 @@ class EldoradoClient
                 $respJson = json_decode($respBody, true);
                 $errMsg   = $this->extractError($respJson, $e->getMessage());
 
-                if ($e->getResponse()->getStatusCode() === 429) {
-                    // 仅标记该产品冷却；429 不代表 token 失效，保留账号 token 缓存
-                    $redisCache->set($rateLimitKey, 1, self::RATE_LIMIT_TTL);
-                }
             }
             $this->log(GameAccountApiLog::TYPE_UPDATE_PRICE, $url, $requestData, $respJson, false, $errMsg, $duration, $gameProductId);
             throw new \RuntimeException('Eldorado 改价失败: ' . $errMsg);
@@ -522,7 +518,7 @@ class EldoradoClient
         }
         // 429 限流：统一返回友好提示
         if (($json['code'] ?? 0) === 429) {
-            return 'ELD改价太频繁，请10分钟后尝试';
+            return 'ELD接口返回429，请稍后重试';
         }
         // messages 数组格式
         if (!empty($json['messages']) && is_array($json['messages'])) {
