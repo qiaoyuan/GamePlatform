@@ -40,7 +40,7 @@ class EldoradoClient
     ];
 
     /** 单个接口 429 后的冷却时长（秒）*/
-    private const RATE_LIMIT_TTL = 60;
+    private const RATE_LIMIT_TTL = 180;
 
     /** 冷却 key 版本号，升版本即废弃历史 key（旧 key 自然过期，不再被读取）*/
     private const RATE_LIMIT_KEY_VERSION = 'v2';
@@ -129,7 +129,7 @@ class EldoradoClient
      * 逻辑：
      * 1. 检查两个改价接口是否都在 429 冷却中，都冷却中则直接抛异常跳过（不发请求）。
      * 2. 按 A → B 顺序选取第一个未冷却的接口发起请求。
-     * 3. 任意接口返回 429 → 写该产品对应接口 10 分钟冷却标记；token 按账号共用，同步清掉。
+     * 3. 任意接口返回 429 → 写该产品对应接口冷却标记；账号 token 保持缓存并继续复用。
      *    冷却 key 以 offerId 为维度，不同产品互不影响。
      *
      * @param string $offerId       Eldorado 平台 offer ID（即 product_id）
@@ -213,9 +213,8 @@ class EldoradoClient
                 $errMsg   = $this->extractError($respJson, $e->getMessage());
 
                 if ($e->getResponse()->getStatusCode() === 429) {
-                    // 标记当前产品的当前接口 10 分钟冷却；token 按账号共用，同样清掉让下次重新取
+                    // 仅标记当前产品的当前接口冷却；429 不代表 token 失效，保留账号 token 缓存
                     $redisCache->set($rateLimitKey, 1, self::RATE_LIMIT_TTL);
-                    $redisCache->delete('eldorado_access_token_' . $this->account->id);
                 }
             }
             $this->log(GameAccountApiLog::TYPE_UPDATE_PRICE, $url, $requestData, $respJson, false, $errMsg, $duration, $gameProductId);
@@ -249,7 +248,7 @@ class EldoradoClient
         $redisCache   = cache()->store('redis');
         $rateLimitKey = 'eld_rl_' . self::RATE_LIMIT_KEY_VERSION . '_C_' . $offerId;
         if ($redisCache->get($rateLimitKey)) {
-            throw new \RuntimeException('新接口存在限制中，请稍后再试（改价接口在1分钟冷却中）');
+            throw new \RuntimeException('新接口存在限制中，请稍后再试（改价接口在3分钟冷却中）');
         }
 
         $url   = '/api/v1/currency-management/me/offers';
@@ -297,9 +296,8 @@ class EldoradoClient
                 $errMsg   = $this->extractError($respJson, $e->getMessage());
 
                 if ($e->getResponse()->getStatusCode() === 429) {
-                    // 标记该产品 10 分钟冷却；token 按账号共用，同样清掉让下次重新取
+                    // 仅标记该产品冷却；429 不代表 token 失效，保留账号 token 缓存
                     $redisCache->set($rateLimitKey, 1, self::RATE_LIMIT_TTL);
-                    $redisCache->delete('eldorado_access_token_' . $this->account->id);
                 }
             }
             $this->log(GameAccountApiLog::TYPE_UPDATE_PRICE, $url, $requestData, $respJson, false, $errMsg, $duration, $gameProductId);
