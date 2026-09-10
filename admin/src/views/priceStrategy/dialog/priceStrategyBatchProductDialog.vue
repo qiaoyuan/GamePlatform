@@ -36,7 +36,9 @@
         <div class="tip">已自动带入该策略第一个绑定产品的当前库存</div>
       </el-form-item>
       <div class="warning">
-        确认后将逐个更新该策略绑定的所有产品，ELD 产品会同步到线上平台。
+        {{ mode === 'price'
+          ? '确认后将逐个更新该策略绑定的所有产品，ELD 产品会同步到线上平台。'
+          : '确认后仅更新本地库存及 offer_data 库存，不会同步到线上平台。' }}
       </div>
     </el-form>
 

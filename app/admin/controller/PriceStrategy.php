@@ -8,9 +8,7 @@ use app\common\annotation\Permission;
 use app\common\model\GameProduct;
 use app\common\model\PriceStrategy as Model;
 use app\common\model\PriceStrategyProduct;
-use app\common\model\GameAccount;
 use app\common\service\GameProductPriceService;
-use app\common\service\GameProductStockService;
 use app\common\service\PriceStrategyService;
 use think\facade\Db;
 
@@ -252,7 +250,7 @@ class PriceStrategy extends BaseController
 
     /**
      * 把策略绑定的全部产品修改为同一库存。
-     * ELD 会同步调用整单修改接口；其它平台只更新本地库存。
+     * 仅更新本地库存；已有 offer_data 时一并更新其中的 quantity，不调用线上平台接口。
      */
     #[Permission(title: '批量修改产品库存')]
     public function batchProductStock(): void
@@ -277,18 +275,24 @@ class PriceStrategy extends BaseController
 
         $stat = ['total' => count($products), 'success' => 0, 'skip' => 0, 'fail' => 0, 'errors' => []];
         foreach ($products as $product) {
-            if ((int) $product->stock === $stock) {
+            $offerData = $product->offer_data;
+            $hasOfferData = is_array($offerData) && !empty($offerData);
+            $offerQuantity = $hasOfferData
+                ? (int) ($offerData['details']['pricing']['quantity'] ?? 0)
+                : null;
+
+            if ((int) $product->stock === $stock
+                && (!$hasOfferData || $offerQuantity === $stock)) {
                 $stat['skip']++;
                 continue;
             }
             try {
-                $account = $product->gameAccount;
-                if ($account && (int) $account->platform === GameAccount::PLATFORM_ELDORADO) {
-                    GameProductStockService::sync($product, $stock);
-                } else {
-                    $product->stock = $stock;
-                    $product->save();
+                $product->stock = $stock;
+                if ($hasOfferData) {
+                    $offerData['details']['pricing']['quantity'] = $stock;
+                    $product->offer_data = $offerData;
                 }
+                $product->save();
                 $stat['success']++;
             } catch (\Throwable $e) {
                 $stat['fail']++;
