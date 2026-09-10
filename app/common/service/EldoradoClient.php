@@ -249,7 +249,7 @@ class EldoradoClient
         $redisCache   = cache()->store('redis');
         $rateLimitKey = 'eld_rl_' . self::RATE_LIMIT_KEY_VERSION . '_C_' . $offerId;
         if ($redisCache->get($rateLimitKey)) {
-            throw new \RuntimeException('ELD风控限制中，请稍后再试（改价接口在10分钟冷却中）');
+            throw new \RuntimeException('新接口存在限制中，请稍后再试（改价接口在1分钟冷却中）');
         }
 
         $url   = '/api/v1/currency-management/me/offers';
@@ -284,7 +284,7 @@ class EldoradoClient
             );
 
             if (!$success) {
-                throw new \RuntimeException('Eldorado 改价失败: ' . $this->extractError($json));
+                throw new \RuntimeException('Eldorado 新改价失败: ' . $this->extractError($json));
             }
             return $json;
         } catch (GuzzleException $e) {
