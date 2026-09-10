@@ -426,7 +426,13 @@ class PriceStrategyService
             ->where('version', $version)
             ->select();
 
+        $productIndex = 0;
         foreach ($products as $product) {
+            // 同一策略绑定多个产品时错峰调用平台改价接口，避免连续请求过密。
+            if ($productIndex > 0) {
+                usleep(1_000_000);
+            }
+            $productIndex++;
             $heartbeat && $heartbeat();
             $stat['total']++;
             $oldPrice = (float) $product->price;

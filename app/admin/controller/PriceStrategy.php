@@ -233,7 +233,12 @@ class PriceStrategy extends BaseController
         $price = round((float) $rawPrice, 6);
 
         $stat = ['total' => count($products), 'success' => 0, 'skip' => 0, 'fail' => 0, 'errors' => []];
+        $productIndex = 0;
         foreach ($products as $product) {
+            if ($productIndex > 0) {
+                usleep(1_000_000);
+            }
+            $productIndex++;
             try {
                 // 用户明确要求所有绑定产品都提交改价，
                 // 即使本地价格相同也调用平台，可用于校正线上价格。
