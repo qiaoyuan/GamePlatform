@@ -20,7 +20,8 @@ use GuzzleHttp\Exception\GuzzleException;
  *   Content-Type: application/json-patch+json
  *   除价格外的字段取自已同步的 offer_data
  *
- * 改价（旧方式，保留但已关闭）：updatePrice() —— 单接口改价，A/B 双接口互为降级
+ * 策略改价：updatePriceWithFallback() 按 A → B → C 顺序尝试，各接口按产品独立冷却。
+ * 单接口改价：updatePrice() —— A/B 接口
  *   PUT /api/predefinedOffersUser/me/{offerId}/changePrice        [接口 A]
  *   PUT /api/v1/currency-management/me/offers/{offerId}/change-price [接口 B]
  *   body JSON: {"amount": 0.04, "currency": "USD"}
@@ -33,8 +34,8 @@ class EldoradoClient
     private GameAccount $account;
     private Client $http;
 
-    /** 旧 A/B 改价接口保留但关闭，ELD 改价统一走 updateOfferPrice()。 */
-    private const LEGACY_PRICE_API_ENABLED = false;
+    /** 启用 A/B 改价接口，由 updatePriceWithFallback() 统一选择。 */
+    private const LEGACY_PRICE_API_ENABLED = true;
 
     /** 两个旧改价接口路径，按顺序尝试（仅在显式开启旧接口时使用） */
     private const PRICE_URLS = [
@@ -43,7 +44,7 @@ class EldoradoClient
     ];
 
     /** 单个旧接口 429 后的冷却时长（秒） */
-    private const RATE_LIMIT_TTL = 180;
+    private const RATE_LIMIT_TTL = 600;
 
     /** 冷却 key 版本号，升版本即废弃历史 key（旧 key 自然过期，不再被读取） */
     private const RATE_LIMIT_KEY_VERSION = 'v2';
@@ -127,7 +128,7 @@ class EldoradoClient
     }
 
     /**
-     * 旧 A/B 改价方式，代码保留但当前已关闭。
+     * A/B 改价方式，由统一改价入口指定接口。
      *
      * 逻辑：
      * 1. 检查两个改价接口是否都在 429 冷却中，都冷却中则直接抛异常跳过（不发请求）。
@@ -139,9 +140,9 @@ class EldoradoClient
      * @param float  $price         新价格（USD）
      * @param int    $gameProductId 本地产品 ID（仅用于日志关联）
      * @throws \RuntimeException 旧接口关闭 / 改价失败 / 风控中时抛出
-     * @deprecated ELD 改价统一使用 updateOfferPrice()
+     * @param string|null $interface 指定 A/B；不指定时选择未冷却的第一个接口
      */
-    public function updatePrice(string $offerId, float $price, int $gameProductId = 0): array
+    public function updatePrice(string $offerId, float $price, int $gameProductId = 0, ?string $interface = null): array
     {
         if (!self::LEGACY_PRICE_API_ENABLED) {
             throw new \RuntimeException('ELD旧改价接口已关闭，请使用新整单改价接口');
@@ -159,7 +160,7 @@ class EldoradoClient
         // 检查哪些接口还未冷却
         $availableKeys = [];
         foreach ($rateLimitKeys as $tag => $rlKey) {
-            if (!$redisCache->get($rlKey)) {
+            if (($interface === null || $interface === $tag) && !$redisCache->get($rlKey)) {
                 $availableKeys[$tag] = $rlKey;
             }
         }
@@ -224,8 +225,32 @@ class EldoradoClient
                 }
             }
             $this->log(GameAccountApiLog::TYPE_UPDATE_PRICE, $url, $requestData, $respJson, false, $errMsg, $duration, $gameProductId);
-            throw new \RuntimeException('Eldorado 改价失败: ' . $errMsg);
+            $status = $e instanceof \GuzzleHttp\Exception\RequestException && $e->hasResponse()
+                ? $e->getResponse()->getStatusCode() : 0;
+            throw new \RuntimeException('Eldorado 改价失败: ' . $errMsg, $status, $e);
         }
+    }
+
+    /** 按产品分别检查冷却状态，依次尝试 A、B、C；仅 429 触发降级。 */
+    public function updatePriceWithFallback(string $offerId, array $offerData, float $price, int $gameProductId = 0): array
+    {
+        $cache = cache()->store('redis');
+        foreach (['A', 'B', 'C'] as $tag) {
+            $key = 'eld_rl_' . self::RATE_LIMIT_KEY_VERSION . '_' . $tag . '_' . $offerId;
+            if ($cache->get($key)) {
+                continue;
+            }
+            try {
+                return $tag === 'C'
+                    ? $this->updateOfferPrice($offerId, $offerData, $price, $gameProductId)
+                    : $this->updatePrice($offerId, $price, $gameProductId, $tag);
+            } catch (\RuntimeException $e) {
+                if ($e->getCode() !== 429) {
+                    throw $e;
+                }
+            }
+        }
+        throw new \RuntimeException('ELD所有接口都冷却中（该产品 A、B、C 接口分别冷却10分钟）');
     }
 
     /**
@@ -249,65 +274,65 @@ class EldoradoClient
      */
     public function updateOfferPrice(string $offerId, array $offerData, float $price, int $gameProductId = 0): array
     {
+        $cache = cache()->store('redis');
+        $rateLimitKey = 'eld_rl_' . self::RATE_LIMIT_KEY_VERSION . '_C_' . $offerId;
+        if ($cache->get($rateLimitKey)) {
+            throw new \RuntimeException('ELD该产品 C 接口冷却中', 429);
+        }
         $requestData = $this->buildOfferPayload($offerData, $price);
 
         $url   = '/api/v1/currency-management/me/offers';
-        // 首次请求遇到 429 时等待 3 秒，仅追加一次重试。
-        for ($attempt = 0; $attempt < 2; $attempt++) {
-            $start = microtime(true);
+        $start = microtime(true);
 
-            try {
-                $res = $this->http->post($url, [
-                    'headers' => [
-                        'Authorization' => $this->getAccessToken(),
-                        // 平台要求该接口使用 json-patch+json，显式声明以覆盖 Guzzle 默认的 application/json
-                        'Content-Type'  => 'application/json-patch+json',
-                        'Accept'        => '*/*',
-                    ],
-                    'json' => $requestData,
-                ]);
-                $body     = (string) $res->getBody();
-                $json     = json_decode($body, true) ?? [];
-                $duration = (int) ((microtime(true) - $start) * 1000);
+        try {
+            $res = $this->http->post($url, [
+                'headers' => [
+                    'Authorization' => $this->getAccessToken(),
+                    // 平台要求该接口使用 json-patch+json，显式声明以覆盖 Guzzle 默认的 application/json
+                    'Content-Type'  => 'application/json-patch+json',
+                    'Accept'        => '*/*',
+                ],
+                'json' => $requestData,
+            ]);
+            $body     = (string) $res->getBody();
+            $json     = json_decode($body, true) ?? [];
+            $duration = (int) ((microtime(true) - $start) * 1000);
 
-                $statusCode = $res->getStatusCode();
-                $success    = $statusCode >= 200 && $statusCode < 300;
+            $statusCode = $res->getStatusCode();
+            $success    = $statusCode >= 200 && $statusCode < 300;
 
-                $this->log(
-                    GameAccountApiLog::TYPE_UPDATE_PRICE,
-                    $url,
-                    $requestData,
-                    $json,
-                    $success,
-                    $success ? '' : $this->extractError($json, '改价失败'),
-                    $duration,
-                    $gameProductId
-                );
+            $this->log(
+                GameAccountApiLog::TYPE_UPDATE_PRICE,
+                $url,
+                $requestData,
+                $json,
+                $success,
+                $success ? '' : $this->extractError($json, '改价失败'),
+                $duration,
+                $gameProductId
+            );
 
-                if (!$success) {
-                    throw new \RuntimeException('Eldorado 新改价失败: ' . $this->extractError($json));
-                }
-                return $json;
-            } catch (GuzzleException $e) {
-                $duration = (int) ((microtime(true) - $start) * 1000);
-                $respJson = null;
-                $errMsg   = $e->getMessage();
-                if ($e instanceof \GuzzleHttp\Exception\RequestException && $e->hasResponse()) {
-                    $respBody = (string) $e->getResponse()->getBody();
-                    $respJson = json_decode($respBody, true);
-                    $errMsg   = $this->extractError($respJson, $e->getMessage());
-
-                }
-                $this->log(GameAccountApiLog::TYPE_UPDATE_PRICE, $url, $requestData, $respJson, false, $errMsg, $duration, $gameProductId);
-                if ($attempt === 0
-                    && $e instanceof \GuzzleHttp\Exception\RequestException
-                    && $e->hasResponse()
-                    && $e->getResponse()->getStatusCode() === 429) {
-                    usleep(3_000_000);
-                    continue;
-                }
-                throw new \RuntimeException('Eldorado 改价失败: ' . $errMsg);
+            if (!$success) {
+                throw new \RuntimeException('Eldorado 新改价失败: ' . $this->extractError($json));
             }
+            return $json;
+        } catch (GuzzleException $e) {
+            $duration = (int) ((microtime(true) - $start) * 1000);
+            $respJson = null;
+            $errMsg   = $e->getMessage();
+            if ($e instanceof \GuzzleHttp\Exception\RequestException && $e->hasResponse()) {
+                $respBody = (string) $e->getResponse()->getBody();
+                $respJson = json_decode($respBody, true);
+                $errMsg   = $this->extractError($respJson, $e->getMessage());
+
+            }
+            $this->log(GameAccountApiLog::TYPE_UPDATE_PRICE, $url, $requestData, $respJson, false, $errMsg, $duration, $gameProductId);
+            $status = $e instanceof \GuzzleHttp\Exception\RequestException && $e->hasResponse()
+                ? $e->getResponse()->getStatusCode() : 0;
+            if ($status === 429) {
+                $cache->set($rateLimitKey, 1, self::RATE_LIMIT_TTL);
+            }
+            throw new \RuntimeException('Eldorado 改价失败: ' . $errMsg, $status, $e);
         }
     }
 

@@ -14,7 +14,7 @@ use app\common\model\GameProduct;
  *
  * 平台路由：
  *   G2G       → G2gClient::updatePrice()
- *   Eldorado  → EldoradoClient::updateOfferPrice()（整单提交，依赖已同步的 offer_data）
+ *   Eldorado  → EldoradoClient::updatePriceWithFallback()（A → B → C，C 依赖 offer_data）
  */
 class GameProductPriceService
 {
@@ -38,14 +38,10 @@ class GameProductPriceService
 
         switch ($account->platform) {
             case GameAccount::PLATFORM_ELDORADO:
-                // ELD 改价走整单提交（POST /me/offers）：除价格外的参数全部来自
-                // 「同步线上数据」写入的 offer_data，所以必须先同步过才能改价。
+                // 优先 A/B，仅降级到 C 整单提交时校验 offer_data。
                 $offerData = $product->offer_data;
-                if (!is_array($offerData) || !$offerData) {
-                    throw new \RuntimeException('该产品尚未同步线上数据，请先点「同步线上数据」再改价');
-                }
                 $client = new EldoradoClient($account);
-                $client->updateOfferPrice($product->product_id, $offerData, $price, $product->id);
+                $client->updatePriceWithFallback($product->product_id, is_array($offerData) ? $offerData : [], $price, $product->id);
                 break;
 
             case GameAccount::PLATFORM_G2G:

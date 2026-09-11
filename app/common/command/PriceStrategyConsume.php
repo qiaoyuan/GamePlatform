@@ -45,6 +45,7 @@ class PriceStrategyConsume extends Base
         $startedAt = time();
         $processed = 0;
         $lastRecoveryAt = 0;
+        $lastIdleLogAt = 0;
         $output->writeln(sprintf('[%s] Worker启动 id=%s', date('Y-m-d H:i:s'), $workerId));
 
         try {
@@ -61,16 +62,22 @@ class PriceStrategyConsume extends Base
                 if ($result !== null) {
                     $processed++;
                     $output->writeln(sprintf(
-                        '[%s] 通知%d %s，尝试%d次，执行策略%d个',
+                        '[%s] 通知%d %s，尝试%d次，%s',
                         date('Y-m-d H:i:s'),
                         $result['notify_id'],
                         $result['status'],
                         $result['attempts'],
-                        $result['strategies']
+                        $result['message']
                     ));
-                } elseif ($once) {
-                    break;
                 } else {
+                    // 空队列每分钟打印一次，避免两秒轮询不断刷屏。
+                    if (time() - $lastIdleLogAt >= 60) {
+                        $output->writeln('[' . date('Y-m-d H:i:s') . '] 扫描完成：暂无待处理通知，本轮没有需要执行的策略');
+                        $lastIdleLogAt = time();
+                    }
+                    if ($once) {
+                        break;
+                    }
                     usleep((int) round($sleepSeconds * 1_000_000));
                 }
 

@@ -70,7 +70,7 @@ class PriceStrategyService
     /**
      * 原子领取并消费一条通知。返回 null 表示当前队列为空。
      *
-     * @return array{notify_id:int,status:string,strategies:int,attempts:int}|null
+     * @return array{notify_id:int,status:string,strategies:int,attempts:int,message:string}|null
      */
     public function consumeOneNotify(string $workerId, ?callable $heartbeat = null): ?array
     {
@@ -109,6 +109,9 @@ class PriceStrategyService
                 $agg['skip'],
                 $agg['fail']
             );
+            if ($agg['strategies'] === 0) {
+                $message = sprintf('目标%d版本%d：没有需要执行的策略，已跳过', $targetId, $version);
+            }
             $updated = CrawlNotify::where('id', $notify->id)
                 ->where('status', CrawlNotify::STATUS_PROCESSING)
                 ->where('worker_id', $workerId)
@@ -130,6 +133,7 @@ class PriceStrategyService
                 'status'     => 'done',
                 'strategies' => $agg['strategies'],
                 'attempts'   => (int) $notify->attempts,
+                'message'    => $message,
             ];
         } catch (\Throwable $e) {
             $status = $this->retryOrFailNotify($notify, $workerId, $e);
@@ -138,6 +142,7 @@ class PriceStrategyService
                 'status'     => $status,
                 'strategies' => 0,
                 'attempts'   => (int) $notify->attempts,
+                'message'    => sprintf('目标%d版本%d：%s', $targetId, $version, $e->getMessage()),
             ];
         }
     }
