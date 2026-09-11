@@ -252,52 +252,62 @@ class EldoradoClient
         $requestData = $this->buildOfferPayload($offerData, $price);
 
         $url   = '/api/v1/currency-management/me/offers';
-        $start = microtime(true);
+        // 首次请求遇到 429 时等待 3 秒，仅追加一次重试。
+        for ($attempt = 0; $attempt < 2; $attempt++) {
+            $start = microtime(true);
 
-        try {
-            $res = $this->http->post($url, [
-                'headers' => [
-                    'Authorization' => $this->getAccessToken(),
-                    // 平台要求该接口使用 json-patch+json，显式声明以覆盖 Guzzle 默认的 application/json
-                    'Content-Type'  => 'application/json-patch+json',
-                    'Accept'        => '*/*',
-                ],
-                'json' => $requestData,
-            ]);
-            $body     = (string) $res->getBody();
-            $json     = json_decode($body, true) ?? [];
-            $duration = (int) ((microtime(true) - $start) * 1000);
+            try {
+                $res = $this->http->post($url, [
+                    'headers' => [
+                        'Authorization' => $this->getAccessToken(),
+                        // 平台要求该接口使用 json-patch+json，显式声明以覆盖 Guzzle 默认的 application/json
+                        'Content-Type'  => 'application/json-patch+json',
+                        'Accept'        => '*/*',
+                    ],
+                    'json' => $requestData,
+                ]);
+                $body     = (string) $res->getBody();
+                $json     = json_decode($body, true) ?? [];
+                $duration = (int) ((microtime(true) - $start) * 1000);
 
-            $statusCode = $res->getStatusCode();
-            $success    = $statusCode >= 200 && $statusCode < 300;
+                $statusCode = $res->getStatusCode();
+                $success    = $statusCode >= 200 && $statusCode < 300;
 
-            $this->log(
-                GameAccountApiLog::TYPE_UPDATE_PRICE,
-                $url,
-                $requestData,
-                $json,
-                $success,
-                $success ? '' : $this->extractError($json, '改价失败'),
-                $duration,
-                $gameProductId
-            );
+                $this->log(
+                    GameAccountApiLog::TYPE_UPDATE_PRICE,
+                    $url,
+                    $requestData,
+                    $json,
+                    $success,
+                    $success ? '' : $this->extractError($json, '改价失败'),
+                    $duration,
+                    $gameProductId
+                );
 
-            if (!$success) {
-                throw new \RuntimeException('Eldorado 新改价失败: ' . $this->extractError($json));
+                if (!$success) {
+                    throw new \RuntimeException('Eldorado 新改价失败: ' . $this->extractError($json));
+                }
+                return $json;
+            } catch (GuzzleException $e) {
+                $duration = (int) ((microtime(true) - $start) * 1000);
+                $respJson = null;
+                $errMsg   = $e->getMessage();
+                if ($e instanceof \GuzzleHttp\Exception\RequestException && $e->hasResponse()) {
+                    $respBody = (string) $e->getResponse()->getBody();
+                    $respJson = json_decode($respBody, true);
+                    $errMsg   = $this->extractError($respJson, $e->getMessage());
+
+                }
+                $this->log(GameAccountApiLog::TYPE_UPDATE_PRICE, $url, $requestData, $respJson, false, $errMsg, $duration, $gameProductId);
+                if ($attempt === 0
+                    && $e instanceof \GuzzleHttp\Exception\RequestException
+                    && $e->hasResponse()
+                    && $e->getResponse()->getStatusCode() === 429) {
+                    usleep(3_000_000);
+                    continue;
+                }
+                throw new \RuntimeException('Eldorado 改价失败: ' . $errMsg);
             }
-            return $json;
-        } catch (GuzzleException $e) {
-            $duration = (int) ((microtime(true) - $start) * 1000);
-            $respJson = null;
-            $errMsg   = $e->getMessage();
-            if ($e instanceof \GuzzleHttp\Exception\RequestException && $e->hasResponse()) {
-                $respBody = (string) $e->getResponse()->getBody();
-                $respJson = json_decode($respBody, true);
-                $errMsg   = $this->extractError($respJson, $e->getMessage());
-
-            }
-            $this->log(GameAccountApiLog::TYPE_UPDATE_PRICE, $url, $requestData, $respJson, false, $errMsg, $duration, $gameProductId);
-            throw new \RuntimeException('Eldorado 改价失败: ' . $errMsg);
         }
     }
 
