@@ -232,8 +232,9 @@ class EldoradoClient
     }
 
     /** 按产品分别检查冷却状态，依次尝试 A、B、C；仅 429 触发降级。 */
-    public function updatePriceWithFallback(string $offerId, array $offerData, float $price, int $gameProductId = 0): array
+    public function updatePriceWithFallback(string $offerId, array $offerData, float $price, int $gameProductId = 0, ?string &$usedInterface = null): array
     {
+        $usedInterface = null;
         $cache = cache()->store('redis');
         foreach (['A', 'B', 'C'] as $tag) {
             $key = 'eld_rl_' . self::RATE_LIMIT_KEY_VERSION . '_' . $tag . '_' . $offerId;
@@ -241,9 +242,11 @@ class EldoradoClient
                 continue;
             }
             try {
-                return $tag === 'C'
+                $result = $tag === 'C'
                     ? $this->updateOfferPrice($offerId, $offerData, $price, $gameProductId)
                     : $this->updatePrice($offerId, $price, $gameProductId, $tag);
+                $usedInterface = $tag;
+                return $result;
             } catch (\RuntimeException $e) {
                 if ($e->getCode() !== 429) {
                     throw $e;

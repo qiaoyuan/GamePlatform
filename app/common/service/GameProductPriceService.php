@@ -41,7 +41,32 @@ class GameProductPriceService
                 // 优先 A/B，仅降级到 C 整单提交时校验 offer_data。
                 $offerData = $product->offer_data;
                 $client = new EldoradoClient($account);
-                $client->updatePriceWithFallback($product->product_id, is_array($offerData) ? $offerData : [], $price, $product->id);
+                $usedInterface = null;
+                $client->updatePriceWithFallback($product->product_id, is_array($offerData) ? $offerData : [], $price, $product->id, $usedInterface);
+                if ($usedInterface === 'C') {
+                    // C 改价完成后，以重新查询的线上价格为准写回本地。
+                    try {
+                        $detail = $client->getOfferDetail((string) $product->product_id, (int) $product->id);
+                        $onlinePrice = $detail['offer']['pricePerUnit'] ?? [];
+                        $amount = $onlinePrice['amount'] ?? null;
+                        $currency = $onlinePrice['currency'] ?? '';
+                        if (!is_numeric($amount) || !is_finite((float) $amount)
+                            || (float) $amount <= 0 || !is_string($currency) || $currency === '') {
+                            throw new \RuntimeException('线上响应缺少有效价格或币种');
+                        }
+                        $product->price = (float) $amount;
+                        $product->currency = $currency;
+                        $offerData['details']['pricing']['pricePerUnit'] = [
+                            'amount' => (float) $amount,
+                            'currency' => $currency,
+                        ];
+                        $product->offer_data = $offerData;
+                        $product->save();
+                    } catch (\Throwable $e) {
+                        throw new \RuntimeException('ELD C接口已改价，但同步线上价格到本地失败：' . $e->getMessage(), 0, $e);
+                    }
+                    return;
+                }
                 break;
 
             case GameAccount::PLATFORM_G2G:
