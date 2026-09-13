@@ -8,11 +8,27 @@ use app\common\model\GameProduct;
 /**
  * ELD 库存同步。
  *
- * ELD 没有独立的库存修改请求，需要复用整单修改接口，
- * 用新库存替换 offer_data.details.pricing.quantity，其余字段原样提交。
+ * 批量库存使用独立 change-quantity 接口；sync() 保留已有整单同步方式。
  */
 class GameProductStockService
 {
+    /** 独立修改线上库存，成功后同时保存本地 stock 和已有 offer_data.quantity。 */
+    public static function syncQuantity(GameProduct $product, int $stock): void
+    {
+        if (!$product->gameAccount) {
+            throw new \RuntimeException('该产品未关联有效的游戏账号');
+        }
+        $client = new EldoradoClient($product->gameAccount);
+        $client->updateQuantity((string) $product->product_id, $stock, (int) $product->id);
+        $product->stock = $stock;
+        $offerData = $product->offer_data;
+        if (is_array($offerData) && $offerData) {
+            $offerData['details']['pricing']['quantity'] = $stock;
+            $product->offer_data = $offerData;
+        }
+        $product->save();
+    }
+
     /**
      * 同步 ELD 线上库存，成功后更新本地 offer_data。
      *

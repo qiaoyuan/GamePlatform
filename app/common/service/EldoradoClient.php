@@ -518,6 +518,56 @@ class EldoradoClient
         }
     }
 
+    /** 独立修改库存：请求体为 JSON 整数，成功或 429 后按产品冷却 10 分钟。 */
+    public function updateQuantity(string $offerId, int $quantity, int $gameProductId = 0): array
+    {
+        if ($offerId === '' || $quantity <= 0) {
+            throw new \RuntimeException('产品ID不能为空，库存必须大于0');
+        }
+        $cache = cache()->store('redis');
+        $key = 'eld_quantity_rl_v1_' . $offerId;
+        if ($cache->get($key)) {
+            throw new \RuntimeException('ELD该产品改库存接口在10分钟冷却中，请稍后再试');
+        }
+        $url = '/api/v1/currency-management/me/offers/' . rawurlencode($offerId) . '/change-quantity';
+        // 日志使用对象保存便于查阅，线上实际提交裸整数。
+        $requestData = ['quantity' => $quantity];
+        $authorization = $this->getAccessToken();
+        $start = microtime(true);
+        try {
+            $res = $this->http->put($url, [
+                'headers' => [
+                    'Authorization' => $authorization,
+                    'Content-Type' => 'application/json',
+                    'Accept' => 'application/json',
+                ],
+                'json' => $quantity,
+                'http_errors' => false,
+            ]);
+        } catch (GuzzleException $e) {
+            $this->log(GameAccountApiLog::TYPE_UPDATE_QUANTITY, $url, $requestData, null, false,
+                $e->getMessage(), (int) ((microtime(true) - $start) * 1000), $gameProductId);
+            throw new \RuntimeException('ELD改库存请求失败：' . $e->getMessage(), 0, $e);
+        }
+        $decoded = json_decode((string) $res->getBody(), true);
+        $json = is_array($decoded) ? $decoded : [];
+        $status = $res->getStatusCode();
+        // 改库存仅以 HTTP 200 为成功依据，响应体不参与成功判断。
+        $success = $status === 200;
+        $rateLimited = !$success && ($status === 429 || (int) ($json['code'] ?? 0) === 429);
+        if ($success || $rateLimited) {
+            $cache->set($key, 1, 600);
+        }
+        $error = $rateLimited ? 'ELD改库存接口返回429，该产品已冷却10分钟'
+            : ($success ? '' : $this->extractError($json, 'HTTP ' . $status));
+        $this->log(GameAccountApiLog::TYPE_UPDATE_QUANTITY, $url, $requestData, $json, $success,
+            $error, (int) ((microtime(true) - $start) * 1000), $gameProductId);
+        if (!$success) {
+            throw new \RuntimeException('ELD改库存失败：' . $error, $rateLimited ? 429 : $status);
+        }
+        return $json;
+    }
+
     /**
      * 记录调用日志
      */

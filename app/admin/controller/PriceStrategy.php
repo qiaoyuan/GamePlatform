@@ -6,9 +6,11 @@ namespace app\admin\controller;
 use app\admin\BaseController;
 use app\common\annotation\Permission;
 use app\common\model\GameProduct;
+use app\common\model\GameAccount;
 use app\common\model\PriceStrategy as Model;
 use app\common\model\PriceStrategyProduct;
 use app\common\service\GameProductPriceService;
+use app\common\service\GameProductStockService;
 use app\common\service\PriceStrategyService;
 use think\facade\Db;
 
@@ -255,7 +257,7 @@ class PriceStrategy extends BaseController
 
     /**
      * 把策略绑定的全部产品修改为同一库存。
-     * 仅更新本地库存；已有 offer_data 时一并更新其中的 quantity，不调用线上平台接口。
+     * ELD 通过独立库存接口同步，成功后更新本地；其它平台只更新本地。
      */
     #[Permission(title: '批量修改产品库存')]
     public function batchProductStock(): void
@@ -281,17 +283,25 @@ class PriceStrategy extends BaseController
         $stat = ['total' => count($products), 'success' => 0, 'skip' => 0, 'fail' => 0, 'errors' => []];
         foreach ($products as $product) {
             $offerData = $product->offer_data;
+            $account = $product->gameAccount;
+            $isEld = $account && (int) $account->platform === GameAccount::PLATFORM_ELDORADO;
             $hasOfferData = is_array($offerData) && !empty($offerData);
             $offerQuantity = $hasOfferData
                 ? (int) ($offerData['details']['pricing']['quantity'] ?? 0)
                 : null;
 
-            if ((int) $product->stock === $stock
+            if (!$isEld && (int) $product->stock === $stock
                 && (!$hasOfferData || $offerQuantity === $stock)) {
                 $stat['skip']++;
                 continue;
             }
             try {
+                if ($isEld) {
+                    // 本地库存相同也提交，支持校正此前仅修改过本地库存的产品。
+                    GameProductStockService::syncQuantity($product, $stock);
+                    $stat['success']++;
+                    continue;
+                }
                 $product->stock = $stock;
                 if ($hasOfferData) {
                     $offerData['details']['pricing']['quantity'] = $stock;

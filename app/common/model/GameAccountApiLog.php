@@ -44,6 +44,7 @@ class GameAccountApiLog extends Base
 
     const TYPE_REFRESH_TOKEN = 'refresh_token';
     const TYPE_UPDATE_PRICE = 'update_price';
+    const TYPE_UPDATE_QUANTITY = 'update_quantity';
     const TYPE_SYNC_OFFER = 'sync_offer';
 
     const STATUS_FAIL = 0;
