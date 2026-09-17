@@ -91,15 +91,8 @@ class PriceStrategyService
         try {
             $touch();
             $agg = $this->runByCrawlTarget($targetId, $version, $touch);
-            if ($agg['fail'] > 0) {
-                throw new \RuntimeException(sprintf(
-                    '目标%d版本%d存在%d个改价失败项',
-                    $targetId,
-                    $version,
-                    $agg['fail']
-                ));
-            }
-
+            // 改价失败已记录在策略日志或应用日志；不要让整条通知重试，
+            // 否则额度耗尽的单个产品会反复占用队列并重跑同批其他产品。
             $message = sprintf(
                 '目标%d版本%d执行策略%d个: 成功%d/跳过%d/失败%d',
                 $targetId,
