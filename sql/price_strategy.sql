@@ -2,6 +2,7 @@
 CREATE TABLE `price_strategy` (
   `id` int unsigned NOT NULL AUTO_INCREMENT,
   `name` varchar(64) NOT NULL DEFAULT '' COMMENT '策略名称',
+  `sort` int unsigned DEFAULT NULL COMMENT '列表拖拽排序权重，NULL使用ID',
   `crawl_target_id` int unsigned NOT NULL DEFAULT 0 COMMENT '对标竞品池(爬取目标ID)',
   `config` text COMMENT '维度配置(JSON)，dimensions 有序数组，首期支持 type=lowest(含黑白名单/最低竞品价门槛/库存/好评率/保底/竞价幅度)',
   `auto_run` tinyint NOT NULL DEFAULT 1 COMMENT '爬取完成后自动执行一次 0-否 1-是',
@@ -42,5 +43,6 @@ CREATE TABLE `price_strategy_log` (
   PRIMARY KEY (`id`),
   KEY `idx_price_strategy_id` (`price_strategy_id`),
   KEY `idx_game_product_id` (`game_product_id`),
+  KEY `idx_strategy_status_id` (`price_strategy_id`, `status`, `id`),
   KEY `idx_price_strategy_log_competitor_id` (`competitor_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='改价策略执行日志';

@@ -186,6 +186,9 @@ export default {
     defaultFilter: { type: Object, default: () => ({}) },
     // 默认排序
     defaultSort: { type: String, default: '' },
+    // 拖拽时提交当前可见行的前后顺序，适用于分页/筛选后的持久化排序。
+    sortVisibleRows: { type: Boolean, default: false },
+    sortHandle: { type: String, default: '.table-index-sort div' },
     // 默认分页
     defaultPage: { type: Object, default: () => ({}) },
     // 承载表格发送请求的附带参数
@@ -751,12 +754,18 @@ export default {
     },
     // 行拖拽
     rowDrop() {
-      const table = this.$refs.table.$el.querySelector('.el-table__body-wrapper tbody')
-      Sortable.create(table, {
+      const selector = this.sortVisibleRows
+        ? '.el-table__body-wrapper tbody, .el-table__fixed-body-wrapper tbody'
+        : '.el-table__body-wrapper tbody'
+      const tables = this.$refs.table.$el.querySelectorAll(selector)
+      if (this.rowSortables) this.rowSortables.forEach(sortable => sortable.destroy())
+      this.rowSortables = Array.from(tables, table => Sortable.create(table, {
         ghostClass: 'sortable-ghost',
-        handle: '.table-index-sort div',
+        handle: this.sortHandle,
         animation: 300,
-        onEnd: async ({ newIndex, oldIndex }) => {
+        onEnd: async event => {
+          if (this.sortVisibleRows) return this.saveVisibleRowOrder(event)
+          const { newIndex, oldIndex } = event
           if (newIndex !== oldIndex) {
             await post(
               this.actions_.sort_ || this.actions_.sort,
@@ -772,7 +781,36 @@ export default {
             this.getList()
           }
         },
-      })
+      }))
+    },
+    async saveVisibleRowOrder({ item, from, newIndex, oldIndex }) {
+      if (newIndex === oldIndex) return
+      // Sortable 改过 DOM，先还原，让 Vue 按服务端返回的顺序重新渲染。
+      from.removeChild(item)
+      from.insertBefore(item, from.children[oldIndex] || null)
+      if (this.sort) {
+        this.$message.warning('请先取消表头的列排序，再拖动序号排序')
+        return
+      }
+      const before = this.data.map(row => row[this.primaryKey])
+      const after = before.slice()
+      after.splice(newIndex, 0, after.splice(oldIndex, 1)[0])
+      this.rowSortables.forEach(sortable => sortable.option('disabled', true))
+      try {
+        await post(this.actions_.sort_ || this.actions_.sort, {
+          ...this.query,
+          before_ids: before,
+          after_ids: after
+        }, undefined, false)
+      } catch (e) {
+        // 请求层展示失败原因；无论成功失败均重新读取已保存的顺序。
+      } finally {
+        try {
+          await this.getList()
+        } finally {
+          if (this.rowSortables) this.rowSortables.forEach(sortable => sortable.option('disabled', false))
+        }
+      }
     },
     // 处理操作按钮配置
     makeOperates(operates) {
@@ -825,6 +863,7 @@ export default {
     this.columns.length ? this.getList() : this.onRefresh()
   },
   beforeDestroy() {
+    if (this.rowSortables) this.rowSortables.forEach(sortable => sortable.destroy())
     this.observer && this.observer.disconnect()
   },
   destroyed() {

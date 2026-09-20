@@ -11,6 +11,7 @@ use think\model\relation\HasMany;
  *
  * @property int    $id
  * @property string $name            策略名称
+ * @property int|null $sort          列表排序权重（空值使用ID，不影响Worker）
  * @property int    $crawl_target_id 对标竞品池(爬取目标ID)
  * @property array  $config          维度配置(JSON)
  * @property int    $auto_run        爬取完成后自动执行 0-否 1-是
@@ -26,7 +27,7 @@ class PriceStrategy extends Base
     protected $pk    = 'id';
 
     /** @var string[] */
-    protected $field = ['id', 'name', 'crawl_target_id', 'config', 'auto_run', 'interval_minutes', 'status', 'last_run_at', 'created_at', 'updated_at', 'deleted_at'];
+    protected $field = ['id', 'name', 'sort', 'crawl_target_id', 'config', 'auto_run', 'interval_minutes', 'status', 'last_run_at', 'created_at', 'updated_at', 'deleted_at'];
 
     /** @var array<string, string> */
     protected $type = [

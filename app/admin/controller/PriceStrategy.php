@@ -12,6 +12,7 @@ use app\common\model\PriceStrategyProduct;
 use app\common\service\GameProductPriceService;
 use app\common\service\GameProductStockService;
 use app\common\service\PriceStrategyService;
+use app\common\service\PriceStrategyListService;
 use think\facade\Db;
 
 /**
@@ -38,6 +39,7 @@ class PriceStrategy extends BaseController
             ],
             ['v' => 'products_count', 'label' => '绑定产品数', 'width' => 100, 'search' => false],
             ['v' => 'filter_price', 'label' => '最低价', 'width' => 110, 'search' => false],
+            ['v' => 'last_change_price', 'label' => '上次改价价格', 'width' => 130, 'search' => false],
             [
                 'v'          => 'auto_run',
                 'label'      => '爬后自动执行',
@@ -69,19 +71,41 @@ class PriceStrategy extends BaseController
     #[Permission(title: '改价策略', isMenu: 1, parentUrl: 'gameProduct/index', isHideSub: 1)]
     public function index(): void
     {
-        $lists = $this->scopeOwnedData($this->tableList(Model::class, ['id' => 'DESC'], ['name']), 'price_strategy')
+        $lists = $this->scopeOwnedData($this->tableList(Model::class, PriceStrategyListService::ORDER, ['name']), 'price_strategy')
             ->with(['crawlTarget'])
             ->withCount(['products'])
             ->selectData();
         if (!is_numeric($lists)) {
-            $lists->each(function (Model $item) {
+            $prices = (new PriceStrategyListService())->latestPrices(
+                $this->scopeOwnedData(Db::table('price_strategy_log'), 'price_strategy_log'),
+                $lists->column('id')
+            );
+            $lists->each(function (Model $item) use ($prices) {
                 $item->target_name = $item->crawlTarget ? $item->crawlTarget->name : '--';
                 $item->filter_price = $this->getConfigPrice($item->config);
+                $price = $prices[$item->id] ?? null;
+                $item->last_change_price = $price === null ? '—' :
+                    (str_contains((string) $price, '.') ? rtrim(rtrim((string) $price, '0'), '.') : (string) $price);
             });
         }
         $this->success('', [
             'list' => $lists,
         ]);
+    }
+
+    #[Permission(title: '拖拽排序')]
+    public function sort(): void
+    {
+        try {
+            (new PriceStrategyListService())->reorder(
+                $this->scopeOwnedData(Db::table('price_strategy'), 'price_strategy'),
+                $this->request->post('before_ids/a', []),
+                $this->request->post('after_ids/a', [])
+            );
+        } catch (\InvalidArgumentException $e) {
+            $this->error($e->getMessage());
+        }
+        $this->success('排序已保存');
     }
 
     /**
@@ -165,7 +189,7 @@ class PriceStrategy extends BaseController
     public function add(): void
     {
         $this->assertOwnedData('crawl_target', input('crawl_target_id'), '请选择当前账号名下的竞品池');
-        $this->mAdd(Model::class);
+        $this->mAdd(Model::class, ['except' => ['sort']]);
     }
 
     /**
@@ -176,7 +200,7 @@ class PriceStrategy extends BaseController
     {
         $this->assertOwnedData('price_strategy', input('id'));
         $this->assertOwnedData('crawl_target', input('crawl_target_id'), '请选择当前账号名下的竞品池');
-        $this->mEdit(Model::class);
+        $this->mEdit(Model::class, ['except' => ['sort']]);
     }
 
     /**
