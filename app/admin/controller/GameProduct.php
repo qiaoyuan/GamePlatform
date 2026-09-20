@@ -106,10 +106,12 @@ class GameProduct extends BaseController
         if ($isEldorado && ($descriptionChanged || (int) $original->stock !== $originalStock)) {
             try {
                 $result = GameProductPushService::push($original);
-                $this->success('保存并推送成功', $result);
             } catch (\RuntimeException $e) {
                 $this->error('ERP 已保存，但平台推送失败：' . $e->getMessage());
             }
+            // success() 通过 HttpResponseException 中断控制流（继承 RuntimeException），
+            // 必须放在 catch 之外，否则成功会被误报成平台推送失败。
+            $this->success('保存并推送成功', $result);
         }
         $this->success('操作成功', $original->toArray());
     }
