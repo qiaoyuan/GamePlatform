@@ -6,6 +6,7 @@ namespace test\service;
 require_once dirname(__DIR__, 2) . '/vendor/autoload.php';
 
 use app\common\service\PriceStrategyListService;
+use app\common\model\CrawlData;
 use PHPUnit\Framework\TestCase;
 use think\Container;
 use think\DbManager;
@@ -125,5 +126,50 @@ final class PriceStrategyListServiceTest extends TestCase
         ));
         self::assertSame([6 => '22.00'], $this->service->latestPrices(Db::table('price_strategy_log'), [6]));
         self::assertSame([], $this->service->latestPrices(Db::table('price_strategy_log'), []));
+    }
+
+    public function testCompetitorMessagesUseLatestSnapshotBoundCurrencyAndStrategyFilters(): void
+    {
+        Db::execute('CREATE TABLE crawl_data (id INTEGER PRIMARY KEY, target_id INTEGER, version INTEGER, price REAL,
+            currency TEXT, seller_id TEXT, seller_name TEXT, stock TEXT, stock_num INTEGER, rating TEXT)');
+        Db::execute('CREATE TABLE game_product (id INTEGER PRIMARY KEY, currency TEXT, deleted_at TEXT)');
+        Db::execute('CREATE TABLE price_strategy_product (price_strategy_id INTEGER, game_product_id INTEGER)');
+        Db::table('game_product')->insertAll([['id' => 1, 'currency' => 'USD'], ['id' => 2, 'currency' => 'EUR']]);
+        Db::table('price_strategy_product')->insertAll([
+            ['price_strategy_id' => 6, 'game_product_id' => 1],
+            ['price_strategy_id' => 5, 'game_product_id' => 2],
+        ]);
+        foreach ([[1, 1, 0.1, 'USD', '1000'], [2, 2, 0.2, 'USD', '100'], [3, 2, 0.7, 'USD', '1K'],
+            [4, 2, 0.9, 'EUR', '1K'], [5, 3, 0.3, 'USD', '1K']] as [$id, $version, $price, $currency, $stock]) {
+            Db::table('crawl_data')->insert([
+                'id' => $id, 'target_id' => 29, 'version' => $version, 'price' => $price,
+                'currency' => $currency, 'seller_id' => 'shop-' . $id, 'seller_name' => '店铺' . $id,
+                'stock' => $stock, 'stock_num' => 1000, 'rating' => '99',
+            ]);
+        }
+        $strategies = [];
+        foreach ([6, 5, 4] as $id) {
+            $strategies[] = (object) [
+                'id' => $id, 'crawl_target_id' => 29,
+                'crawlTarget' => (object) ['version' => 2, 'deleted_at' => null],
+                'config' => ['dimensions' => [['min_stock' => 101, 'filter_price' => 0.77]]],
+            ];
+        }
+        $messages = $this->service->competitorMessages($strategies, CrawlData::where('target_id', 29), Db::table('game_product'));
+        self::assertSame(['msg' => '0.7 USD · 店铺3', 'msg_color' => '#F56C6C'], $messages[6]);
+        self::assertSame(['msg' => '0.9 EUR · 店铺4', 'msg_color' => ''], $messages[5]);
+        self::assertSame('未绑定产品', $messages[4]['msg']);
+        $scoped = $this->service->competitorMessages($strategies,
+            CrawlData::where('id', '<>', 3), Db::table('game_product')->where('game_product.id', 1));
+        self::assertSame('暂无符合条件的竞品', $scoped[6]['msg']);
+        self::assertSame('未绑定产品', $scoped[5]['msg']);
+        // 所有策略共享目标，模拟最新轮没有数据时不回退旧版本。
+        foreach ($strategies as $strategy) {
+            $strategy->crawlTarget->version = 4;
+        }
+        $empty = $this->service->competitorMessages($strategies, CrawlData::where('target_id', 29), Db::table('game_product'));
+        self::assertSame('暂无符合条件的竞品', $empty[6]['msg']);
+        self::assertSame('', $empty[6]['msg_color']);
+        self::assertSame([], $this->service->competitorMessages([], CrawlData::where('target_id', 29), Db::table('game_product')));
     }
 }

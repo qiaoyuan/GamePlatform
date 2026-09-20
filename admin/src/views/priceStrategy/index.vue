@@ -5,7 +5,7 @@
       :module="module"
       :operates="operates"
       :actions="{ sort: canSort }"
-      :query="{ _strategy_list_version: 2 }"
+      :query="{ _strategy_list_version: 3 }"
       sort-visible-rows
       sort-handle=".table-index-sort div, .strategy-sort-handle"
       @getColumns="placePriceColumn"
@@ -117,11 +117,13 @@ export default {
   methods: {
     placePriceColumn({ list }) {
       // 已保存过列布局的后台也将新增价格列放到最低价旁边。
-      const index = list.findIndex(column => column.v === 'last_change_price')
-      if (index < 0) return
-      const [column] = list.splice(index, 1)
-      const minimumIndex = list.findIndex(item => item.v === 'filter_price')
-      list.splice(minimumIndex < 0 ? list.length : minimumIndex + 1, 0, column)
+      for (const [field, previous] of [['last_change_price', 'filter_price'], ['msg', 'last_change_price']]) {
+        const index = list.findIndex(column => column.v === field)
+        if (index < 0) continue
+        const [column] = list.splice(index, 1)
+        const previousIndex = list.findIndex(item => item.v === previous)
+        list.splice(previousIndex < 0 ? list.length : previousIndex + 1, 0, column)
+      }
     },
     getList() {
       this.$store.dispatch('cleanColumnOptions', this.module)

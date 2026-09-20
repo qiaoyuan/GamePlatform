@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace app\common\service;
 
 use app\common\model\PriceStrategyLog;
+use app\common\model\GameProduct;
 use think\db\Query;
 use think\facade\Db;
 
@@ -11,6 +12,65 @@ use think\facade\Db;
 class PriceStrategyListService
 {
     public const ORDER = 'COALESCE(price_strategy.sort, price_strategy.id) DESC, price_strategy.id DESC';
+
+    /** 批量读取当前页最新版本的竞品，再按每套策略的配置筛选；不调用平台 API。 */
+    public function competitorMessages($strategies, Query $ownedCompetitors, Query $ownedProducts): array
+    {
+        $versions = [];
+        $ids = [];
+        foreach ($strategies as $strategy) {
+            $ids[] = (int) $strategy->id;
+            if ($strategy->crawlTarget && !$strategy->crawlTarget->deleted_at) {
+                $versions[(int) $strategy->crawl_target_id] = (int) $strategy->crawlTarget->version;
+            }
+        }
+        if (!$ids || !$versions) {
+            return [];
+        }
+        $competitors = $ownedCompetitors->where(function (Query $query) use ($versions): void {
+            foreach ($versions as $targetId => $version) {
+                $query->whereOr(function (Query $snapshot) use ($targetId, $version): void {
+                    $snapshot->where('target_id', $targetId)->where('version', $version);
+                });
+            }
+        })->select();
+        $byTarget = [];
+        foreach ($competitors as $competitor) {
+            $byTarget[(int) $competitor->target_id][] = $competitor;
+        }
+        $currencies = [];
+        $bindings = $ownedProducts->join('price_strategy_product binding', 'binding.game_product_id = game_product.id')
+            ->whereIn('binding.price_strategy_id', $ids)->whereNull('game_product.deleted_at')
+            ->field(['binding.price_strategy_id', 'game_product.currency'])->select();
+        foreach ($bindings as $binding) {
+            $currencies[(int) $binding['price_strategy_id']][$binding['currency'] ?: GameProduct::DEFAULT_CURRENCY] = true;
+        }
+        $engine = new PriceStrategyService();
+        $messages = [];
+        foreach ($strategies as $strategy) {
+            $parts = [];
+            $red = false;
+            foreach (array_keys($currencies[$strategy->id] ?? []) as $currency) {
+                $lowest = $engine->previewLowest(
+                    new GameProduct(['currency' => $currency]),
+                    $byTarget[$strategy->crawl_target_id] ?? [],
+                    $strategy->config
+                );
+                if ($lowest === null) {
+                    continue;
+                }
+                $price = rtrim(rtrim(number_format($lowest['price'], 8, '.', ''), '0'), '.');
+                $shop = $lowest['seller_name'] ?: ($lowest['seller_id'] ?: '未知店铺');
+                $parts[] = $price . ' ' . $currency . ' · ' . $shop;
+                $red = $red || $lowest['below_minimum'];
+            }
+            $messages[$strategy->id] = [
+                'msg' => $parts ? implode('；', $parts) : (isset($currencies[$strategy->id]) ? '暂无符合条件的竞品' : '未绑定产品'),
+                'msg_color' => $red ? '#F56C6C' : '',
+            ];
+        }
+        return $messages;
+    }
 
     /** 在原有排序位置间交换权重，分页或筛选之外的记录保持不变。 */
     public function reorder(Query $ownedQuery, array $before, array $after): void

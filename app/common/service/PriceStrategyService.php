@@ -695,6 +695,24 @@ class PriceStrategyService
     }
 
     /**
+     * 后台只读预览：复用实际跟价的店铺/库存/好评率/币种规则。
+     * 仅将价格门槛改为告警，避免低价竞品在标红前就被过滤；不执行改价。
+     */
+    public function previewLowest(GameProduct $product, $competitors, $config): ?array
+    {
+        $dimension = $this->firstDimension($config);
+        $threshold = $dimension['filter_price'];
+        $dimension['filter_price'] = null;
+        $lowest = $this->calcLowest($product, $competitors, $dimension);
+        if ($lowest === null) {
+            return null;
+        }
+        $lowest['currency'] = $product->currency ?: GameProduct::DEFAULT_CURRENCY;
+        $lowest['below_minimum'] = $threshold !== null && $lowest['price'] < $threshold;
+        return $lowest;
+    }
+
+    /**
      * 按「目标店铺过滤」规则筛选 crawl_data 竞品后取最低价，并保留命中的竞品信息。
      *
      * 过滤优先级：黑名单剔除 > 白名单强制纳入(跳过库存/好评率过滤) > 其余按库存、好评率过滤。
