@@ -8,7 +8,7 @@ use app\common\model\GameAccount;
 use app\common\annotation\Permission;
 use app\common\service\GameProductPriceService;
 use app\common\service\GameProductOfferSyncService;
-use app\common\service\GameProductStockService;
+use app\common\service\GameProductPushService;
 use think\facade\Log;
 
 class GameProduct extends BaseController
@@ -75,33 +75,43 @@ class GameProduct extends BaseController
         $id = input('id');
         $this->assertOwnedData('game_product', $id);
         $this->assertOwnedData('game_account', input('game_account_id'), '请选择当前账号名下的游戏账号');
-        $original = Model::find($id);
+        $original = Model::with(['gameAccount'])->find($id);
         if (!$original) {
             $this->error('产品不存在');
         }
         $originalStock = (int) $original->stock;
-
-        // ELD 的平台修改接口是整单提交，改库存与改价复用同一接口。
-        // 用事务包住本地编辑：平台调用失败时，stock 和 offer_data 一起回滚。
-        $error = transaction(function () use ($originalStock) {
-            // price 不允许在常规编辑中修改：单独改价只能走 updatePrice() 接口。
-            $this->mEdit(Model::class, ['except' => ['price']], [], function (Model $product) use ($originalStock) {
-                if ((int) $product->stock === $originalStock) {
-                    return $product;
-                }
-
-                $account = $product->gameAccount;
-                if ($account && (int) $account->platform === GameAccount::PLATFORM_ELDORADO) {
-                    try {
-                        GameProductStockService::sync($product, (int) $product->stock);
-                    } catch (\RuntimeException $e) {
-                        $this->error($e->getMessage());
-                    }
-                }
-                return $product;
-            });
-        }, $this);
-        $this->systemError($error);
+        $originalData = is_array($original->offer_data) ? $original->offer_data : [];
+        $originalDescription = (string) ($originalData['details']['description'] ?? '');
+        $data = $this->request->put();
+        $description = array_key_exists('description', $data) ? (string) $data['description'] : $originalDescription;
+        // 常规编辑不接受改价或直接改 offer_data；价格只能走改价入口。
+        unset($data['price'], $data['description'], $data['offer_data']);
+        $validate = new \app\common\validate\GameProduct();
+        $data['id'] = $id;
+        if (!$validate->scene('edit')->check($data)) {
+            $this->error($validate->getError());
+        }
+        $account = GameAccount::find($data['game_account_id']);
+        $isEldorado = $account && (int) $account->platform === GameAccount::PLATFORM_ELDORADO;
+        $descriptionChanged = $isEldorado && $description !== $originalDescription;
+        if ($descriptionChanged) {
+            if (!$originalData) {
+                $this->error('缺少线上产品资料，请先同步线上数据后再编辑描述');
+            }
+            $originalData['details']['description'] = $description;
+            $data['offer_data'] = $originalData;
+        }
+        // 先保留 ERP 的期望值；平台请求失败时用户可按「推送平台」重试。
+        $original->assocStore($data, []);
+        if ($isEldorado && ($descriptionChanged || (int) $original->stock !== $originalStock)) {
+            try {
+                $result = GameProductPushService::push($original);
+                $this->success('保存并推送成功', $result);
+            } catch (\RuntimeException $e) {
+                $this->error('ERP 已保存，但平台推送失败：' . $e->getMessage());
+            }
+        }
+        $this->success('操作成功', $original->toArray());
     }
 
     #[Permission(title: '删除游戏产品')]
@@ -148,13 +158,18 @@ class GameProduct extends BaseController
         if (!$product) {
             $this->error('产品不存在');
         }
+        $oldProductId = (string) $product->product_id;
         try {
             // 与策略自动改价复用同一段内部逻辑（G2G 改价 + 同步本地价格）
             GameProductPriceService::change($product, $price);
         } catch (\RuntimeException $e) {
             $this->error($e->getMessage());
         }
-        $this->success('改价成功', ['price' => $price]);
+        $recreated = (string) $product->product_id !== $oldProductId;
+        $message = $recreated
+            ? sprintf('新增改价成功：product_id=%s（已删除旧 product_id=%s）', $product->product_id, $oldProductId)
+            : '改价成功';
+        $this->success($message, ['price' => $price, 'product_id' => $product->product_id]);
     }
 
     /**
@@ -184,6 +199,27 @@ class GameProduct extends BaseController
             'currency'   => $product->currency,
             'offer_data' => $offerData,
         ]);
+    }
+
+    /** 手动恢复或更新线上 offer；始终复用当前 ERP 产品行。 */
+    #[Permission(title: '推送平台')]
+    public function pushOffer(): void
+    {
+        $id = input('id');
+        if (!$id) {
+            $this->error('参数不足');
+        }
+        $this->assertOwnedData('game_product', $id);
+        $product = Model::with(['gameAccount'])->find($id);
+        if (!$product) {
+            $this->error('产品不存在');
+        }
+        try {
+            $result = GameProductPushService::push($product);
+        } catch (\RuntimeException $e) {
+            $this->error($e->getMessage());
+        }
+        $this->success($result['created'] ? '已在平台创建产品' : '已更新平台产品', $result);
     }
 
     public function select(): void

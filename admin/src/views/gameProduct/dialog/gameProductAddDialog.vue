@@ -21,7 +21,7 @@ export default {
     }
   },
   methods: {
-    setForm({ id, game_account_id, product_id, title, platform, price, stock, currency, sold_count, sales_amount, status }) {
+    setForm({ id, game_account_id, product_id, title, platform, price, stock, currency, sold_count, sales_amount, status, offer_data, account_platform }) {
       this.form = {
         game_account_id: {
           label: '关联账号',
@@ -35,7 +35,7 @@ export default {
           label: '平台',
           value: platform || 1,
           formType: 'select',
-          options: [{ label: 'G2G', value: 1 }, { label: 'Eldorado', value: 2 }],
+          options: [{ label: 'G2G', value: 1 }, { label: 'Eldorado', value: 2 }]
         },
         // 新增时价格可填写初始值；编辑已有产品时价格只读，修改须用列表「改价」按钮（会同步 G2G 平台）
         price: id
@@ -43,10 +43,19 @@ export default {
           : { label: '价格', value: price, formType: 'number' },
         stock: { label: '库存', value: stock, formType: 'number' },
         currency: { label: '货币', value: currency || 'USD' },
-        status: { label: '状态', value: status ?? 1, formType: 'status' },
+        status: { label: '状态', value: status ?? 1, formType: 'status' }
       }
       if (id) {
         this.form.id = { show: false, value: id }
+        if (Number(account_platform) === 2) {
+          this.form.description = {
+            label: '平台描述（保存后自动推送）',
+            value: offer_data?.details?.description || '',
+            formType: 'textarea',
+            rows: 4,
+            required: false
+          }
+        }
         // 已出售数/销售金额为统计字段，编辑时展示但不可修改
         this.form.sold_count = { label: '已出售数', value: sold_count, formType: 'number', readonly: true }
         this.form.sales_amount = { label: '销售金额', value: sales_amount, formType: 'number', readonly: true }

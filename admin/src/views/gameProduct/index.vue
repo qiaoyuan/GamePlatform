@@ -7,10 +7,15 @@
       k
       @add="onAdd"
       @edit="onEdit"
-    >
-    </w-tabs-table>
-    <GameProductAddDialog ref="gameProductAddDialog" @done="getList" />
-    <GameProductPriceDialog ref="gameProductPriceDialog" @done="getList" />
+    />
+    <GameProductAddDialog
+      ref="gameProductAddDialog"
+      @done="getList"
+    />
+    <GameProductPriceDialog
+      ref="gameProductPriceDialog"
+      @done="getList"
+    />
   </div>
 </template>
 
@@ -38,7 +43,7 @@ export default {
             title: '改价',
             type: 'warning',
             p: 'gameProduct/updatePrice',
-            click: row => this.$refs.gameProductPriceDialog.open(row),
+            click: row => this.$refs.gameProductPriceDialog.open(row)
           },
           {
             title: '同步线上数据',
@@ -48,10 +53,17 @@ export default {
             // 按「关联账号的平台」判断（后端也是按账号平台路由），
             // 不能用产品自身的 platform：产品表的 platform 可能与账号平台不一致
             show: row => Number(row.account_platform) === PLATFORM_ELDORADO,
-            click: row => this.syncOffer(row),
+            click: row => this.syncOffer(row)
           },
-        ],
-      },
+          {
+            title: '推送平台',
+            type: 'primary',
+            p: 'gameProduct/pushOffer',
+            show: row => Number(row.account_platform) === PLATFORM_ELDORADO,
+            click: row => this.pushOffer(row)
+          }
+        ]
+      }
     }
   },
   methods: {
@@ -71,7 +83,7 @@ export default {
         lock: true,
         text: `正在同步 ${row.title || row.product_id}...`,
         spinner: 'el-icon-loading',
-        background: 'rgba(0, 0, 0, 0.3)',
+        background: 'rgba(0, 0, 0, 0.3)'
       })
       try {
         const res = await this.$w_fun.post(`${this.module}/syncOffer`, { id: row.id }, {}, false, false)
@@ -83,6 +95,32 @@ export default {
         this.$message.error(e?.message || '同步失败')
       }
     },
+    async pushOffer(row) {
+      try {
+        await this.$confirm(
+          '将 ERP 保存的价格、库存和描述推送到平台；线上产品已删除时会尝试重新创建。确认继续？',
+          '推送平台',
+          { type: 'warning' }
+        )
+      } catch (_) {
+        return
+      }
+      const loading = this.$loading({
+        lock: true,
+        text: `正在推送 ${row.title || row.product_id}...`,
+        spinner: 'el-icon-loading',
+        background: 'rgba(0, 0, 0, 0.3)'
+      })
+      try {
+        const res = await this.$w_fun.post(`${this.module}/pushOffer`, { id: row.id }, {}, false, false)
+        this.$message.success(res.message || '推送成功')
+        this.getList()
+      } catch (e) {
+        this.$message.error(e?.message || '推送失败')
+      } finally {
+        loading.close()
+      }
+    }
   }
 }
 </script>

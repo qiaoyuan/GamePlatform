@@ -61,6 +61,9 @@ class PriceStrategyConsume extends Base
                 $result = $service->consumeOneNotify($workerId);
                 if ($result !== null) {
                     $processed++;
+                    foreach ($result['recreated'] ?? [] as $event) {
+                        $output->writeln(sprintf('[%s] 通知%d %s', date('Y-m-d H:i:s'), $result['notify_id'], $event));
+                    }
                     $output->writeln(sprintf(
                         '[%s] 通知%d %s，尝试%d次，%s',
                         date('Y-m-d H:i:s'),

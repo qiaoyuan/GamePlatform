@@ -70,7 +70,7 @@ class PriceStrategyService
     /**
      * 原子领取并消费一条通知。返回 null 表示当前队列为空。
      *
-     * @return array{notify_id:int,status:string,strategies:int,attempts:int,message:string}|null
+     * @return array{notify_id:int,status:string,strategies:int,attempts:int,message:string,recreated?:array<string>}|null
      */
     public function consumeOneNotify(string $workerId, ?callable $heartbeat = null): ?array
     {
@@ -127,6 +127,7 @@ class PriceStrategyService
                 'strategies' => $agg['strategies'],
                 'attempts'   => (int) $notify->attempts,
                 'message'    => $message,
+                'recreated'  => $agg['recreated'],
             ];
         } catch (\Throwable $e) {
             $status = $this->retryOrFailNotify($notify, $workerId, $e);
@@ -329,7 +330,7 @@ class PriceStrategyService
      * 执行绑定了该竞品池且已启用(status=1)的全部策略。
      * 单个策略异常不影响其它策略；auto_run 不参与筛选。
      *
-     * @return array{strategies:int, success:int, skip:int, fail:int}
+     * @return array{strategies:int, success:int, skip:int, fail:int, recreated:array<string>}
      */
     public function runByCrawlTarget(int $crawlTargetId, ?int $version = null, ?callable $heartbeat = null): array
     {
@@ -338,7 +339,7 @@ class PriceStrategyService
             ->where('status', PriceStrategy::STATUS_ON)
             ->whereNull('deleted_at')
             ->select();
-        $agg = ['strategies' => 0, 'success' => 0, 'skip' => 0, 'fail' => 0];
+        $agg = ['strategies' => 0, 'success' => 0, 'skip' => 0, 'fail' => 0, 'recreated' => []];
         foreach ($strategies as $strategy) {
             $heartbeat && $heartbeat();
             // 先统计已匹配并尝试执行的策略，避免策略内部异常时错误显示为 0 个。
@@ -348,6 +349,7 @@ class PriceStrategyService
                 $agg['success'] += $stat['success'];
                 $agg['skip']    += $stat['skip'];
                 $agg['fail']    += $stat['fail'];
+                $agg['recreated'] = array_merge($agg['recreated'], $stat['recreated']);
             } catch (\Throwable $e) {
                 $agg['fail']++;
                 Log::error('[PriceStrategyService] 策略执行异常 strategyId=' . $strategy->id
@@ -390,11 +392,11 @@ class PriceStrategyService
      * 执行单个策略：从 price_strategy_product 取该策略绑定的所有产品，
      * 每个产品按策略绑定的爬虫目标当前版本竞品算价并各自记录日志。
      *
-     * @return array{total:int, success:int, skip:int, fail:int}
+     * @return array{total:int, success:int, skip:int, fail:int, recreated:array<string>}
      */
     public function runStrategy(PriceStrategy $strategy, ?int $version = null, ?callable $heartbeat = null): array
     {
-        $stat = ['total' => 0, 'success' => 0, 'skip' => 0, 'fail' => 0];
+        $stat = ['total' => 0, 'success' => 0, 'skip' => 0, 'fail' => 0, 'recreated' => []];
 
         $target = CrawlTarget::find($strategy->crawl_target_id);
         if (!$target) {
@@ -424,17 +426,23 @@ class PriceStrategyService
             ->where('version', $version)
             ->select();
 
-        $productIndex = 0;
-        foreach ($products as $product) {
-            // 同一策略绑定多个产品时错峰调用平台改价接口，避免连续请求过密。
-            if ($productIndex > 0) {
-                usleep(1_000_000);
+        $lastPriceChangeAt = null;
+        $beforePriceChange = static function () use (&$lastPriceChangeAt): void {
+            // 只限制实际改价请求的频率；跳过的产品不应占用一秒钟。
+            if ($lastPriceChangeAt !== null) {
+                $waitUs = (int) ceil((1 - (microtime(true) - $lastPriceChangeAt)) * 1_000_000);
+                if ($waitUs > 0) {
+                    usleep($waitUs);
+                }
             }
-            $productIndex++;
+            $lastPriceChangeAt = microtime(true);
+        };
+        foreach ($products as $product) {
             $heartbeat && $heartbeat();
             $stat['total']++;
             $oldPrice = (float) $product->price;
-            [$status, $newPrice, $refPrice, $message, $competitorId] = $this->handleProduct($product, $competitors, $dimension);
+            $oldProductId = (string) $product->product_id;
+            [$status, $newPrice, $refPrice, $message, $competitorId] = $this->handleProduct($product, $competitors, $dimension, $beforePriceChange);
             $message = mb_substr(
                 sprintf('目标ID=%d，版本=%d；%s', $strategy->crawl_target_id, $version, $message),
                 0,
@@ -460,6 +468,14 @@ class PriceStrategyService
 
             if ($status === PriceStrategyLog::STATUS_SUCCESS) {
                 $stat['success']++;
+                if ((string) $product->product_id !== $oldProductId) {
+                    $stat['recreated'][] = sprintf(
+                        '新增改价成功：product_id=%s（已删除旧 product_id=%s；ERP 产品 ID=%d）',
+                        $product->product_id,
+                        $oldProductId,
+                        $product->id
+                    );
+                }
             } elseif ($status === PriceStrategyLog::STATUS_FAIL) {
                 $stat['fail']++;
             } else {
@@ -479,9 +495,10 @@ class PriceStrategyService
      * 「最低价」只在筛选竞品阶段生效（过滤价格≤该值的竞品），不参与出价计算。
      *
      * @param CrawlData[]|\think\Collection $competitors
+     * @param callable|null $beforePriceChange 仅在实际调用平台改价前执行的限速回调
      * @return array{0:int,1:float,2:float,3:string,4:int|null} [日志状态, 新价格, 参考价, 说明, 竞品数据ID]
      */
-    protected function handleProduct(GameProduct $product, $competitors, array $dimension): array
+    protected function handleProduct(GameProduct $product, $competitors, array $dimension, ?callable $beforePriceChange = null): array
     {
         $current = (float) $product->price;
 
@@ -564,8 +581,15 @@ class PriceStrategyService
 
         // 5. 应用改价（按产品关联账号的平台路由到对应客户端）
         try {
+            if ($beforePriceChange !== null) {
+                $beforePriceChange();
+            }
+            $oldProductId = (string) $product->product_id;
             GameProductPriceService::change($product, $bid);
-            return [PriceStrategyLog::STATUS_SUCCESS, $bid, $lowest, '改价成功；' . $competitorContext, $competitorId];
+            $successMessage = (string) $product->product_id !== $oldProductId
+                ? sprintf('新增改价成功：product_id=%s（已删除旧 product_id=%s）；', $product->product_id, $oldProductId)
+                : '改价成功；';
+            return [PriceStrategyLog::STATUS_SUCCESS, $bid, $lowest, $successMessage . $competitorContext, $competitorId];
         } catch (\Throwable $e) {
             return [PriceStrategyLog::STATUS_FAIL, $current, $lowest, $this->withCompetitorContext(mb_substr($e->getMessage(), 0, 420), $competitorContext), $competitorId];
         }
