@@ -84,4 +84,20 @@ final class PriceStrategyPreviewTest extends TestCase
         self::assertSame(1, $service->previewLowest($product, $rows, $config)['id']);
         self::assertSame(2, $service->actual($product, $rows, $config)['id']);
     }
+
+    public function testTopThreeRemainFilteredSortedAndIndividuallyFlagged(): void
+    {
+        $service = new PriceStrategyService();
+        $product = new GameProduct(['currency' => 'USD']);
+        $rows = [
+            $this->competitor(9, 0.1, ['stock' => '100']),
+            $this->competitor(4, 0.9), $this->competitor(3, 0.8),
+            $this->competitor(2, 0.7), $this->competitor(1, 0.7),
+        ];
+        $result = $service->previewLowestThree($product, $rows, ['min_stock' => 101, 'filter_price' => 0.8]);
+        self::assertSame([1, 2, 3], array_column($result, 'id'));
+        self::assertSame([true, true, false], array_column($result, 'below_minimum'));
+        self::assertCount(1, $service->previewLowestThree($product, [$rows[1]], []));
+        self::assertSame([], $service->previewLowestThree($product, [], []));
+    }
 }

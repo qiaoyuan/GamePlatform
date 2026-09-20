@@ -48,25 +48,33 @@ class PriceStrategyListService
         $engine = new PriceStrategyService();
         $messages = [];
         foreach ($strategies as $strategy) {
-            $parts = [];
-            $red = false;
+            $candidates = [];
             foreach (array_keys($currencies[$strategy->id] ?? []) as $currency) {
-                $lowest = $engine->previewLowest(
+                $candidates = array_merge($candidates, $engine->previewLowestThree(
                     new GameProduct(['currency' => $currency]),
                     $byTarget[$strategy->crawl_target_id] ?? [],
                     $strategy->config
-                );
-                if ($lowest === null) {
-                    continue;
-                }
+                ));
+            }
+            // 不跨币种比较价格；多币种先分组，整个单元格最多三行。
+            usort($candidates, static fn (array $a, array $b): int =>
+                strcmp($a['currency'], $b['currency']) ?: ($a['price'] <=> $b['price']) ?: ($a['id'] <=> $b['id']));
+            $lines = [];
+            foreach (array_slice($candidates, 0, 3) as $lowest) {
                 $price = rtrim(rtrim(number_format($lowest['price'], 8, '.', ''), '0'), '.');
                 $shop = $lowest['seller_name'] ?: ($lowest['seller_id'] ?: '未知店铺');
-                $parts[] = $price . ' ' . $currency . ' · ' . $shop;
-                $red = $red || $lowest['below_minimum'];
+                $lines[] = [
+                    'id' => $lowest['id'],
+                    'price' => $price,
+                    'currency' => $lowest['currency'],
+                    'shop' => $shop,
+                    'text' => $price . ' ' . $lowest['currency'] . ' · ' . $shop,
+                    'below_minimum' => $lowest['below_minimum'],
+                ];
             }
             $messages[$strategy->id] = [
-                'msg' => $parts ? implode('；', $parts) : (isset($currencies[$strategy->id]) ? '暂无符合条件的竞品' : '未绑定产品'),
-                'msg_color' => $red ? '#F56C6C' : '',
+                'msg' => $lines ? implode("\n", array_column($lines, 'text')) : (isset($currencies[$strategy->id]) ? '暂无符合条件的竞品' : '未绑定产品'),
+                'msg_lines' => $lines,
             ];
         }
         return $messages;

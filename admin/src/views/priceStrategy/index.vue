@@ -5,7 +5,7 @@
       :module="module"
       :operates="operates"
       :actions="{ sort: canSort }"
-      :query="{ _strategy_list_version: 3 }"
+      :query="{ _strategy_list_version: 4 }"
       sort-visible-rows
       sort-handle=".table-index-sort div, .strategy-sort-handle"
       @getColumns="placePriceColumn"
@@ -30,6 +30,24 @@
             class="el-icon-rank"
           /> {{ row.name }}
         </span>
+      </template>
+      <template #msgSlot="{ row }">
+        <div class="competitor-preview">
+          <template v-if="row.msg_lines && row.msg_lines.length">
+            <div
+              v-for="line in row.msg_lines"
+              :key="line.id"
+              class="competitor-preview-line"
+              :class="{ 'is-below-minimum': line.below_minimum }"
+              :title="line.text"
+            >
+              <strong class="competitor-preview-price">{{ line.price }}</strong>
+              <span class="competitor-preview-currency">{{ line.currency }}</span>
+              <span class="competitor-preview-shop">{{ line.shop }}</span>
+            </div>
+          </template>
+          <span v-else>{{ row.msg || '暂无符合条件的竞品' }}</span>
+        </div>
       </template>
       <template #multiOperate="{ selection }">
         <el-button
@@ -159,3 +177,40 @@ export default {
   }
 }
 </script>
+
+<style scoped>
+.competitor-preview {
+  font-size: 11px;
+  line-height: 14px;
+  text-align: left;
+  font-variant-numeric: tabular-nums;
+}
+.competitor-preview-line {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  height: 14px;
+  white-space: nowrap;
+}
+.competitor-preview-price {
+  flex-shrink: 0;
+  font-weight: 600;
+}
+.competitor-preview-currency {
+  flex-shrink: 0;
+  opacity: 0.65;
+  font-size: 10px;
+}
+.competitor-preview-shop {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.competitor-preview-line.is-below-minimum {
+  color: #f56c6c;
+}
+.app-container /deep/ td.competitor-preview-cell {
+  padding-top: 2px !important;
+  padding-bottom: 2px !important;
+}
+</style>

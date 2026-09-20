@@ -156,20 +156,33 @@ final class PriceStrategyListServiceTest extends TestCase
             ];
         }
         $messages = $this->service->competitorMessages($strategies, CrawlData::where('target_id', 29), Db::table('game_product'));
-        self::assertSame(['msg' => '0.7 USD · 店铺3', 'msg_color' => '#F56C6C'], $messages[6]);
-        self::assertSame(['msg' => '0.9 EUR · 店铺4', 'msg_color' => ''], $messages[5]);
+        self::assertSame('0.7 USD · 店铺3', $messages[6]['msg']);
+        self::assertTrue($messages[6]['msg_lines'][0]['below_minimum']);
+        self::assertSame('0.9 EUR · 店铺4', $messages[5]['msg']);
+        self::assertFalse($messages[5]['msg_lines'][0]['below_minimum']);
         self::assertSame('未绑定产品', $messages[4]['msg']);
         $scoped = $this->service->competitorMessages($strategies,
             CrawlData::where('id', '<>', 3), Db::table('game_product')->where('game_product.id', 1));
         self::assertSame('暂无符合条件的竞品', $scoped[6]['msg']);
         self::assertSame('未绑定产品', $scoped[5]['msg']);
+        foreach ([[6, 0.8], [7, 0.77], [8, 0.79], [9, 0.9]] as [$id, $price]) {
+            Db::table('crawl_data')->insert([
+                'id' => $id, 'target_id' => 29, 'version' => 2, 'price' => $price,
+                'currency' => 'USD', 'seller_name' => '店铺' . $id, 'stock' => '1K', 'rating' => '99',
+            ]);
+        }
+        $top = $this->service->competitorMessages($strategies, CrawlData::where('target_id', 29), Db::table('game_product'));
+        self::assertSame([3, 7, 8], array_column($top[6]['msg_lines'], 'id'));
+        self::assertSame([true, false, false], array_column($top[6]['msg_lines'], 'below_minimum'));
+        self::assertSame(['0.7', '0.77', '0.79'], array_column($top[6]['msg_lines'], 'price'));
+        self::assertSame("0.7 USD · 店铺3\n0.77 USD · 店铺7\n0.79 USD · 店铺8", $top[6]['msg']);
         // 所有策略共享目标，模拟最新轮没有数据时不回退旧版本。
         foreach ($strategies as $strategy) {
             $strategy->crawlTarget->version = 4;
         }
         $empty = $this->service->competitorMessages($strategies, CrawlData::where('target_id', 29), Db::table('game_product'));
         self::assertSame('暂无符合条件的竞品', $empty[6]['msg']);
-        self::assertSame('', $empty[6]['msg_color']);
+        self::assertSame([], $empty[6]['msg_lines']);
         self::assertSame([], $this->service->competitorMessages([], CrawlData::where('target_id', 29), Db::table('game_product')));
     }
 }

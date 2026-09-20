@@ -700,16 +700,31 @@ class PriceStrategyService
      */
     public function previewLowest(GameProduct $product, $competitors, $config): ?array
     {
+        return $this->previewLowestThree($product, $competitors, $config)[0] ?? null;
+    }
+
+    /** 符合相同筛选条件的最低价前三条；逐条调用现有筛选逻辑，避免规则分叉。 */
+    public function previewLowestThree(GameProduct $product, $competitors, $config): array
+    {
         $dimension = $this->firstDimension($config);
         $threshold = $dimension['filter_price'];
         $dimension['filter_price'] = null;
-        $lowest = $this->calcLowest($product, $competitors, $dimension);
-        if ($lowest === null) {
-            return null;
+        $remaining = [];
+        foreach ($competitors as $competitor) {
+            $remaining[] = $competitor;
         }
-        $lowest['currency'] = $product->currency ?: GameProduct::DEFAULT_CURRENCY;
-        $lowest['below_minimum'] = $threshold !== null && $lowest['price'] < $threshold;
-        return $lowest;
+        $result = [];
+        while (count($result) < 3) {
+            $lowest = $this->calcLowest($product, $remaining, $dimension);
+            if ($lowest === null) {
+                break;
+            }
+            $lowest['currency'] = $product->currency ?: GameProduct::DEFAULT_CURRENCY;
+            $lowest['below_minimum'] = $threshold !== null && $lowest['price'] < $threshold;
+            $result[] = $lowest;
+            $remaining = array_filter($remaining, static fn ($row): bool => (int) $row->id !== $lowest['id']);
+        }
+        return $result;
     }
 
     /**

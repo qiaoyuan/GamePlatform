@@ -41,8 +41,8 @@ class PriceStrategy extends BaseController
             ['v' => 'products_count', 'label' => '绑定产品数', 'width' => 100, 'search' => false],
             ['v' => 'filter_price', 'label' => '最低价', 'width' => 110, 'search' => false],
             ['v' => 'last_change_price', 'label' => '上次改价价格', 'width' => 130, 'search' => false],
-            ['v' => 'msg', 'label' => 'msg（竞品最低价 / 店铺）', 'width' => 260, 'search' => false,
-                'headerTooltip' => "最新一轮竞品中，满足策略店铺黑白名单、库存、好评率、币种条件的最低价及店铺。\n白名单沿用策略规则，豁免库存/好评率；黑名单优先。\n价格门槛仅用于此列标红：低于策略最低价标红，等于不标红。实际改价规则不变。"],
+            ['v' => 'msg', 'label' => 'msg（竞品低价前三）', 'width' => 260, 'search' => false, 'className' => 'competitor-preview-cell',
+                'headerTooltip' => "最新一轮竞品中，满足策略店铺黑白名单、库存、好评率、币种条件的低价前三条，每行显示价格和店铺。\n同币种按价格升序，多币种按币种分组，最多三行。白名单沿用策略规则，豁免库存/好评率；黑名单优先。\n每行低于策略最低价时单独标红，等于不标红。实际改价规则不变。"],
             [
                 'v'          => 'auto_run',
                 'label'      => '爬后自动执行',
@@ -96,7 +96,7 @@ class PriceStrategy extends BaseController
                 $item->last_change_price = $price === null ? '—' :
                     (str_contains((string) $price, '.') ? rtrim(rtrim((string) $price, '0'), '.') : (string) $price);
                 $item->msg = $messages[$item->id]['msg'] ?? '暂无符合条件的竞品';
-                $item->msg_color = $messages[$item->id]['msg_color'] ?? '';
+                $item->msg_lines = $messages[$item->id]['msg_lines'] ?? [];
             });
         }
         $this->success('', [
