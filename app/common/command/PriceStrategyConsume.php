@@ -75,7 +75,7 @@ class PriceStrategyConsume extends Base
                 } else {
                     // 空队列每分钟打印一次，避免两秒轮询不断刷屏。
                     if (time() - $lastIdleLogAt >= 60) {
-                        $output->writeln('[' . date('Y-m-d H:i:s') . '] 扫描完成：暂无待处理通知，本轮没有需要执行的策略');
+                        $output->writeln('[' . date('Y-m-d H:i:s') . '] 暂无可领取通知：队列为空、通知未到重试时间或相关目标正由其他 Worker 处理');
                         $lastIdleLogAt = time();
                     }
                     if ($once) {

@@ -50,6 +50,7 @@ class PriceStrategyService
 {
     private const MAX_ATTEMPTS = 5;
     private const RETRY_DELAYS = [5, 30, 120, 600, 1800];
+    private ?PriceStrategyTargetLease $targetLease = null;
 
     /**
      * 兼容一次性调用：持续领取，直至当前没有可执行通知。
@@ -82,6 +83,7 @@ class PriceStrategyService
         $targetId = (int) $notify->crawl_target_id;
         $version = (int) $notify->version;
         $touch = function () use ($notify, $workerId, $heartbeat): void {
+            $this->targetLease?->renew();
             $this->touchNotify((int) $notify->id, $workerId);
             if ($heartbeat !== null) {
                 $heartbeat();
@@ -138,6 +140,11 @@ class PriceStrategyService
                 'attempts'   => (int) $notify->attempts,
                 'message'    => sprintf('目标%d版本%d：%s', $targetId, $version, $e->getMessage()),
             ];
+        } finally {
+            if ($this->targetLease !== null) {
+                $this->releaseTargetLease($this->targetLease);
+                $this->targetLease = null;
+            }
         }
     }
 
@@ -146,92 +153,137 @@ class PriceStrategyService
      */
     public function claimNextNotify(string $workerId): ?CrawlNotify
     {
+        $busyTargets = [];
         for ($i = 0; $i < 20; $i++) {
             $now = date('Y-m-d H:i:s');
-            $candidate = CrawlNotify::where('status', CrawlNotify::STATUS_PENDING)
+            $query = CrawlNotify::where('status', CrawlNotify::STATUS_PENDING)
                 ->where(function ($query) use ($now) {
                     $query->whereNull('available_at')->whereOr('available_at', '<=', $now);
-                })
-                ->order('id', 'asc')
-                ->find();
+                });
+            if ($busyTargets) {
+                $query->whereNotIn('crawl_target_id', $busyTargets);
+            }
+            $candidate = $query->order('id', 'asc')->find();
             if (!$candidate) {
                 return null;
             }
 
-            $claimed = CrawlNotify::where('id', $candidate->id)
-                ->where('status', CrawlNotify::STATUS_PENDING)
-                ->where(function ($query) use ($now) {
-                    $query->whereNull('available_at')->whereOr('available_at', '<=', $now);
-                })
-                ->update([
-                    'status'       => CrawlNotify::STATUS_PROCESSING,
-                    'attempts'     => Db::raw('attempts + 1'),
-                    'worker_id'    => $workerId,
-                    'started_at'   => $now,
-                    'heartbeat_at' => $now,
-                    'updated_at'   => $now,
-                ]);
-            if ($claimed !== 1) {
+            // 在领取前锁定目标，另一 Worker 可继续领取其它目标。
+            // 撞锁的通知仍保持待处理，不增加 attempts，也不会被错误标记完成。
+            $lease = $this->acquireTargetLease((int) $candidate->crawl_target_id);
+            if ($lease === null) {
+                $busyTargets[] = (int) $candidate->crawl_target_id;
                 continue;
             }
-
-            /** @var CrawlNotify $notify */
-            $notify = CrawlNotify::find($candidate->id);
-            if (!$notify) {
-                continue;
-            }
-            $resolvedVersion = null;
+            $keepLease = false;
             try {
-                $resolvedVersion = $this->resolveNotifyVersion($notify);
-                $dedupeKey = $notify->crawl_target_id . ':' . $resolvedVersion;
-                CrawlNotify::where('id', $notify->id)
-                    ->where('status', CrawlNotify::STATUS_PROCESSING)
-                    ->where('worker_id', $workerId)
-                    ->update([
-                        'version'    => $resolvedVersion,
-                        'dedupe_key' => $dedupeKey,
-                        'updated_at' => $now,
-                    ]);
-                // MySQL 默认返回实际发生变化的行数。重试时 version/dedupe_key 已经相同，
-                // 或同一秒内 updated_at 未变化，UPDATE 返回 0 也可能仍然持有处理权，
-                // 因此必须读取当前状态确认，不能把 affected rows=0 直接视为丢失租约。
-                $notify = CrawlNotify::where('id', $notify->id)
-                    ->where('status', CrawlNotify::STATUS_PROCESSING)
-                    ->where('worker_id', $workerId)
+                // 较早通知仍在重试等待或待回收时，不能让新通知先改价、旧通知随后覆盖。
+                $earlier = CrawlNotify::where('crawl_target_id', $candidate->crawl_target_id)
+                    ->where('id', '<', $candidate->id)
+                    ->whereIn('status', [CrawlNotify::STATUS_PENDING, CrawlNotify::STATUS_PROCESSING])
                     ->find();
-                if (!$notify
-                    || (int) $notify->version !== $resolvedVersion
-                    || (string) $notify->dedupe_key !== $dedupeKey) {
-                    throw new \RuntimeException('设置通知幂等键失败或处理权已丢失: notifyId=' . $candidate->id);
-                }
-                return $notify;
-            } catch (\Throwable $e) {
-                $dedupeVersion = $resolvedVersion ?? (int) ($notify->version ?? 0);
-                $dedupeKey = $notify->crawl_target_id . ':' . $dedupeVersion;
-                $duplicate = CrawlNotify::where('dedupe_key', $dedupeKey)
-                    ->where('id', '<>', $notify->id)
-                    ->find();
-                if ($duplicate) {
-                    CrawlNotify::where('id', $notify->id)
-                        ->where('status', CrawlNotify::STATUS_PROCESSING)
-                        ->where('worker_id', $workerId)
-                        ->update([
-                            'status'       => CrawlNotify::STATUS_DONE,
-                            'message'      => mb_substr('重复通知，已由通知' . $duplicate->id . '占用幂等键' . $dedupeKey, 0, 500),
-                            'processed_at' => $now,
-                            'available_at' => null,
-                            'worker_id'    => '',
-                            'started_at'   => null,
-                            'heartbeat_at' => null,
-                            'updated_at'   => $now,
-                        ]);
+                if ($earlier) {
+                    $busyTargets[] = (int) $candidate->crawl_target_id;
                     continue;
                 }
-                $this->retryOrFailNotify($notify, $workerId, $e);
+                $notify = $this->claimCandidate($candidate, $workerId, $now);
+                if ($notify === null) {
+                    continue;
+                }
+                $this->targetLease = $lease;
+                $keepLease = true;
+                return $notify;
+            } finally {
+                if (!$keepLease) {
+                    $this->releaseTargetLease($lease);
+                }
             }
         }
 
         return null;
+    }
+
+    private function claimCandidate(CrawlNotify $candidate, string $workerId, string $now): ?CrawlNotify
+    {
+        $claimed = CrawlNotify::where('id', $candidate->id)
+            ->where('status', CrawlNotify::STATUS_PENDING)
+            ->where(function ($query) use ($now) {
+                $query->whereNull('available_at')->whereOr('available_at', '<=', $now);
+            })
+            ->update([
+                'status' => CrawlNotify::STATUS_PROCESSING,
+                'attempts' => Db::raw('attempts + 1'),
+                'worker_id' => $workerId,
+                'started_at' => $now,
+                'heartbeat_at' => $now,
+                'updated_at' => $now,
+            ]);
+        if ($claimed !== 1) {
+            return null;
+        }
+        $notify = CrawlNotify::find($candidate->id);
+        if (!$notify) {
+            return null;
+        }
+        $resolvedVersion = null;
+        try {
+            $resolvedVersion = $this->resolveNotifyVersion($notify);
+            $dedupeKey = $notify->crawl_target_id . ':' . $resolvedVersion;
+            CrawlNotify::where('id', $notify->id)
+                ->where('status', CrawlNotify::STATUS_PROCESSING)
+                ->where('worker_id', $workerId)
+                ->update(['version' => $resolvedVersion, 'dedupe_key' => $dedupeKey, 'updated_at' => $now]);
+            // 同一秒 UPDATE 可返回 0；读取实际状态确认租约归属与幂等键。
+            $notify = CrawlNotify::where('id', $notify->id)
+                ->where('status', CrawlNotify::STATUS_PROCESSING)
+                ->where('worker_id', $workerId)
+                ->find();
+            if (!$notify || (int) $notify->version !== $resolvedVersion || (string) $notify->dedupe_key !== $dedupeKey) {
+                throw new \RuntimeException('设置通知幂等键失败或处理权已丢失: notifyId=' . $candidate->id);
+            }
+            return $notify;
+        } catch (\Throwable $e) {
+            // 查询丢失租约返回 null 时，仍用原始候选 ID 做条件更新，不能解引用 null。
+            $notify = $notify ?? $candidate;
+            $dedupeKey = $notify->crawl_target_id . ':' . ($resolvedVersion ?? (int) $notify->version);
+            $duplicate = CrawlNotify::where('dedupe_key', $dedupeKey)->where('id', '<>', $notify->id)->find();
+            if ($duplicate) {
+                CrawlNotify::where('id', $notify->id)
+                    ->where('status', CrawlNotify::STATUS_PROCESSING)
+                    ->where('worker_id', $workerId)
+                    ->update([
+                        'status' => CrawlNotify::STATUS_DONE,
+                        'message' => mb_substr('重复通知，已由通知' . $duplicate->id . '占用幂等键' . $dedupeKey, 0, 500),
+                        'processed_at' => $now,
+                        'available_at' => null,
+                        'worker_id' => '',
+                        'started_at' => null,
+                        'heartbeat_at' => null,
+                        'updated_at' => $now,
+                    ]);
+            } else {
+                $this->retryOrFailNotify($notify, $workerId, $e);
+            }
+            return null;
+        }
+    }
+
+    protected function acquireTargetLease(int $targetId): ?PriceStrategyTargetLease
+    {
+        $store = cache()->store('redis');
+        return PriceStrategyTargetLease::acquire(
+            $store->handler(),
+            $store->getCacheKey('price_strategy_target_lock_v1_' . $targetId)
+        );
+    }
+
+    private function releaseTargetLease(PriceStrategyTargetLease $lease): void
+    {
+        try {
+            $lease->release();
+        } catch (\Throwable $e) {
+            Log::warning('[PriceStrategyService] 目标处理锁释放失败，将等待锁过期：' . $e->getMessage());
+        }
     }
 
     /**
@@ -289,7 +341,7 @@ class PriceStrategyService
             ->where('status', CrawlNotify::STATUS_PROCESSING)
             ->where('worker_id', $workerId)
             ->find()) {
-            throw new \RuntimeException('通知处理权已丢失: notifyId=' . $notifyId);
+            throw new PriceStrategyLeaseLostException('通知处理权已丢失: notifyId=' . $notifyId);
         }
     }
 
@@ -350,6 +402,8 @@ class PriceStrategyService
                 $agg['skip']    += $stat['skip'];
                 $agg['fail']    += $stat['fail'];
                 $agg['recreated'] = array_merge($agg['recreated'], $stat['recreated']);
+            } catch (PriceStrategyLeaseLostException $e) {
+                throw $e;
             } catch (\Throwable $e) {
                 $agg['fail']++;
                 Log::error('[PriceStrategyService] 策略执行异常 strategyId=' . $strategy->id
@@ -427,7 +481,7 @@ class PriceStrategyService
             ->select();
 
         $lastPriceChangeAt = null;
-        $beforePriceChange = static function () use (&$lastPriceChangeAt): void {
+        $beforePriceChange = static function () use (&$lastPriceChangeAt, $heartbeat): void {
             // 只限制实际改价请求的频率；跳过的产品不应占用一秒钟。
             if ($lastPriceChangeAt !== null) {
                 $waitUs = (int) ceil((1 - (microtime(true) - $lastPriceChangeAt)) * 1_000_000);
@@ -436,13 +490,15 @@ class PriceStrategyService
                 }
             }
             $lastPriceChangeAt = microtime(true);
+            $heartbeat && $heartbeat();
         };
         foreach ($products as $product) {
             $heartbeat && $heartbeat();
             $stat['total']++;
-            $oldPrice = (float) $product->price;
-            $oldProductId = (string) $product->product_id;
-            [$status, $newPrice, $refPrice, $message, $competitorId] = $this->handleProduct($product, $competitors, $dimension, $beforePriceChange);
+            $handled = $this->handleProductWithWait($product, $competitors, $dimension, $beforePriceChange, $heartbeat);
+            $oldPrice = $handled['old_price'];
+            $oldProductId = $handled['old_product_id'];
+            [$status, $newPrice, $refPrice, $message, $competitorId] = $handled['result'];
             $message = mb_substr(
                 sprintf('目标ID=%d，版本=%d；%s', $strategy->crawl_target_id, $version, $message),
                 0,
@@ -488,6 +544,42 @@ class PriceStrategyService
         $strategy->save();
 
         return $stat;
+    }
+
+    /** 只重算尚未调用 API 的撞锁产品；同一通知之前处理完的产品不会重跑。 */
+    protected function handleProductWithWait(GameProduct &$product, $competitors, array $dimension, ?callable $beforePriceChange = null, ?callable $heartbeat = null): array
+    {
+        while (true) {
+            $oldPrice = (float) $product->price;
+            $oldProductId = (string) $product->product_id;
+            try {
+                $result = $this->handleProduct($product, $competitors, $dimension, $beforePriceChange);
+                return ['result' => $result, 'old_price' => $oldPrice, 'old_product_id' => $oldProductId];
+            } catch (PriceProductBusyException $e) {
+                $heartbeat && $heartbeat();
+                $this->waitForBusyProduct();
+                $heartbeat && $heartbeat();
+                $fresh = $this->reloadStrategyProduct((int) $product->id);
+                if ($fresh === null) {
+                    return [
+                        'result' => [PriceStrategyLog::STATUS_FAIL, $oldPrice, 0.0, '等待改价时产品已不存在', null],
+                        'old_price' => $oldPrice,
+                        'old_product_id' => $oldProductId,
+                    ];
+                }
+                $product = $fresh;
+            }
+        }
+    }
+
+    protected function waitForBusyProduct(): void
+    {
+        usleep(500_000 + random_int(0, 200_000));
+    }
+
+    protected function reloadStrategyProduct(int $productId): ?GameProduct
+    {
+        return GameProduct::with(['gameAccount'])->find($productId);
     }
 
     /**
@@ -585,14 +677,21 @@ class PriceStrategyService
                 $beforePriceChange();
             }
             $oldProductId = (string) $product->product_id;
-            GameProductPriceService::change($product, $bid);
+            $this->applyProductPrice($product, $bid);
             $successMessage = (string) $product->product_id !== $oldProductId
                 ? sprintf('新增改价成功：product_id=%s（已删除旧 product_id=%s）；', $product->product_id, $oldProductId)
                 : '改价成功；';
             return [PriceStrategyLog::STATUS_SUCCESS, $bid, $lowest, $successMessage . $competitorContext, $competitorId];
+        } catch (PriceProductBusyException | PriceStrategyLeaseLostException $e) {
+            throw $e;
         } catch (\Throwable $e) {
             return [PriceStrategyLog::STATUS_FAIL, $current, $lowest, $this->withCompetitorContext(mb_substr($e->getMessage(), 0, 420), $competitorContext), $competitorId];
         }
+    }
+
+    protected function applyProductPrice(GameProduct $product, float $price): void
+    {
+        GameProductPriceService::change($product, $price);
     }
 
     /**

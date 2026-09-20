@@ -35,44 +35,50 @@ class GameProductPriceService
             throw new \RuntimeException('该产品未关联有效的游戏账号');
         }
 
-        $account = $product->gameAccount;
-
-        switch ($account->platform) {
-            case GameAccount::PLATFORM_ELDORADO:
-                self::changeEldorado($product, $price);
-                return;
-
-            case GameAccount::PLATFORM_G2G:
-            default:
-                $client = new G2gClient($account);
-                $client->updatePrice($product->product_id, $price, $product->id);
-                break;
-        }
-
-        $product->price = $price;
-        $product->save();
+        self::changeLocked($product, $price);
     }
 
     /** 手工改价与策略改价共用同一把产品锁，防止两个流程同时删除同一个 offer。 */
-    private static function changeEldorado(GameProduct $product, float $price): void
+    private static function changeLocked(GameProduct $product, float $price): void
     {
         $store = cache()->store('redis');
         $redis = $store->handler();
         $offerId = trim((string) $product->product_id);
         if ($offerId === '') {
-            throw new \RuntimeException('ELD 平台 product_id 为空，无法改价');
+            throw new \RuntimeException('平台 product_id 为空，无法改价');
         }
-        $lockKey = $store->getCacheKey('eld_offer_lock_v2_' . $offerId);
+        $isEldorado = (int) $product->gameAccount->platform === GameAccount::PLATFORM_ELDORADO;
+        $lockKey = $store->getCacheKey($isEldorado
+            ? 'eld_offer_lock_v2_' . $offerId
+            : 'g2g_offer_lock_v1_' . $product->game_account_id . '_' . $offerId);
         $lockToken = bin2hex(random_bytes(16));
         if (!$redis->set($lockKey, $lockToken, ['nx', 'ex' => 180])) {
-            throw new \RuntimeException('该产品正在改价，请稍后再试');
+            throw new PriceProductBusyException('该产品正在改价，请稍后再试');
         }
 
         try {
             // Worker 可能持有旧模型；旧 ID 若已被另一进程替换，不能再对它执行删除。
-            $currentId = GameProduct::where('id', $product->id)->value('product_id');
-            if ((string) $currentId !== (string) $product->product_id) {
-                throw new \RuntimeException('产品平台 ID 已变化，请重新加载后再改价');
+            $current = GameProduct::find($product->id);
+            if (!$current) {
+                throw new \RuntimeException('产品不存在，已停止改价');
+            }
+            $currentId = (string) $current->product_id;
+            if ($currentId !== (string) $product->product_id
+                || (float) $current->price !== (float) $product->price
+                || (string) $current->currency !== (string) $product->currency
+                || (int) $current->game_account_id !== (int) $product->game_account_id) {
+                throw new PriceProductBusyException('产品平台 ID、价格或账号已变化，需要重新加载后计算');
+            }
+            $product->offer_data = $current->offer_data;
+            $product->stock = $current->stock;
+            $product->currency = $current->currency;
+
+            if (!$isEldorado) {
+                $client = new G2gClient($product->gameAccount);
+                $client->updatePrice($product->product_id, $price, $product->id);
+                $product->price = $price;
+                $product->save();
+                return;
             }
 
             $offerData = is_array($product->offer_data) ? $product->offer_data : [];
@@ -143,7 +149,7 @@ class GameProductPriceService
                     1
                 );
             } catch (\Throwable $e) {
-                Log::warning('[GameProductPriceService] ELD 产品锁释放失败 productId='
+                Log::warning('[GameProductPriceService] 产品锁释放失败 productId='
                     . $product->id . ': ' . $e->getMessage());
             }
         }
