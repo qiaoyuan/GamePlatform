@@ -14,7 +14,7 @@ use think\model\relation\BelongsTo;
  * @property string $name     任务名称
  * @property string $url      目标链接
  * @property string $category 产品分类
- * @property int    $crawl_interval 爬取间隔（分钟），0=不限；ELD 建议 5
+ * @property int    $crawl_interval 基础 30 秒之外追加的爬取间隔（秒），0=不追加
  * @property int    $status   状态 0-停用 1-启用
  * @property string $last_crawl_at 最后爬取时间
  * @property string $created_at

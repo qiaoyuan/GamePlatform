@@ -63,12 +63,12 @@ export default {
           rules: [{ required: true, message: '请选择产品分类', trigger: 'change' }],
         },
         crawl_interval: {
-          label: '爬取间隔(分钟)',
-          value: crawl_interval ?? (String(category).startsWith('ELD') ? 5 : 0),
+          label: '爬取间隔(秒)',
+          value: crawl_interval ?? 0,
           formType: 'number',
           attrs: { min: 0, step: 1 },
           required: false,
-          tip: '0=不限制；ELD 建议设为 5（平台每 5 分钟限改价两次）',
+          tip: '实际总间隔为基础 30 秒加此处秒数；填写 0 时按 30 秒执行',
         },
         status: { label: '状态', value: status ?? 1, formType: 'status' },
       }
