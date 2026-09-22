@@ -13,7 +13,7 @@ class PriceStrategyListService
 {
     public const ORDER = 'COALESCE(price_strategy.sort, price_strategy.id) DESC, price_strategy.id DESC';
 
-    /** 批量读取当前页最新版本的竞品，再按每套策略的配置筛选；不调用平台 API。 */
+    /** 按爬取完成通知读取最近完成的版本；消费状态和改价是否跳过不影响展示。 */
     public function competitorMessages($strategies, Query $ownedCompetitors, Query $ownedProducts): array
     {
         $versions = [];
@@ -21,11 +21,22 @@ class PriceStrategyListService
         foreach ($strategies as $strategy) {
             $ids[] = (int) $strategy->id;
             if ($strategy->crawlTarget && !$strategy->crawlTarget->deleted_at) {
-                $versions[(int) $strategy->crawl_target_id] = (int) $strategy->crawlTarget->version;
+                $versions[(int) $strategy->crawl_target_id] = -1;
             }
         }
         if (!$ids || !$versions) {
             return [];
+        }
+        // 通知在竞品入库后才写入。目标自身的 version 在爬取前递增，不能作为完成标志。
+        // 不过滤 status：待消费、已处理（含主动跳过）、失败、处理中都已经完成爬取。
+        $latestNotifyIds = Db::table('crawl_notify')->whereIn('crawl_target_id', array_keys($versions))
+            ->whereNotNull('version')->group('crawl_target_id')->column('MAX(id)');
+        if ($latestNotifyIds) {
+            $completed = Db::table('crawl_notify')->whereIn('id', $latestNotifyIds)
+                ->column('version', 'crawl_target_id');
+            foreach ($completed as $targetId => $version) {
+                $versions[(int) $targetId] = (int) $version;
+            }
         }
         $competitors = $ownedCompetitors->where(function (Query $query) use ($versions): void {
             foreach ($versions as $targetId => $version) {

@@ -130,6 +130,11 @@ final class PriceStrategyListServiceTest extends TestCase
 
     public function testCompetitorMessagesUseLatestSnapshotBoundCurrencyAndStrategyFilters(): void
     {
+        Db::execute('CREATE TABLE crawl_notify (id INTEGER PRIMARY KEY, crawl_target_id INTEGER, version INTEGER, status INTEGER)');
+        Db::table('crawl_notify')->insertAll([
+            ['id' => 1, 'crawl_target_id' => 29, 'version' => 1, 'status' => 1],
+            ['id' => 2, 'crawl_target_id' => 29, 'version' => 2, 'status' => 0],
+        ]);
         Db::execute('CREATE TABLE crawl_data (id INTEGER PRIMARY KEY, target_id INTEGER, version INTEGER, price REAL,
             currency TEXT, seller_id TEXT, seller_name TEXT, stock TEXT, stock_num INTEGER, rating TEXT)');
         Db::execute('CREATE TABLE game_product (id INTEGER PRIMARY KEY, currency TEXT, deleted_at TEXT)');
@@ -176,10 +181,21 @@ final class PriceStrategyListServiceTest extends TestCase
         self::assertSame([true, true, false], array_column($top[6]['msg_lines'], 'below_minimum'));
         self::assertSame(['0.7', '0.77', '0.79'], array_column($top[6]['msg_lines'], 'price'));
         self::assertSame("0.7 USD · 店铺3\n0.77 USD · 店铺7\n0.79 USD · 店铺8", $top[6]['msg']);
-        // 所有策略共享目标，模拟最新轮没有数据时不回退旧版本。
+        // 新一轮已经递增版本、甚至写入数据，但未发送完成通知时仍展示最近完成的一轮。
         foreach ($strategies as $strategy) {
             $strategy->crawlTarget->version = 4;
         }
+        foreach ([0, 1, 2, 3] as $status) {
+            Db::table('crawl_notify')->where('id', 2)->update(['status' => $status]);
+            $pending = $this->service->competitorMessages($strategies, CrawlData::where('target_id', 29), Db::table('game_product'));
+            self::assertSame([3, 7, 8], array_column($pending[6]['msg_lines'], 'id'));
+        }
+        // 下一轮真正完成后切换快照；不会混入上一轮的低价。
+        Db::table('crawl_notify')->insert(['id' => 3, 'crawl_target_id' => 29, 'version' => 3, 'status' => 1]);
+        $next = $this->service->competitorMessages($strategies, CrawlData::where('target_id', 29), Db::table('game_product'));
+        self::assertSame([5], array_column($next[6]['msg_lines'], 'id'));
+        // 完成的一轮为空时也遵守该快照，不回退到过期价格。
+        Db::table('crawl_notify')->insert(['id' => 4, 'crawl_target_id' => 29, 'version' => 4, 'status' => 1]);
         $empty = $this->service->competitorMessages($strategies, CrawlData::where('target_id', 29), Db::table('game_product'));
         self::assertSame('暂无符合条件的竞品', $empty[6]['msg']);
         self::assertSame([], $empty[6]['msg_lines']);
