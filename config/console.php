@@ -11,6 +11,7 @@ use app\common\command\Permission;
 use app\common\command\PriceStrategyRun;
 use app\common\command\PriceStrategyConsume;
 use app\common\command\DataClean;
+use app\common\command\CrawlNotifyTrim;
 use app\common\command\View;
 
 return [
@@ -26,5 +27,6 @@ return [
         'price:strategy:run' => PriceStrategyRun::class,
         'price:strategy:consume' => PriceStrategyConsume::class,
         'data:clean'             => DataClean::class,
+        'crawl:notify:trim'      => CrawlNotifyTrim::class,
     ],
 ];

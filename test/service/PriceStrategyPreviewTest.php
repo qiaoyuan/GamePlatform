@@ -55,7 +55,7 @@ final class PriceStrategyPreviewTest extends TestCase
     public function testThresholdBoundariesAndLegacyConfig(): void
     {
         $rows = [$this->competitor(1, 0.77)];
-        self::assertFalse($this->preview($rows, ['filter_price' => 0.77])['below_minimum']);
+        self::assertTrue($this->preview($rows, ['filter_price' => 0.77])['below_minimum']);
         self::assertFalse($this->preview($rows, ['filter_price' => 0.7])['below_minimum']);
         self::assertFalse($this->preview($rows, [])['below_minimum']);
         $legacy = (new PriceStrategyService())->previewLowest(new GameProduct(['currency' => 'USD']), $rows,
@@ -96,7 +96,7 @@ final class PriceStrategyPreviewTest extends TestCase
         ];
         $result = $service->previewLowestThree($product, $rows, ['min_stock' => 101, 'filter_price' => 0.8]);
         self::assertSame([1, 2, 3], array_column($result, 'id'));
-        self::assertSame([true, true, false], array_column($result, 'below_minimum'));
+        self::assertSame([true, true, true], array_column($result, 'below_minimum'));
         self::assertCount(1, $service->previewLowestThree($product, [$rows[1]], []));
         self::assertSame([], $service->previewLowestThree($product, [], []));
     }

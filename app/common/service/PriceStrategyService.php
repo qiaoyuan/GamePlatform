@@ -720,7 +720,7 @@ class PriceStrategyService
                 break;
             }
             $lowest['currency'] = $product->currency ?: GameProduct::DEFAULT_CURRENCY;
-            $lowest['below_minimum'] = $threshold !== null && $lowest['price'] < $threshold;
+            $lowest['below_minimum'] = $threshold !== null && $lowest['price'] <= $threshold;
             $result[] = $lowest;
             $remaining = array_filter($remaining, static fn ($row): bool => (int) $row->id !== $lowest['id']);
         }

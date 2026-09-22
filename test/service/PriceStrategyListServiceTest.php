@@ -173,7 +173,7 @@ final class PriceStrategyListServiceTest extends TestCase
         }
         $top = $this->service->competitorMessages($strategies, CrawlData::where('target_id', 29), Db::table('game_product'));
         self::assertSame([3, 7, 8], array_column($top[6]['msg_lines'], 'id'));
-        self::assertSame([true, false, false], array_column($top[6]['msg_lines'], 'below_minimum'));
+        self::assertSame([true, true, false], array_column($top[6]['msg_lines'], 'below_minimum'));
         self::assertSame(['0.7', '0.77', '0.79'], array_column($top[6]['msg_lines'], 'price'));
         self::assertSame("0.7 USD · 店铺3\n0.77 USD · 店铺7\n0.79 USD · 店铺8", $top[6]['msg']);
         // 所有策略共享目标，模拟最新轮没有数据时不回退旧版本。
