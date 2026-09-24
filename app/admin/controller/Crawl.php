@@ -34,6 +34,7 @@ class Crawl extends BaseController
             ['v' => 'version',         'label' => '数据版本',   'width' => 90, 'search' => 'version', 'searchType' => 'match', 'sort' => 'version'],
             ['v' => 'url',           'label' => '目标链接',   'width' => 300, 'searchType' => 'like'],
             ['v' => 'category_name',  'label' => '产品分类',   'width' => 120, 'search' => 'category', 'searchType' => 'multiple', 'searchList' => CrawlTargetModel::getCategoryList(), 'sort' => 'category'],
+            ['v' => 'crawl_server_name', 'label' => '爬虫服务器', 'width' => 110, 'search' => 'crawl_server', 'searchType' => 'multiple', 'searchList' => CrawlTargetModel::getCrawlServerList(), 'sort' => 'crawl_server'],
             ['v' => 'crawl_interval',  'label' => '爬取间隔(秒)', 'width' => 120, 'search' => false],
             ['v' => 'status',          'label' => '状态',       'render' => 'status', 'sort' => 'status'],
             ['v' => 'last_crawl_at',   'label' => '最后爬取时间', 'width' => 160, 'searchType' => 'daterange', 'sort' => 'last_crawl_at'],
@@ -55,6 +56,7 @@ class Crawl extends BaseController
             $lists->each(function (CrawlTargetModel $item) {
                 $item->status_name = CrawlTargetModel::$STATUS_MAP[$item->status] ?? '';
                 $item->category_name = CrawlTargetModel::$CATEGORY_MAP[$item->category] ?? $item->category;
+                $item->crawl_server_name = CrawlTargetModel::$CRAWL_SERVER_MAP[$item->crawl_server] ?? '--';
                 $item->game_product_name = $item->gameProduct ? $item->gameProduct->title : '--';
             });
         }

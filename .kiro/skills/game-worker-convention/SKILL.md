@@ -1,4 +1,4 @@
----
+    ---
 name: game-worker-convention
 description: 游戏数据平台常驻 Worker 与数据库通知队列规范。当修改 price:strategy:consume、PriceStrategyService、CrawlNotify、crawl_notify 表、Python 爬虫通知生产，或部署和排查 Supervisor 时使用。
 ---

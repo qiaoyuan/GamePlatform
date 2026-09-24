@@ -6,6 +6,7 @@ CREATE TABLE `crawl_target` (
   `name` varchar(64) NOT NULL DEFAULT '' COMMENT '任务名称',
   `url` varchar(1024) NOT NULL DEFAULT '' COMMENT '目标链接',
   `category` varchar(64) NOT NULL DEFAULT '' COMMENT '产品分类',
+  `crawl_server` tinyint unsigned NOT NULL DEFAULT 1 COMMENT '爬虫服务器 1-主服务器 2-爬虫1',
   `status` tinyint NOT NULL DEFAULT 1 COMMENT '状态 0-停用 1-启用',
   `last_crawl_at` datetime DEFAULT NULL COMMENT '最后爬取时间',
   `created_at` datetime DEFAULT NULL,
