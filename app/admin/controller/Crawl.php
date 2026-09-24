@@ -133,6 +133,20 @@ class Crawl extends BaseController
     public function status(): void
     {
         $this->assertOwnedData('crawl_target', input('id'));
+
+        $crawlServer = input('crawl_server');
+        if ($crawlServer !== null && $crawlServer !== '') {
+            $crawlServer = (int) $crawlServer;
+            if (!array_key_exists($crawlServer, CrawlTargetModel::$CRAWL_SERVER_MAP)) {
+                $this->error('请选择有效的爬虫服务器');
+            }
+            CrawlTargetModel::update(['crawl_server' => $crawlServer], ['id' => input('id')]);
+            $this->success('切换成功', [
+                'crawl_server'      => $crawlServer,
+                'crawl_server_name' => CrawlTargetModel::$CRAWL_SERVER_MAP[$crawlServer],
+            ]);
+        }
+
         $status = input('status', 0);
         CrawlTargetModel::update(['status' => $status], ['id' => input('id')]);
         $this->success('修改成功', ['status' => $status]);

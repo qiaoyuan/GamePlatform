@@ -14,6 +14,18 @@
           </el-button>
         </el-tooltip>
       </template>
+      <template #crawl_server_nameSlot="{ row }">
+        <el-select
+          :value="row.crawl_server"
+          :disabled="Boolean(row._crawlServerSaving)"
+          size="mini"
+          class="crawl-server-select"
+          @change="changeCrawlServer(row, $event)"
+        >
+          <el-option label="主服务器" :value="1" />
+          <el-option label="爬虫1" :value="2" />
+        </el-select>
+      </template>
     </w-tabs-table>
 
     <crawl-add-dialog ref="crawlAddDialog" @done="getList" />
@@ -56,6 +68,25 @@ export default {
     getList() {
       this.$store.dispatch('cleanColumnOptions', this.module)
       this.$refs.wTable.getList()
+    },
+    async changeCrawlServer(row, crawlServer) {
+      const nextServer = Number(crawlServer)
+      if (nextServer === Number(row.crawl_server) || row._crawlServerSaving) {
+        return
+      }
+      this.$set(row, '_crawlServerSaving', true)
+      try {
+        const res = await this.$w_fun.post(`${this.module}/status`, {
+          id: row.id,
+          crawl_server: nextServer,
+        })
+        this.$set(row, 'crawl_server', nextServer)
+        this.$set(row, 'crawl_server_name', res?.data?.crawl_server_name || (nextServer === 1 ? '主服务器' : '爬虫1'))
+      } catch (_) {
+        // 请求层已展示错误；row 保持原值，选择框会自动回退。
+      } finally {
+        this.$delete(row, '_crawlServerSaving')
+      }
     },
     onAdd() {
       this.$refs.crawlAddDialog.open({})
@@ -124,3 +155,9 @@ export default {
   },
 }
 </script>
+
+<style scoped>
+.crawl-server-select {
+  width: 100px;
+}
+</style>
