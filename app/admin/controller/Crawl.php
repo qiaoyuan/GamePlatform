@@ -21,6 +21,7 @@ class Crawl extends BaseController
     {
         return [
             ['v' => 'id',            'label' => 'ID',         'width' => 80,  'searchType' => 'number',    'sort' => 'id'],
+            ['v' => 'crawl_server_name', 'label' => '爬虫服务器', 'width' => 110, 'search' => 'crawl_server', 'searchType' => 'multiple', 'searchList' => CrawlTargetModel::getCrawlServerList(), 'sort' => 'crawl_server'],
             ['v' => 'name',           'label' => '任务名称',   'width' => 150, 'searchType' => 'like',      'sort' => 'name'],
             [
                 'v'          => 'game_product_name',
@@ -34,7 +35,6 @@ class Crawl extends BaseController
             ['v' => 'version',         'label' => '数据版本',   'width' => 90, 'search' => 'version', 'searchType' => 'match', 'sort' => 'version'],
             ['v' => 'url',           'label' => '目标链接',   'width' => 300, 'searchType' => 'like'],
             ['v' => 'category_name',  'label' => '产品分类',   'width' => 120, 'search' => 'category', 'searchType' => 'multiple', 'searchList' => CrawlTargetModel::getCategoryList(), 'sort' => 'category'],
-            ['v' => 'crawl_server_name', 'label' => '爬虫服务器', 'width' => 110, 'search' => 'crawl_server', 'searchType' => 'multiple', 'searchList' => CrawlTargetModel::getCrawlServerList(), 'sort' => 'crawl_server'],
             ['v' => 'crawl_interval',  'label' => '爬取间隔(秒)', 'width' => 120, 'search' => false],
             ['v' => 'status',          'label' => '状态',       'render' => 'status', 'sort' => 'status'],
             ['v' => 'last_crawl_at',   'label' => '最后爬取时间', 'width' => 160, 'searchType' => 'daterange', 'sort' => 'last_crawl_at'],
