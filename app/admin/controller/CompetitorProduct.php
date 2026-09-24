@@ -59,10 +59,24 @@ class CompetitorProduct extends BaseController
     #[Permission(title: '竞品数据', isMenu: 1, parentUrl: 'crawl/index', isHideSub: 1)]
     public function index(): void
     {
+        // 默认列表只需要展示最新入库的数据。使用主键倒序可从 BTree 尾部取满一页即停止，
+        // 避免对数十万条历史数据执行 crawled_at DESC, price ASC 全量排序。
         $query = $this->scopeOwnedData(
-            $this->tableList(Model::class, ['crawled_at' => 'DESC', 'price' => 'ASC'], ['seller_name', 'product_title']),
+            $this->tableList(Model::class, ['id' => 'DESC'], ['seller_name', 'product_title']),
             'crawl_data'
-        )->with(['crawlTarget.gameProduct']);
+        )->field([
+            'id', 'target_id', 'game_product_id', 'version', 'platform',
+            'seller_id', 'seller_name', 'seller_level', 'seller_url', 'is_online',
+            'product_title', 'offer_url', 'sold_count', 'sold_count_num',
+            'stock', 'stock_num', 'price', 'currency', 'min_order',
+            'delivery_time', 'rating', 'crawled_at', 'created_at',
+        ])->with(['crawlTarget.gameProduct']);
+
+        // 数据权限会生成 target_id IN (...)。MySQL 容易因此选择 idx_target_id 后再
+        // filesort；无显式搜索/排序时强制走主键倒序，避免扫描并排序账号的全部数据。
+        if (!$this->hasExplicitListFilter() && !input('sort')) {
+            $query->force('PRIMARY');
+        }
 
         // game_product_id 属于 crawl_target，不属于 crawl_data，先转换为目标 ID 再筛选竞品。
         $productIds = input('game_product_id_multiple', []);
@@ -94,6 +108,20 @@ class CompetitorProduct extends BaseController
         $this->success('', [
             'list' => $lists,
         ]);
+    }
+
+    /** 当前请求是否包含用户主动设置的列表筛选条件。 */
+    private function hasExplicitListFilter(): bool
+    {
+        if (input('k')) {
+            return true;
+        }
+        foreach ($this->request->param() as $key => $value) {
+            if ($value !== '' && $value !== null && !str_starts_with($key, '_') && str_contains($key, '_')) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
