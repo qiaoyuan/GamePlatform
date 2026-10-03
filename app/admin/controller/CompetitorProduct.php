@@ -95,7 +95,18 @@ class CompetitorProduct extends BaseController
             $query->whereIn('target_id', $targetIds ?: [-1]);
         }
 
-        $lists = $query->selectData();
+        // 查询缓存按最终 SQL 区分分页、筛选和数据权限条件，避免不同账号或条件串用结果。
+        $query->cache(60);
+
+        // w-table 会把上一页返回的 total 带回请求。无筛选、无排序时复用该值，
+        // 避免每次翻页都对 30 多万行重新执行 COUNT；首次加载仍由 paginate 精确统计。
+        $cachedTotal = input('total');
+        if (!$this->hasExplicitListFilter() && !input('sort')
+            && is_numeric($cachedTotal) && (int) $cachedTotal > 0) {
+            $lists = $query->paginate(max(1, (int) input('limit', 50)), (int) $cachedTotal);
+        } else {
+            $lists = $query->selectData();
+        }
         if (!is_numeric($lists)) {
             $lists->each(function (Model $item) {
                 // 关联目标或游戏产品可能已被删除，回退显示 --
