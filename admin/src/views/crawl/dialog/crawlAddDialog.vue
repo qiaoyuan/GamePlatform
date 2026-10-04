@@ -68,7 +68,7 @@ export default {
           formType: 'select',
           options: [
             { label: '主服务器', value: 1 },
-            { label: '爬虫1', value: 2 },
+            { label: '爬虫2', value: 2 },
           ],
           attrs: { clearable: false },
           rules: [{ required: true, message: '请选择爬虫服务器', trigger: 'change' }],

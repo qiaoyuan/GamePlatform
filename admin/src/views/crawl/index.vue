@@ -6,7 +6,14 @@
       :module="module"
       @add="onAdd"
       @edit="onEdit"
+      @afterRefresh="loadStats"
     >
+      <template #headerOperate>
+        <div class="crawl-server-stats">
+          <el-tag type="success" effect="plain">运行中的主服务器：{{ stats.main_server }} 个</el-tag>
+          <el-tag type="warning" effect="plain">运行中的爬虫2：{{ stats.crawler_2 }} 个</el-tag>
+        </div>
+      </template>
       <template #other>
         <el-tooltip content="一键爬取" placement="bottom">
           <el-button type="warning" size="mini" icon="el-icon-download" @click="crawlEmpty()">
@@ -23,7 +30,7 @@
           @change="changeCrawlServer(row, $event)"
         >
           <el-option label="主服务器" :value="1" />
-          <el-option label="爬虫1" :value="2" />
+          <el-option label="爬虫2" :value="2" />
         </el-select>
       </template>
     </w-tabs-table>
@@ -41,6 +48,7 @@ export default {
   data() {
     return {
       module: 'crawl',
+      stats: { main_server: 0, crawler_2: 0 },
       operates: {
         del: true,
         look: false,
@@ -68,6 +76,15 @@ export default {
     getList() {
       this.$store.dispatch('cleanColumnOptions', this.module)
       this.$refs.wTable.getList()
+      this.loadStats()
+    },
+    async loadStats() {
+      try {
+        const res = await this.$w_fun.post(`${this.module}/stats`, {}, {}, false, false)
+        this.stats = res?.data?.stats || this.stats
+      } catch (_) {
+        // Keep the last displayed counts if the refresh request fails.
+      }
     },
     async changeCrawlServer(row, crawlServer) {
       const nextServer = Number(crawlServer)
@@ -81,7 +98,8 @@ export default {
           crawl_server: nextServer,
         })
         this.$set(row, 'crawl_server', nextServer)
-        this.$set(row, 'crawl_server_name', res?.data?.crawl_server_name || (nextServer === 1 ? '主服务器' : '爬虫1'))
+        this.$set(row, 'crawl_server_name', res?.data?.crawl_server_name || (nextServer === 1 ? '主服务器' : '爬虫2'))
+        this.loadStats()
       } catch (_) {
         // 请求层已展示错误；row 保持原值，选择框会自动回退。
       } finally {
@@ -159,5 +177,12 @@ export default {
 <style scoped>
 .crawl-server-select {
   width: 100px;
+}
+
+.crawl-server-stats {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-right: 16px;
 }
 </style>

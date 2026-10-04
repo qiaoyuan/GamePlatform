@@ -65,6 +65,30 @@ class Crawl extends BaseController
         ]);
     }
 
+    /** 启用中的爬取目标按服务器统计。 */
+    #[Permission(title: '竞品爬取')]
+    public function stats(): void
+    {
+        $rows = $this->scopeOwnedData(
+            CrawlTargetModel::where('status', CrawlTargetModel::STATUS_ON),
+            'crawl_target'
+        )->field('crawl_server, COUNT(*) AS total')->group('crawl_server')->select();
+
+        $counts = [
+            'main_server' => 0,
+            'crawler_2' => 0,
+        ];
+        foreach ($rows as $row) {
+            if ((int) $row['crawl_server'] === CrawlTargetModel::CRAWL_SERVER_1) {
+                $counts['main_server'] = (int) $row['total'];
+            } elseif ((int) $row['crawl_server'] === CrawlTargetModel::CRAWL_SERVER_2) {
+                $counts['crawler_2'] = (int) $row['total'];
+            }
+        }
+
+        $this->success('', ['stats' => $counts]);
+    }
+
     /**
      * 下拉选项
      */

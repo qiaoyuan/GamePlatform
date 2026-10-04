@@ -14,7 +14,7 @@ use think\model\relation\BelongsTo;
  * @property string $name     任务名称
  * @property string $url      目标链接
  * @property string $category 产品分类
- * @property int    $crawl_server 爬虫服务器 1-主服务器 2-爬虫1
+ * @property int    $crawl_server 爬虫服务器 1-主服务器 2-爬虫2
  * @property int    $crawl_interval 基础 30 秒之外追加的爬取间隔（秒），0=不追加
  * @property int    $status   状态 0-停用 1-启用
  * @property string $last_crawl_at 最后爬取时间
@@ -80,20 +80,20 @@ class CrawlTarget extends Base
 
     /** 主服务器 */
     const CRAWL_SERVER_1 = 1;
-    /** 爬虫1 */
+    /** 爬虫2 */
     const CRAWL_SERVER_2 = 2;
 
     /** @var array<int, string> */
     public static $CRAWL_SERVER_MAP = [
         self::CRAWL_SERVER_1 => '主服务器',
-        self::CRAWL_SERVER_2 => '爬虫1',
+        self::CRAWL_SERVER_2 => '爬虫2',
     ];
 
     public static function getCrawlServerList(): array
     {
         return [
             ['value' => self::CRAWL_SERVER_1, 'label' => '主服务器'],
-            ['value' => self::CRAWL_SERVER_2, 'label' => '爬虫1'],
+            ['value' => self::CRAWL_SERVER_2, 'label' => '爬虫2'],
         ];
     }
 
