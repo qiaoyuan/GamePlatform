@@ -59,10 +59,9 @@ class CompetitorProduct extends BaseController
     #[Permission(title: '竞品数据', isMenu: 1, parentUrl: 'crawl/index', isHideSub: 1)]
     public function index(): void
     {
-        // 默认列表只需要展示最新入库的数据。使用主键倒序可从 BTree 尾部取满一页即停止，
-        // 避免对数十万条历史数据执行 crawled_at DESC, price ASC 全量排序。
+        // 默认按实际抓取时间倒序；价格仅在用户主动点选价格列时参与排序。
         $query = $this->scopeOwnedData(
-            $this->tableList(Model::class, ['id' => 'DESC'], ['seller_name', 'product_title']),
+            $this->tableList(Model::class, ['crawled_at' => 'DESC'], ['seller_name', 'product_title']),
             'crawl_data'
         )->field([
             'id', 'target_id', 'game_product_id', 'version', 'platform',
@@ -71,12 +70,6 @@ class CompetitorProduct extends BaseController
             'stock', 'stock_num', 'price', 'currency', 'min_order',
             'delivery_time', 'rating', 'crawled_at', 'created_at',
         ])->with(['crawlTarget.gameProduct']);
-
-        // 数据权限会生成 target_id IN (...)。MySQL 容易因此选择 idx_target_id 后再
-        // filesort；无显式搜索/排序时强制走主键倒序，避免扫描并排序账号的全部数据。
-        if (!$this->hasExplicitListFilter() && !input('sort')) {
-            $query->force('PRIMARY');
-        }
 
         // game_product_id 属于 crawl_target，不属于 crawl_data，先转换为目标 ID 再筛选竞品。
         $productIds = input('game_product_id_multiple', []);
@@ -98,12 +91,15 @@ class CompetitorProduct extends BaseController
         // 查询缓存按最终 SQL 区分分页、筛选和数据权限条件，避免不同账号或条件串用结果。
         $query->cache(60);
 
-        // w-table 会把上一页返回的 total 带回请求。无筛选、无排序时复用该值，
-        // 避免每次翻页都对 30 多万行重新执行 COUNT；首次加载仍由 paginate 精确统计。
-        $cachedTotal = input('total');
-        if (!$this->hasExplicitListFilter() && !input('sort')
-            && is_numeric($cachedTotal) && (int) $cachedTotal > 0) {
-            $lists = $query->paginate(max(1, (int) input('limit', 50)), (int) $cachedTotal);
+        // 无筛选、无排序时按账号缓存精确总数 60 秒，避免每次刷新/翻页都扫描大表 COUNT。
+        $canCacheTotal = !$this->hasExplicitListFilter() && !input('sort');
+        if ($canCacheTotal) {
+            $total = cache('competitor_product_total_' . (int) $this->request->admin_id);
+            if (!is_numeric($total) || (int) $total < 0) {
+                $total = (int) $query->count();
+                cache('competitor_product_total_' . (int) $this->request->admin_id, $total, 60);
+            }
+            $lists = $query->paginate(max(1, (int) input('limit', 50)), (int) $total);
         } else {
             $lists = $query->selectData();
         }

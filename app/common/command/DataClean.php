@@ -10,7 +10,7 @@ use think\facade\Db;
 /**
  * 定时清理过期爬虫数据
  *
- * 清理范围（默认 7 天前，可通过参数覆盖）：
+ * 清理范围（默认 7 小时前，可通过参数覆盖）：
  *   - crawl_data        爬虫竞品原始数据
  *   - price_strategy_log 改价策略执行日志
  *   - crawl_notify       爬取完成通知
@@ -20,7 +20,7 @@ use think\facade\Db;
  * 建议 crontab 每天凌晨 3 点执行：
  *   0 3 * * * cd /path/to/base_admin && php think data:clean >> runtime/data_clean.log 2>&1
  *
- * 也可手动指定保留天数（如只保留 3 天）：
+ * 也可手动指定保留小时数（如只保留 3 小时）：
  *   php think data:clean 3
  */
 class DataClean extends Base
@@ -34,20 +34,20 @@ class DataClean extends Base
     protected function configure(): void
     {
         $this->setName('data:clean')
-            ->addArgument('days', \think\console\input\Argument::OPTIONAL, '保留天数，默认 7', '7')
+            ->addArgument('hours', \think\console\input\Argument::OPTIONAL, '保留小时数，默认 7', '7')
             ->setDescription('清理过期爬虫数据（crawl_data / price_strategy_log / crawl_notify）');
     }
 
     protected function execute(Input $input, Output $output): void
     {
-        // 支持从命令行参数覆盖保留天数，不传则默认 7 天
-        $days = (int) $input->getArgument('days');
-        if ($days <= 0) {
-            $days = 7;
+        // 支持从命令行参数覆盖保留小时数，不传则默认 7 小时
+        $hours = (int) $input->getArgument('hours');
+        if ($hours <= 0) {
+            $hours = 7;
         }
 
-        $before = date('Y-m-d H:i:s', strtotime("-{$days} days"));
-        $this->mLog("开始清理 {$before} 之前的数据（保留最近 {$days} 天）");
+        $before = date('Y-m-d H:i:s', strtotime("-{$hours} hours"));
+        $this->mLog("开始清理 {$before} 之前的数据（保留最近 {$hours} 小时）");
 
         $total = [
             'crawl_data'          => 0,
