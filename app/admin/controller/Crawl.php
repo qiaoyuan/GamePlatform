@@ -49,6 +49,10 @@ class Crawl extends BaseController
     #[Permission(title: '竞品爬取', isMenu: 1, parentUrl: 'gameProduct/index', isHideSub: 1)]
     public function index(): void
     {
+        if ((int) input('_stats_only', 0) === 1) {
+            $this->success('', ['stats' => $this->runningServerStats()]);
+        }
+
         $lists = $this->scopeOwnedData($this->tableList(CrawlTargetModel::class, ['id' => 'DESC']), 'crawl_target')
             ->with(['gameProduct'])
             ->selectData();
@@ -62,15 +66,15 @@ class Crawl extends BaseController
         }
         $this->success('', [
             'list' => $lists,
+            'stats' => $this->runningServerStats(),
         ]);
     }
 
-    /** 启用中的爬取目标按服务器统计。 */
-    #[Permission(title: '竞品爬取')]
-    public function stats(): void
+    /** 当前管理员可见的、未删除且启用中的爬取目标按服务器统计。 */
+    private function runningServerStats(): array
     {
         $rows = $this->scopeOwnedData(
-            CrawlTargetModel::where('status', CrawlTargetModel::STATUS_ON),
+            CrawlTargetModel::where('status', CrawlTargetModel::STATUS_ON)->whereNull('deleted_at'),
             'crawl_target'
         )->field('crawl_server, COUNT(*) AS total')->group('crawl_server')->select();
 
@@ -86,7 +90,7 @@ class Crawl extends BaseController
             }
         }
 
-        $this->success('', ['stats' => $counts]);
+        return $counts;
     }
 
     /**

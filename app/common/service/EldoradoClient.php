@@ -134,7 +134,7 @@ class EldoradoClient
      * 1. 检查两个改价接口是否都在 429 冷却中，都冷却中则直接抛异常跳过（不发请求）。
      * 2. 按 A → B 顺序选取第一个未冷却的接口发起请求。
      * 3. 任意接口返回 429 → 写该产品对应接口冷却标记；账号 token 保持缓存并继续复用。
-     *    冷却 key 以 offerId 为维度，不同产品互不影响。
+     *    A/B 冷却 key 以 offerId 为维度；C 冷却 key 以本地产品 ID 为维度，不同产品互不影响。
      *
      * @param string $offerId       Eldorado 平台 offer ID（即 product_id）
      * @param float  $price         新价格（USD）
@@ -232,7 +232,14 @@ class EldoradoClient
     }
 
     /** 按产品分别检查冷却状态，先尝试 A/B；均 429 或冷却后才删除并创建新 offer。 */
-    public function updatePriceWithFallback(string $offerId, array $offerData, float $price, int $gameProductId = 0, ?string &$usedInterface = null): array
+    public function updatePriceWithFallback(
+        string $offerId,
+        array $offerData,
+        float $price,
+        int $gameProductId = 0,
+        ?string &$usedInterface = null,
+        ?callable $onOldOfferMissing = null
+    ): array
     {
         $usedInterface = null;
         foreach (['A', 'B'] as $tag) {
@@ -250,7 +257,7 @@ class EldoradoClient
             }
         }
 
-        $result = $this->recreateOfferWithPrice($offerId, $offerData, $price, $gameProductId);
+        $result = $this->recreateOfferWithPrice($offerId, $offerData, $price, $gameProductId, $onOldOfferMissing);
         $usedInterface = 'C';
         return $result;
     }
@@ -259,21 +266,35 @@ class EldoradoClient
      * C 是创建接口，不是原地改价：校验完整载荷后先删除旧 offer，再以新价格创建。
      * 创建响应必须明确给出新的 offer ID；若删除后创建失败，不自动重试非幂等的创建请求。
      */
-    public function recreateOfferWithPrice(string $offerId, array $offerData, float $price, int $gameProductId = 0): array
+    public function recreateOfferWithPrice(
+        string $offerId,
+        array $offerData,
+        float $price,
+        int $gameProductId = 0,
+        ?callable $onOldOfferMissing = null
+    ): array
     {
         if ($offerId === '' || $price <= 0) {
             throw new \RuntimeException('ELD旧 offer ID 不能为空，改价必须大于0');
         }
-        if ($this->isOfferInterfaceCooled('C', $offerId)) {
+        if ($this->isOfferInterfaceCooled('C', $offerId, $gameProductId)) {
             throw new \RuntimeException('ELD该产品 C 接口冷却中，未删除旧 offer', 429);
         }
         // 缺字段时必须在删除旧 offer 前失败；POST 使用同一份数据和新的价格。
         $this->buildOfferPayload($offerData, $price);
 
-        $this->deleteOffer($offerId, $gameProductId);
+        $deleted = $this->deleteOffer($offerId, $gameProductId);
+        if (!$deleted && $onOldOfferMissing !== null) {
+            // 404 means the remote offer is already gone. Clear the stale local ID
+            // before POST so a failed create cannot leave the product pointing at it.
+            $onOldOfferMissing();
+        }
         try {
             $result = $this->updateOfferPrice($offerId, $offerData, $price, $gameProductId);
         } catch (\Throwable $e) {
+            if ((int) $e->getCode() === 429) {
+                throw new \RuntimeException('ELD该产品 C 接口触发429，已冷却10分钟，请稍后再试', 429, $e);
+            }
             throw new \RuntimeException(
                 'ELD旧 offer 已删除，但新 offer 创建失败或结果不确定；请人工核查后再操作。旧ID=' . $offerId
                 . '，本地产品ID=' . $gameProductId . '：' . $e->getMessage(),
@@ -294,7 +315,7 @@ class EldoradoClient
     }
 
     /** DELETE 旧 offer。只有明确收到 2xx 才允许继续创建。 */
-    protected function deleteOffer(string $offerId, int $gameProductId): void
+    protected function deleteOffer(string $offerId, int $gameProductId): bool
     {
         $url = '/api/v1/currency-management/me/offers/' . rawurlencode($offerId);
         $requestData = ['operation' => 'delete_before_recreate', 'old_offer_id' => $offerId];
@@ -314,9 +335,16 @@ class EldoradoClient
             $this->log(GameAccountApiLog::TYPE_UPDATE_PRICE, $url, $requestData,
                 ['http_status' => $status], true, '',
                 (int) ((microtime(true) - $start) * 1000), $gameProductId);
+            return true;
         } catch (GuzzleException $e) {
             $status = $e instanceof \GuzzleHttp\Exception\RequestException && $e->hasResponse()
                 ? $e->getResponse()->getStatusCode() : 0;
+            if ($status === 404) {
+                $this->log(GameAccountApiLog::TYPE_UPDATE_PRICE, $url, $requestData,
+                    ['http_status' => 404, 'offer_missing' => true], true, '旧 offer 已不存在，继续创建新 offer',
+                    (int) ((microtime(true) - $start) * 1000), $gameProductId);
+                return false;
+            }
             $this->log(GameAccountApiLog::TYPE_UPDATE_PRICE, $url, $requestData,
                 ['http_status' => $status], false, $e->getMessage(),
                 (int) ((microtime(true) - $start) * 1000), $gameProductId);
@@ -325,10 +353,19 @@ class EldoradoClient
     }
 
     /** 各接口按 offer ID 独立冷却；提取为方法便于无网络测试删建流程。 */
-    protected function isOfferInterfaceCooled(string $interface, string $offerId): bool
+    protected function isOfferInterfaceCooled(string $interface, string $offerId, int $gameProductId = 0): bool
     {
-        $key = 'eld_rl_' . self::RATE_LIMIT_KEY_VERSION . '_' . $interface . '_' . $offerId;
+        $key = $this->rateLimitKey($interface, $offerId, $gameProductId);
         return (bool) cache()->store('redis')->get($key);
+    }
+
+    /** C 接口按本地产品 ID 冷却，确保外部 ID 清空后仍能沿用同一把 10 分钟冷却锁。 */
+    private function rateLimitKey(string $interface, string $offerId, int $gameProductId = 0): string
+    {
+        if ($interface === 'C' && $gameProductId > 0) {
+            return 'eld_rl_' . self::RATE_LIMIT_KEY_VERSION . '_C_product_' . $gameProductId;
+        }
+        return 'eld_rl_' . self::RATE_LIMIT_KEY_VERSION . '_' . $interface . '_' . $offerId;
     }
 
     /**
@@ -354,12 +391,9 @@ class EldoradoClient
     public function updateOfferPrice(string $offerId, array $offerData, float $price, int $gameProductId = 0): array
     {
         $cache = cache()->store('redis');
-        if ($offerId === '') {
-            throw new \RuntimeException('ELD 平台 product_id 为空，不能建立按产品隔离的冷却键');
-        }
-        $rateLimitKey = 'eld_rl_' . self::RATE_LIMIT_KEY_VERSION . '_C_' . $offerId;
+        $rateLimitKey = $this->rateLimitKey('C', $offerId, $gameProductId);
         if ($cache->get($rateLimitKey)) {
-            throw new \RuntimeException('ELD该产品 C 接口冷却中', 429);
+            throw new \RuntimeException('ELD该产品 C 接口冷却中（10分钟），请稍后再试', 429);
         }
         $requestData = $this->buildOfferPayload($offerData, $price);
 

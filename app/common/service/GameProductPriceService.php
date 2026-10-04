@@ -43,13 +43,13 @@ class GameProductPriceService
     {
         $store = cache()->store('redis');
         $redis = $store->handler();
+        $isEldorado = (int) $product->gameAccount->platform === GameAccount::PLATFORM_ELDORADO;
         $offerId = trim((string) $product->product_id);
-        if ($offerId === '') {
+        if ($offerId === '' && !$isEldorado) {
             throw new \RuntimeException('平台 product_id 为空，无法改价');
         }
-        $isEldorado = (int) $product->gameAccount->platform === GameAccount::PLATFORM_ELDORADO;
         $lockKey = $store->getCacheKey($isEldorado
-            ? 'eld_offer_lock_v2_' . $offerId
+            ? ($offerId !== '' ? 'eld_offer_lock_v2_' . $offerId : 'eld_product_create_lock_v1_' . $product->id)
             : 'g2g_offer_lock_v1_' . $product->game_account_id . '_' . $offerId);
         $lockToken = bin2hex(random_bytes(16));
         if (!$redis->set($lockKey, $lockToken, ['nx', 'ex' => 180])) {
@@ -84,17 +84,40 @@ class GameProductPriceService
             $offerData = is_array($product->offer_data) ? $product->offer_data : [];
             $client = new EldoradoClient($product->gameAccount);
             $usedInterface = null;
-            $result = $client->updatePriceWithFallback(
-                (string) $product->product_id,
-                $offerData,
-                $price,
-                (int) $product->id,
-                $usedInterface
-            );
+            if ($offerId === '') {
+                // ID 已因旧 offer 404 清空：直接调用 C 创建，不再轮询 A/B。
+                $result = $client->updateOfferPrice('', $offerData, $price, (int) $product->id);
+                $usedInterface = 'C';
+            } else {
+                $result = $client->updatePriceWithFallback(
+                    $offerId,
+                    $offerData,
+                    $price,
+                    (int) $product->id,
+                    $usedInterface,
+                    function () use ($product, $currentId): void {
+                        $product->product_id = '';
+                        try {
+                            if (!$product->save()) {
+                                throw new \RuntimeException('数据库未保存空的平台 product_id');
+                            }
+                        } catch (\Throwable $e) {
+                            throw new \RuntimeException(
+                                'ELD旧 offer 已不存在，但清空本地平台ID失败，未创建新 offer。旧ID=' . $currentId,
+                                0,
+                                $e
+                            );
+                        }
+                    }
+                );
+            }
 
             if ($usedInterface === 'C') {
-                $offer = $result['offer'];
-                $newId = (string) $offer['id'];
+                $offer = $result['offer'] ?? null;
+                $newId = is_array($offer) ? trim((string) ($offer['id'] ?? '')) : '';
+                if ($newId === '') {
+                    throw new \RuntimeException('ELD新 offer 创建响应没有返回产品ID，请人工核查');
+                }
                 $responsePrice = $offer['pricePerUnit']['amount'] ?? null;
                 $actualPrice = is_numeric($responsePrice) && (float) $responsePrice > 0
                     ? (float) $responsePrice : $price;

@@ -10,8 +10,8 @@
     >
       <template #headerOperate>
         <div class="crawl-server-stats">
-          <el-tag type="success" effect="plain">运行中的主服务器：{{ stats.main_server }} 个</el-tag>
-          <el-tag type="warning" effect="plain">运行中的爬虫2：{{ stats.crawler_2 }} 个</el-tag>
+          <el-tag type="success" effect="plain">运行中的主服务器：{{ statsLoaded ? stats.main_server + ' 个' : '--' }}</el-tag>
+          <el-tag type="warning" effect="plain">运行中的爬虫2：{{ statsLoaded ? stats.crawler_2 + ' 个' : '--' }}</el-tag>
         </div>
       </template>
       <template #other>
@@ -49,6 +49,7 @@ export default {
     return {
       module: 'crawl',
       stats: { main_server: 0, crawler_2: 0 },
+      statsLoaded: false,
       operates: {
         del: true,
         look: false,
@@ -80,10 +81,14 @@ export default {
     },
     async loadStats() {
       try {
-        const res = await this.$w_fun.post(`${this.module}/stats`, {}, {}, false, false)
-        this.stats = res?.data?.stats || this.stats
+        const res = await this.$w_fun.post(`${this.module}/index`, { _stats_only: 1 }, {}, false, false)
+        if (!res?.data?.stats) {
+          throw new Error('统计接口没有返回数据')
+        }
+        this.stats = res.data.stats
+        this.statsLoaded = true
       } catch (_) {
-        // Keep the last displayed counts if the refresh request fails.
+        this.statsLoaded = false
       }
     },
     async changeCrawlServer(row, crawlServer) {
