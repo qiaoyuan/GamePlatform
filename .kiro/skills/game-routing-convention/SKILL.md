@@ -47,3 +47,13 @@ admin_permission 表（url / parent_id / level / is_menu ...）
 - [ ] 已运行 `php think permission <controller>` 同步
 - [ ] 前端视图 `name` 与路由 name 一致
 - [ ] `module` 绑定的字符串与控制器 camel 名一致
+
+## 表格事件、统计与行内操作
+
+参考 `admin/src/components/w/components/w-table/index.vue`、`w-tabs-table/index.vue` 和 `admin/src/views/crawl/index.vue`。
+
+- 表格取数完成的 `getList` 事件携带响应 `data`，附加统计使用 `@getList="updateStats"` 从同一次响应读取；不要把 `afterRefresh` 当成携带响应数据的事件。调整封装组件时检查事件是否继续透传。
+- Crawl 的统计展示按服务器和平台划分，使用接口 `stats`。兼容旧接口时，仅在无筛选且拿到全部行时做本地计数；分页或过滤后的当前页不能冒充全量统计。
+- `#status`、`#crawl_server` 等行插槽可承载开关/选择器，提交过程按行防止重复操作；失败时还原或重新取数，成功后刷新接口列表使统计同步。
+- 权限同步只在注解或菜单变化时执行。它会写数据库，修改文档、UI 样式或未改变权限的业务逻辑不需要运行；受环境限制未执行时说明待执行的具体命令。
+- 修改 url、视图命名、公共表格契约时同时维护 `references/routing.md`；修改响应结构时同步 Controller skill。

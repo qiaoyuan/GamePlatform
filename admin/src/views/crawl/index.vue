@@ -6,12 +6,16 @@
       :module="module"
       @add="onAdd"
       @edit="onEdit"
-      @afterRefresh="loadStats"
+      @getList="updateStats"
     >
       <template #headerOperate>
         <div class="crawl-server-stats">
-          <el-tag type="success" effect="plain">运行中的主服务器：{{ statsLoaded ? stats.main_server + ' 个' : '--' }}</el-tag>
-          <el-tag type="warning" effect="plain">运行中的爬虫2：{{ statsLoaded ? stats.crawler_2 + ' 个' : '--' }}</el-tag>
+          <el-tag type="success" effect="plain">
+            主服务器　G2G {{ statsLoaded ? stats.main_server.g2g : '--' }}　ELD {{ statsLoaded ? stats.main_server.eld : '--' }}
+          </el-tag>
+          <el-tag type="warning" effect="plain">
+            爬虫2　G2G {{ statsLoaded ? stats.crawler_2.g2g : '--' }}　ELD {{ statsLoaded ? stats.crawler_2.eld : '--' }}
+          </el-tag>
         </div>
       </template>
       <template #other>
@@ -33,6 +37,17 @@
           <el-option label="爬虫2" :value="2" />
         </el-select>
       </template>
+      <template #status="{ row }">
+        <el-switch
+          :value="Number(row.status)"
+          :disabled="Boolean(row._statusSaving)"
+          active-color="#13ce66"
+          inactive-color="#ff4949"
+          :active-value="1"
+          :inactive-value="0"
+          @change="changeTargetStatus(row, $event)"
+        />
+      </template>
     </w-tabs-table>
 
     <crawl-add-dialog ref="crawlAddDialog" @done="getList" />
@@ -48,7 +63,10 @@ export default {
   data() {
     return {
       module: 'crawl',
-      stats: { main_server: 0, crawler_2: 0 },
+      stats: {
+        main_server: { g2g: 0, eld: 0 },
+        crawler_2: { g2g: 0, eld: 0 },
+      },
       statsLoaded: false,
       operates: {
         del: true,
@@ -77,19 +95,45 @@ export default {
     getList() {
       this.$store.dispatch('cleanColumnOptions', this.module)
       this.$refs.wTable.getList()
-      this.loadStats()
     },
-    async loadStats() {
-      try {
-        const res = await this.$w_fun.post(`${this.module}/index`, { _stats_only: 1 }, {}, false, false)
-        if (!res?.data?.stats) {
-          throw new Error('统计接口没有返回数据')
-        }
-        this.stats = res.data.stats
+    updateStats(data) {
+      if (data?.stats?.main_server && data?.stats?.crawler_2) {
+        this.stats = data.stats
         this.statsLoaded = true
-      } catch (_) {
-        this.statsLoaded = false
+        return
       }
+
+      // Older API responses can be counted locally when this unfiltered response
+      // contains every row (for example, the current 34 rows on a 50-row page).
+      const raw = data?.list
+      const rows = Array.isArray(raw) ? raw : (raw?.data ?? [])
+      const filter = this.$route.query.filter ? JSON.parse(this.$route.query.filter) : {}
+      if (Object.keys(filter).length) {
+        this.statsLoaded = false
+        return
+      }
+      if (!Array.isArray(raw) && Number(raw?.total) > rows.length) {
+        this.statsLoaded = false
+        return
+      }
+
+      const counts = {
+        main_server: { g2g: 0, eld: 0 },
+        crawler_2: { g2g: 0, eld: 0 },
+      }
+      rows.forEach(row => {
+        if (Number(row.status) !== 1) return
+        const server = Number(row.crawl_server) === 1
+          ? 'main_server'
+          : (Number(row.crawl_server) === 2 ? 'crawler_2' : null)
+        const category = String(row.category || '')
+        const platform = category
+          ? (category.startsWith('ELD') ? 'eld' : 'g2g')
+          : null
+        if (server && platform) counts[server][platform]++
+      })
+      this.stats = counts
+      this.statsLoaded = true
     },
     async changeCrawlServer(row, crawlServer) {
       const nextServer = Number(crawlServer)
@@ -104,11 +148,23 @@ export default {
         })
         this.$set(row, 'crawl_server', nextServer)
         this.$set(row, 'crawl_server_name', res?.data?.crawl_server_name || (nextServer === 1 ? '主服务器' : '爬虫2'))
-        this.loadStats()
+        this.$refs.wTable.getList()
       } catch (_) {
         // 请求层已展示错误；row 保持原值，选择框会自动回退。
       } finally {
         this.$delete(row, '_crawlServerSaving')
+      }
+    },
+    async changeTargetStatus(row, status) {
+      this.$set(row, '_statusSaving', true)
+      try {
+        await this.$w_fun.post(`${this.module}/status`, { id: row.id, status: Number(status) })
+        this.$refs.wTable.getList()
+      } catch (_) {
+        // Request layer displays the error; a list refresh restores the saved value.
+        this.$refs.wTable.getList()
+      } finally {
+        this.$delete(row, '_statusSaving')
       }
     },
     onAdd() {

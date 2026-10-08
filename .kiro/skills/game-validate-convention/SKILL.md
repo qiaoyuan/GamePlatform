@@ -14,7 +14,7 @@ description: 游戏数据平台 Validate 开发规范。当新增/修改 app/com
 - `$message`：自定义报错信息，一般留空数组，靠 `$rule` 的中文名自动生成。
 - `$scene`：至少定义 `add`、`edit` 两个场景：
   - `add` 场景列出新增时需要校验的字段。
-  - `edit` 场景在 `add` 基础上**必须包含 `id`**。
+  - `edit` 场景校验实际允许编辑的字段，并包含主键（一般为 `id`）；不能机械复制 `add` 的所有必填字段。
 
 ## 与 Controller 的联动
 
@@ -46,3 +46,11 @@ class GameAccount extends Base
 - [ ] 定义了 `add`、`edit` 场景
 - [ ] `edit` 场景包含 `id`
 - [ ] 必填字段用 `require`，数值类字段加 `float`/`integer` 等类型校验
+
+## 场景边界与当前业务规则
+
+- `mEdit()` 先执行 `append/except` 再校验 `edit` 场景。只能经专用接口修改的字段（例如平台价格）应从通用 edit 场景移除，避免剔除后仍被 require 拦截。
+- 将 `id` 放入场景不等于已定义 ID 校验规则；`mEdit()` 会另行补取主键并检查缺失。自定义写接口须显式检查 ID/允许值及归属，不能依赖场景列表完成这些检查。
+- `CrawlTarget` 的分类允许值为 `物品,游戏币,ELD物品,ELD游戏币`，`crawl_server` 为 1/2，`status` 为 0/1；`version` 为非负整数且不开放在通用 edit 场景。
+- `PriceStrategy.config` 结构灵活，当前由 Controller/Service 处理默认值和维度语义；改变配置结构要同步服务和前端，不只修改 `$scene`。
+- 新增和编辑允许字段、专用接口参数变化时，同步对应 Controller skill 和 Model 字段说明。

@@ -1,0 +1,38 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "同步模块 skill：创建",
+      "description": "业务模块文件变化后维护对应项目 skill，排除规范文件防止递归。",
+      "trigger": "PostFileCreate",
+      "matcher": "(?:^|/)(?:app/(?:admin/(?:controller/.*|BaseController)|common/(?:model/.*|validate/.*|service/.*|command/.*|annotation/.*|BaseController))\\.php|admin/src/(?:views|router|store|api|utils|components/w)/.*\\.(?:vue|js|ts)|route/.*\\.php|config/(?:g2g|eldorado|console|queue|redis|cache|route)\\.php|sql/.*\\.sql|scripts/.*\\.(?:php|py|mjs|js|sh)|test/(?:service/.*\\.php|frontend/.*\\.(?:cjs|mjs|js))|[^/]+\\.conf)$",
+      "action": {
+        "type": "agent",
+        "prompt": "相关业务模块文件已被代理创建、保存或删除。读取项目根目录 AGENTS.md，并按“按模块读取 skill”映射读取 .kiro/skills/ 下对应 SKILL.md。以本次文件事件、任务中已完成的改动、相关源码和 git diff 为依据，直接更新受影响 skill 的稳定约定：字段/SQL、关联和数据归属、验证场景、Controller 响应、权限路由、前端事件、平台请求/日志脱敏、队列/锁/重试。跨模块架构变化同步 game-platform-dev；路由细节同步 routing 的 references/routing.md。替换过时段落，保留仍成立的规则；文件删除时检查是否要删除引用。只维护已确认行为，不把未完成的中间状态或外部未验证代码写成事实，不写令牌、凭证或业务数据，不追加流水账。纯样式/格式/注释或规范仍准确时不强制写文件。本钩子只修改相关 skill/引用文档，不修改业务代码，不执行数据库/平台写操作，不提交或推送。规范文件自身不属于触发范围；完成后简要报告更新了哪些规范，或说明无需更新。"
+      },
+      "enabled": true
+    },
+    {
+      "name": "同步模块 skill：保存",
+      "description": "业务模块文件变化后维护对应项目 skill，排除规范文件防止递归。",
+      "trigger": "PostFileSave",
+      "matcher": "(?:^|/)(?:app/(?:admin/(?:controller/.*|BaseController)|common/(?:model/.*|validate/.*|service/.*|command/.*|annotation/.*|BaseController))\\.php|admin/src/(?:views|router|store|api|utils|components/w)/.*\\.(?:vue|js|ts)|route/.*\\.php|config/(?:g2g|eldorado|console|queue|redis|cache|route)\\.php|sql/.*\\.sql|scripts/.*\\.(?:php|py|mjs|js|sh)|test/(?:service/.*\\.php|frontend/.*\\.(?:cjs|mjs|js))|[^/]+\\.conf)$",
+      "action": {
+        "type": "agent",
+        "prompt": "相关业务模块文件已被代理创建、保存或删除。读取项目根目录 AGENTS.md，并按“按模块读取 skill”映射读取 .kiro/skills/ 下对应 SKILL.md。以本次文件事件、任务中已完成的改动、相关源码和 git diff 为依据，直接更新受影响 skill 的稳定约定：字段/SQL、关联和数据归属、验证场景、Controller 响应、权限路由、前端事件、平台请求/日志脱敏、队列/锁/重试。跨模块架构变化同步 game-platform-dev；路由细节同步 routing 的 references/routing.md。替换过时段落，保留仍成立的规则；文件删除时检查是否要删除引用。只维护已确认行为，不把未完成的中间状态或外部未验证代码写成事实，不写令牌、凭证或业务数据，不追加流水账。纯样式/格式/注释或规范仍准确时不强制写文件。本钩子只修改相关 skill/引用文档，不修改业务代码，不执行数据库/平台写操作，不提交或推送。规范文件自身不属于触发范围；完成后简要报告更新了哪些规范，或说明无需更新。"
+      },
+      "enabled": true
+    },
+    {
+      "name": "同步模块 skill：删除",
+      "description": "业务模块文件变化后维护对应项目 skill，排除规范文件防止递归。",
+      "trigger": "PostFileDelete",
+      "matcher": "(?:^|/)(?:app/(?:admin/(?:controller/.*|BaseController)|common/(?:model/.*|validate/.*|service/.*|command/.*|annotation/.*|BaseController))\\.php|admin/src/(?:views|router|store|api|utils|components/w)/.*\\.(?:vue|js|ts)|route/.*\\.php|config/(?:g2g|eldorado|console|queue|redis|cache|route)\\.php|sql/.*\\.sql|scripts/.*\\.(?:php|py|mjs|js|sh)|test/(?:service/.*\\.php|frontend/.*\\.(?:cjs|mjs|js))|[^/]+\\.conf)$",
+      "action": {
+        "type": "agent",
+        "prompt": "相关业务模块文件已被代理创建、保存或删除。读取项目根目录 AGENTS.md，并按“按模块读取 skill”映射读取 .kiro/skills/ 下对应 SKILL.md。以本次文件事件、任务中已完成的改动、相关源码和 git diff 为依据，直接更新受影响 skill 的稳定约定：字段/SQL、关联和数据归属、验证场景、Controller 响应、权限路由、前端事件、平台请求/日志脱敏、队列/锁/重试。跨模块架构变化同步 game-platform-dev；路由细节同步 routing 的 references/routing.md。替换过时段落，保留仍成立的规则；文件删除时检查是否要删除引用。只维护已确认行为，不把未完成的中间状态或外部未验证代码写成事实，不写令牌、凭证或业务数据，不追加流水账。纯样式/格式/注释或规范仍准确时不强制写文件。本钩子只修改相关 skill/引用文档，不修改业务代码，不执行数据库/平台写操作，不提交或推送。规范文件自身不属于触发范围；完成后简要报告更新了哪些规范，或说明无需更新。"
+      },
+      "enabled": true
+    }
+  ]
+}

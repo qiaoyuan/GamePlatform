@@ -49,10 +49,6 @@ class Crawl extends BaseController
     #[Permission(title: '竞品爬取', isMenu: 1, parentUrl: 'gameProduct/index', isHideSub: 1)]
     public function index(): void
     {
-        if ((int) input('_stats_only', 0) === 1) {
-            $this->success('', ['stats' => $this->runningServerStats()]);
-        }
-
         $lists = $this->scopeOwnedData($this->tableList(CrawlTargetModel::class, ['id' => 'DESC']), 'crawl_target')
             ->with(['gameProduct'])
             ->selectData();
@@ -66,31 +62,42 @@ class Crawl extends BaseController
         }
         $this->success('', [
             'list' => $lists,
-            'stats' => $this->runningServerStats(),
+            'stats' => $this->enabledTargetStats(),
         ]);
     }
 
-    /** 当前管理员可见的、未删除且启用中的爬取目标按服务器统计。 */
-    private function runningServerStats(): array
+    /** 启用且未删除的目标，按服务器和平台分类统计。 */
+    private function enabledTargetStats(): array
     {
+        $stats = [
+            'main_server' => ['g2g' => 0, 'eld' => 0],
+            'crawler_2'   => ['g2g' => 0, 'eld' => 0],
+        ];
         $rows = $this->scopeOwnedData(
             CrawlTargetModel::where('status', CrawlTargetModel::STATUS_ON)->whereNull('deleted_at'),
             'crawl_target'
-        )->field('crawl_server, COUNT(*) AS total')->group('crawl_server')->select();
+        )->fieldRaw('crawl_server, category, COUNT(*) AS total')
+            ->group('crawl_server, category')
+            ->select();
 
-        $counts = [
-            'main_server' => 0,
-            'crawler_2' => 0,
-        ];
         foreach ($rows as $row) {
-            if ((int) $row['crawl_server'] === CrawlTargetModel::CRAWL_SERVER_1) {
-                $counts['main_server'] = (int) $row['total'];
-            } elseif ((int) $row['crawl_server'] === CrawlTargetModel::CRAWL_SERVER_2) {
-                $counts['crawler_2'] = (int) $row['total'];
+            $serverKey = match ((int) $row['crawl_server']) {
+                CrawlTargetModel::CRAWL_SERVER_1 => 'main_server',
+                CrawlTargetModel::CRAWL_SERVER_2 => 'crawler_2',
+                default => null,
+            };
+            if ($serverKey === null) {
+                continue;
+            }
+
+            $category = (string) $row['category'];
+            $platformKey = $category === '' ? null : (str_starts_with($category, 'ELD') ? 'eld' : 'g2g');
+            if ($platformKey !== null) {
+                $stats[$serverKey][$platformKey] += (int) $row['total'];
             }
         }
 
-        return $counts;
+        return $stats;
     }
 
     /**

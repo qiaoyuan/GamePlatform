@@ -5,7 +5,7 @@ description: 游戏数据平台后台（ThinkPHP admin）的开发总览。当�
 
 # 游戏数据平台后台开发总览
 
-本项目为"游戏数据平台"，只有后台（ThinkPHP + Vue admin）。这是一个路由入口 skill，按开发环节拆分为以下专项 skill，Kiro 会根据你正在编辑的文件类型自动匹配加载对应规范：
+本 skill 覆盖游戏数据后台：ThinkPHP 8、PHP >= 8.2、Vue 2.7 + Element UI，以及爬取通知和改价服务。仓库另有 `app/index/`、`miniapp/`，不要把后台规范直接套到这些应用。按任务和文件路径读取下列专项 skill；路径本身不保证自动加载，项目入口规则见根目录 `AGENTS.md`。
 
 | 专项 skill | 何时生效 | 覆盖内容 |
 |-----------|---------|---------|
@@ -13,6 +13,7 @@ description: 游戏数据平台后台（ThinkPHP admin）的开发总览。当�
 | `game-controller-convention` | 编辑 `app/admin/controller/*.php` | CRUD 标准方法、`columns()` 表头规范、关联字段/虚拟字段处理 |
 | `game-validate-convention` | 编辑 `app/common/validate/*.php` | `add`/`edit` 校验场景规范 |
 | `game-routing-convention` | 涉及权限菜单、路由、前端 views 目录 | `#[Permission]` 注解、`php think permission` 同步、url→视图映射、前端页面骨架 |
+| `game-external-api-convention` | 编辑平台客户端、产品改价/库存/发布/同步服务及 `config/g2g.php`、`config/eldorado.php` | G2G / Eldorado 鉴权、日志脱敏、平台路由和改价锁 |
 | `game-worker-convention` | 编辑通知队列、常驻命令、改价消费或部署 Supervisor | 通知版本、原子领取、幂等、心跳租约、重试、部署与清理 |
 
 参考实现见 `app/admin/controller/GameAccount.php` + `app/common/model/GameAccount.php`（基础 CRUD）、`app/admin/controller/GameProduct.php`（带关联查询与枚举翻译字段）。
@@ -31,3 +32,12 @@ description: 游戏数据平台后台（ThinkPHP admin）的开发总览。当�
 - 控制器/模型/验证器统一用同名的大驼峰命名（如 `GameAccount`），控制器里模型别名统一为 `Model`。
 - 前端目录/路由用小驼峰（如 `gameAccount`），`views/{module}/index.vue` + `views/{module}/dialog/`。
 - 新模块优先复用已有的枚举/常量定义（如平台类型直接引用 `GameAccount::$PLATFORM_MAP`），避免同一语义在多个 Model 里重复定义。
+
+## 当前业务链路与维护
+
+- 数据归属为 `admin → game_account → game_product → crawl_target`，继续关联竞品快照、策略和日志。管理员 ID=1 是当前实现的超级管理员；普通管理员的列表、下拉、统计和写操作都要检查归属，见 Controller skill。
+- 平台枚举统一复用 `GameAccount`：G2G=1、Eldorado=2；`PLATFORM_FACEBOOK` 仅为旧兼容别名。
+- 产品平台写操作由 `GameProductPriceService`、`GameProductStockService`、`GameProductPushService`、`GameProductOfferSyncService` 等共享服务承载；控制器和 Worker 不各写一套逻辑。
+- `sql/` 保存建表和增量迁移；`scripts/crawl_g2g.mjs` 是仓库内爬虫脚本，外部 Python 生产者不在本仓库，不声称已同步修改。
+- 修改模块后按 `AGENTS.md` 的路径映射同步相关 skill。只写经过源码和 diff 核实的稳定约定，替换过时规则，不追加流水账；跨模块规则变化时同步更新此总览。
+- 验证按改动范围选择 PHP 语法检查、已有 `test/service/` 测试、`test/frontend/` Node 测试或前端构建；会改数据库的权限同步、迁移和会调用真实平台的操作应明确目标环境后执行。

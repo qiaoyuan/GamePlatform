@@ -21,12 +21,14 @@ description: 游戏数据平台 Controller 开发规范。当新增/修改 app/a
 | `add()` | 新增 | 优先 `$this->mAdd(Model::class, ['append'=>[...]], [一对一关联])`；复杂逻辑用 `transaction(function(){...}, $this)` |
 | `edit()` | 编辑 | 优先 `$this->mEdit(Model::class, [], [关联])` |
 
-**踩坑提醒**：`mEdit()` 的 `except` 参数是在**校验之前**执行的（先剔除字段，再走 Validate 的 `edit` 场景）。如果某个字段被 `except` 排除但 Validate 的 `edit` 场景仍把它列为必填，会导致所有编辑请求都报"XX不能为空"。典型场景：某字段只能通过专用接口修改（如改价需同步第三方平台），此时要同步把该字段从 Validate 的 `edit` 场景里去掉（`add` 场景可以保留必填）。
+
 | `delete()` | 删除 | `$this->mDelete(Model::class)`（自动软删除，取决于 Model 是否有 `deleted_at`） |
 | `status()` | 改状态 | `Model::update(['status'=>$status], ['id'=>$this->getInputPk()]);` |
 | `select()` | 下拉数据 | `->field('title as label,id as value')->select()` |
 | `get()` | 详情 | `Model::find(input('id'))`，有关联时用 `Model::with([...])->find(...)` |
 | `forceDelete()`/`restore()` | 彻底删除/恢复 | 调用 `parent::forceDelete()` / `parent::restore()` |
+
+**踩坑提醒**：`mEdit()` 的 `except` 参数是在**校验之前**执行的（先剔除字段，再走 Validate 的 `edit` 场景）。如果某个字段被 `except` 排除但 Validate 的 `edit` 场景仍把它列为必填，会导致所有编辑请求都报"XX不能为空"。典型场景：某字段只能通过专用接口修改（如改价需同步第三方平台），此时要同步把该字段从 Validate 的 `edit` 场景里去掉（`add` 场景可以保留必填）。
 
 **每个列表页控制器都必须实现 `columns(): array`** —— 这是表头字段的唯一规范来源，前端表头/搜索项由该接口生成，前端不手写列。
 
@@ -85,3 +87,16 @@ description: 游戏数据平台 Controller 开发规范。当新增/修改 app/a
 - [ ] **`columns()` 里出现的每个虚拟字段（如 `xxx_name`），`index()` 里都必须有对应的 `->each()` 计算逻辑，且用 `?? ''` 防空值** —— 这是最容易漏的一步：`columns()` 声明了列，但忘了在 `index()` 里赋值，表现为前端该列显示为空。新增/复制列表 Controller 时优先检查这一点。
 - [ ] 增删改状态方法都带 `#[Permission]`
 - [ ] 枚举搜索用了已有 Model 的 `getXxxList()`，未重复定义
+
+## 管理员数据隔离与列表附加数据
+
+参考 `app/admin/BaseController.php`、`Crawl.php`、`PriceStrategy.php`。
+
+- 游戏业务查询使用 `scopeOwnedData($query, $resource)`，覆盖列表、详情、select、统计、预览及绑定对象查询；统计不应遗漏归属过滤。写接口对请求 ID、关联账号/产品/爬取目标使用 `assertOwnedData()`，不要只验证记录存在。
+- `BaseController::ownedResourceForController()` 目前仅映射 GameAccount、GameProduct、PriceStrategy、PriceStrategyLog，不能假定新增控制器会自动获得隔离；自定义接口逐项检查，新增资源需同步归属映射。
+- 客户端不能指定账号的 `admin_id` 归属；按当前登录管理员和既有接口规则赋值。菜单权限不能代替数据归属检查。
+- 复杂控制器（例如 Crawl 使用 `CrawlTargetModel`）可保留有语义的模型别名，不为满足 `Model` 别名约定强行改名。
+- 列表附加统计和 `list` 一起返回。Crawl 当前 `stats` 为 `main_server/crawler_2` 各含 `g2g/eld`，统计所有当前管理员可见、未删除且启用的目标，不受当前页分页影响；它表示启用目标数，不能当作爬虫进程存活数。
+- 聚合表达式使用 `fieldRaw('..., COUNT(*) AS total')` 等原始字段接口，普通 `field()` 用于普通字段选择。
+- 专用状态/服务器切换接口应验证 ID 归属、允许值并具有权限注解；前端成功后刷新列表和统计。
+- 修改响应结构、查询范围或特殊动作后同步此 skill；前端事件和页面约定同步 routing skill。

@@ -1,11 +1,11 @@
 ---
 name: game-external-api-convention
-description: 游戏数据平台第三方外部 API 集成规范。当需要调用 G2G 等外部平台接口（改价、令牌刷新、下单等）、处理令牌缓存、记录调用日志时使用。
+description: 游戏数据平台第三方外部 API 集成规范。当需要调用 G2G / Eldorado 外部平台接口（改价、令牌刷新、下单等）、处理令牌缓存、记录调用日志时使用。
 ---
 
 # 第三方外部 API 集成规范
 
-参考实现见 `app/common/service/G2gClient.php`（G2G 平台令牌刷新 + 改价）、`app/common/model/GameAccountApiLog.php`（调用日志）、`config/g2g.php`（配置）。
+参考实现见 `app/common/service/G2gClient.php`、`app/common/service/EldoradoClient.php`（各平台鉴权和业务请求）、`app/common/model/GameAccountApiLog.php`（调用日志）、`config/g2g.php`、`config/eldorado.php`（配置）。
 
 ## 整体结构
 
@@ -86,3 +86,15 @@ private function maskToken(string $token): string
 - [ ] 日志中的令牌字段已脱敏（含响应体嵌套字段）
 - [ ] Controller 捕获异常并转换为用户可读的错误提示，未暴露堆栈
 - [ ] 有实际业务影响的写操作（改价等）已做参数合法性校验
+
+## 共享写服务与 Eldorado 重建契约
+
+参考 `GameProductPriceService.php`、`EldoradoClient.php` 和 `test/service/EldoradoRecreateTest.php`。
+
+- 手工改价和策略改价统一调用 `GameProductPriceService::change()`；服务按关联账号平台路由，平台成功后再同步本地价格。库存、发布、offer 同步复用各自的共享服务。
+- 保留共享 Redis 产品锁、锁后重新加载数据库检查平台 ID/价格/币种/账号是否变化，以及带 token 的条件释放；撞锁/数据变化以 `PriceProductBusyException` 交回调用者重新加载，不能继续使用旧模型调用平台。
+- Eldorado 依次尝试 A/B，429 表示对应接口进入冷却；其它异常不应一律转为下一接口。C 是删除旧 offer 后创建新 offer，不是原地修改。
+- C 路径在删除前检查冷却和完整创建载荷；旧 offer 明确不存在时经回调处理本地旧 ID。成功重建必须取得新的 offer ID 并同步本地 `product_id/offer_data`。
+- 删除后创建失败或结果不确定需保留诊断信息并人工核查，不盲目重试非幂等创建。不要因日志或提示修改而调用真实平台验证。
+- 日志递归脱敏还应覆盖 Eldorado 的 `client_secret` 等认证字段；令牌缓存按平台/账号隔离，冷却键按现有接口和产品规则隔离，不能简化为所有账号共享一个 key。
+- 平台调用、冷却、锁和重建流程变化时同步此 skill；影响 Worker 的重试与租约时同步 Worker skill。
