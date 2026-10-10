@@ -38,6 +38,7 @@ description: 游戏数据平台后台（ThinkPHP admin）的开发总览。当�
 - 数据归属为 `admin → game_account → game_product → crawl_target`，继续关联竞品快照、策略和日志。管理员 ID=1 是当前实现的超级管理员；普通管理员的列表、下拉、统计和写操作都要检查归属，见 Controller skill。
 - 平台枚举统一复用 `GameAccount`：G2G=1、Eldorado=2；`PLATFORM_FACEBOOK` 仅为旧兼容别名。
 - 产品平台写操作由 `GameProductPriceService`、`GameProductStockService`、`GameProductPushService`、`GameProductOfferSyncService` 等共享服务承载；控制器和 Worker 不各写一套逻辑。
-- `sql/` 保存建表和增量迁移；`scripts/crawl_g2g.mjs` 是仓库内爬虫脚本，外部 Python 生产者不在本仓库，不声称已同步修改。
+- `sql/` 保存建表和增量迁移；`scripts/crawl_g2g.mjs` 是仓库内爬虫脚本。生产 Python 爬虫位于独立 g2g 项目，修改生产者契约时核对该项目的 `tools/crawl_from_db.py`、`g2g/db.py`、`g2g/crawl_filter.py`，分别报告两个项目的验证范围，不能仅凭后台改动声称生产者已同步。
+- 爬虫任务支持 `crawl_type=0/1`（0 默认、1 Top3），默认类型保持全量入库；Top3 入库和通知契约、迁移顺序见 [Worker skill](../game-worker-convention/SKILL.md#top3-入库筛选)。此类型减少入库量，当前没有减少页面抓取范围。
 - 修改模块后按 `AGENTS.md` 的路径映射同步相关 skill。只写经过源码和 diff 核实的稳定约定，替换过时规则，不追加流水账；跨模块规则变化时同步更新此总览。
 - 验证按改动范围选择 PHP 语法检查、已有 `test/service/` 测试、`test/frontend/` Node 测试或前端构建；会改数据库的权限同步、迁移和会调用真实平台的操作应明确目标环境后执行。

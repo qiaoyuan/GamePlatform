@@ -22,6 +22,7 @@ class Crawl extends BaseController
         return [
             ['v' => 'id',            'label' => 'ID',         'width' => 80,  'searchType' => 'number',    'sort' => 'id'],
             ['v' => 'crawl_server_name', 'label' => '爬虫服务器', 'width' => 110, 'search' => 'crawl_server', 'searchType' => 'multiple', 'searchList' => CrawlTargetModel::getCrawlServerList(), 'sort' => 'crawl_server'],
+            ['v' => 'crawl_type_name', 'label' => '爬虫类型', 'width' => 120, 'search' => 'crawl_type', 'searchType' => 'multiple', 'searchList' => CrawlTargetModel::getCrawlTypeList(), 'sort' => 'crawl_type'],
             ['v' => 'name',           'label' => '任务名称',   'width' => 150, 'searchType' => 'like',      'sort' => 'name'],
             [
                 'v'          => 'game_product_name',
@@ -56,6 +57,7 @@ class Crawl extends BaseController
             $lists->each(function (CrawlTargetModel $item) {
                 $item->status_name = CrawlTargetModel::$STATUS_MAP[$item->status] ?? '';
                 $item->category_name = CrawlTargetModel::$CATEGORY_MAP[$item->category] ?? $item->category;
+                $item->crawl_type_name = CrawlTargetModel::$CRAWL_TYPE_MAP[$item->crawl_type ?? CrawlTargetModel::CRAWL_TYPE_DEFAULT] ?? '--';
                 $item->crawl_server_name = CrawlTargetModel::$CRAWL_SERVER_MAP[$item->crawl_server] ?? '--';
                 $item->game_product_name = $item->gameProduct ? $item->gameProduct->title : '--';
             });

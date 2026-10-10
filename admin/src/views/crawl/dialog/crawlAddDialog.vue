@@ -28,7 +28,7 @@ export default {
     open(row) {
       this.setForm(row)
     },
-    setForm({ id, name, url, category, crawl_server, crawl_interval, status, game_product_id, game_product_name, version }) {
+    setForm({ id, name, url, category, crawl_type, crawl_server, crawl_interval, status, game_product_id, game_product_name, version }) {
       this.form = {
         name: { label: '任务名称', value: name, rules: [{ required: true, message: '请输入任务名称', trigger: 'blur' }] },
         version: {
@@ -61,6 +61,18 @@ export default {
             { label: 'ELD游戏币', value: 'ELD游戏币' },
           ],
           rules: [{ required: true, message: '请选择产品分类', trigger: 'change' }],
+        },
+        crawl_type: {
+          label: '爬虫类型',
+          value: Number(crawl_type ?? 0),
+          formType: 'select',
+          options: [
+            { label: '默认爬虫', value: 0 },
+            { label: 'Top3爬虫', value: 1 },
+          ],
+          attrs: { clearable: false },
+          tip: 'Top3：按启用改价策略过滤后，只保存最低的3条竞品；多个策略取去重合集',
+          rules: [{ required: true, message: '请选择爬虫类型', trigger: 'change' }],
         },
         crawl_server: {
           label: '爬虫服务器',

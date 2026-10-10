@@ -14,6 +14,7 @@ use think\model\relation\BelongsTo;
  * @property string $name     任务名称
  * @property string $url      目标链接
  * @property string $category 产品分类
+ * @property int    $crawl_type 爬虫类型 0-默认 1-策略过滤后最低三条
  * @property int    $crawl_server 爬虫服务器 1-主服务器 2-爬虫2
  * @property int    $crawl_interval 基础 30 秒之外追加的爬取间隔（秒），0=不追加
  * @property int    $status   状态 0-停用 1-启用
@@ -28,7 +29,7 @@ class CrawlTarget extends Base
     protected $pk    = 'id';
 
     /** @var string[] */
-    protected $field = ['id', 'game_product_id', 'version', 'name', 'url', 'category', 'crawl_server', 'crawl_interval', 'status', 'last_crawl_at', 'created_at', 'updated_at', 'deleted_at'];
+    protected $field = ['id', 'game_product_id', 'version', 'name', 'url', 'category', 'crawl_type', 'crawl_server', 'crawl_interval', 'status', 'last_crawl_at', 'created_at', 'updated_at', 'deleted_at'];
 
     /** @var array<string, string> */
     protected $type = [
@@ -38,6 +39,7 @@ class CrawlTarget extends Base
         'name'           => 'string',
         'url'           => 'string',
         'category'      => 'string',
+        'crawl_type'    => 'int',
         'crawl_server'  => 'int',
         'crawl_interval' => 'int',
         'status'        => 'int',
@@ -73,6 +75,22 @@ class CrawlTarget extends Base
             ['value' => self::CATEGORY_CURRENCY,     'label' => 'G2G游戏币'],
             ['value' => self::CATEGORY_ELD_ITEM,     'label' => 'ELD物品'],
             ['value' => self::CATEGORY_ELD_CURRENCY, 'label' => 'ELD游戏币'],
+        ];
+    }
+
+    const CRAWL_TYPE_DEFAULT = 0;
+    const CRAWL_TYPE_TOP3 = 1;
+
+    public static $CRAWL_TYPE_MAP = [
+        self::CRAWL_TYPE_DEFAULT => '默认爬虫',
+        self::CRAWL_TYPE_TOP3 => 'Top3爬虫',
+    ];
+
+    public static function getCrawlTypeList(): array
+    {
+        return [
+            ['value' => self::CRAWL_TYPE_DEFAULT, 'label' => '默认爬虫'],
+            ['value' => self::CRAWL_TYPE_TOP3, 'label' => 'Top3爬虫'],
         ];
     }
 

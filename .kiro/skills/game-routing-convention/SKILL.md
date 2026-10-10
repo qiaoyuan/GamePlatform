@@ -54,6 +54,7 @@ admin_permission 表（url / parent_id / level / is_menu ...）
 
 - 表格取数完成的 `getList` 事件携带响应 `data`，附加统计使用 `@getList="updateStats"` 从同一次响应读取；不要把 `afterRefresh` 当成携带响应数据的事件。调整封装组件时检查事件是否继续透传。
 - Crawl 的统计展示按服务器和平台划分，使用接口 `stats`。兼容旧接口时，仅在无筛选且拿到全部行时做本地计数；分页或过滤后的当前页不能冒充全量统计。
+- Crawl 新增/编辑弹窗包含 `crawl_type` 下拉：`0` 默认爬虫、`1` Top3爬虫。新增或旧行缺少字段时默认 0，编辑时保留已选类型；沿用 crawl/add、crawl/edit 权限与路由。
 - `#status`、`#crawl_server` 等行插槽可承载开关/选择器，提交过程按行防止重复操作；失败时还原或重新取数，成功后刷新接口列表使统计同步。
 - 权限同步只在注解或菜单变化时执行。它会写数据库，修改文档、UI 样式或未改变权限的业务逻辑不需要运行；受环境限制未执行时说明待执行的具体命令。
 - 修改 url、视图命名、公共表格契约时同时维护 `references/routing.md`；修改响应结构时同步 Controller skill。

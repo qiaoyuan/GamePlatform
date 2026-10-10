@@ -51,6 +51,6 @@ class GameAccount extends Base
 
 - `mEdit()` 先执行 `append/except` 再校验 `edit` 场景。只能经专用接口修改的字段（例如平台价格）应从通用 edit 场景移除，避免剔除后仍被 require 拦截。
 - 将 `id` 放入场景不等于已定义 ID 校验规则；`mEdit()` 会另行补取主键并检查缺失。自定义写接口须显式检查 ID/允许值及归属，不能依赖场景列表完成这些检查。
-- `CrawlTarget` 的分类允许值为 `物品,游戏币,ELD物品,ELD游戏币`，`crawl_server` 为 1/2，`status` 为 0/1；`version` 为非负整数且不开放在通用 edit 场景。
+- `CrawlTarget` 的分类允许值为 `物品,游戏币,ELD物品,ELD游戏币`，`crawl_server` 为 1/2，`crawl_type` 为 tinyint 数字枚举 `0/1`（0 默认、1 Top3），`status` 为 0/1；`version` 为非负整数且不开放在通用 edit 场景。`crawl_type` 在 add/edit 场景校验；旧客户端可省略，新增由数据库默认 0，编辑省略时保留原值。
 - `PriceStrategy.config` 结构灵活，当前由 Controller/Service 处理默认值和维度语义；改变配置结构要同步服务和前端，不只修改 `$scene`。
 - 新增和编辑允许字段、专用接口参数变化时，同步对应 Controller skill 和 Model 字段说明。
