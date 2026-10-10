@@ -18,7 +18,9 @@ class Column extends BaseController
         $controller = new $controller($this->app);
         $columns = $controller->$action();
         if (empty($data['is_code'])) {
-            $columns = fastCache(json_encode($data), function () use ($data, $columns) {
+            // 表头定义变化后自动使用新缓存，避免新增列和枚举仍被旧缓存覆盖。
+            $columns = fastCache(json_encode($data) . ':' . md5(json_encode($columns)), function () use ($data, $columns) {
+                $defaults = $columns;
                 $key = md5(implode('_', [$data['tab_name'], $data['tab'] ?? 0]));
                 $cache = AdminColumn::where('key', $key)->find();
                 $cache = $cache ? ($cache->rule ?: []) : [];
@@ -42,7 +44,15 @@ class Column extends BaseController
                         }
                     }
                     if ($columns) {
-                        $result = array_merge($result, array_values($columns));
+                        // 新列放在默认定义的相邻列后，保留已有列的自定义顺序。
+                        $previous = null;
+                        foreach ($defaults as $column) {
+                            if (isset($columns[$column['v']])) {
+                                $position = $previous === null ? false : array_search($previous, array_column($result, 'v'), true);
+                                array_splice($result, $position === false ? 0 : $position + 1, 0, [$column]);
+                            }
+                            $previous = $column['v'];
+                        }
                     }
                 } else {
                     $result = $columns;

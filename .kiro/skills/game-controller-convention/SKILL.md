@@ -97,7 +97,7 @@ description: 游戏数据平台 Controller 开发规范。当新增/修改 app/a
 - 客户端不能指定账号的 `admin_id` 归属；按当前登录管理员和既有接口规则赋值。菜单权限不能代替数据归属检查。
 - 复杂控制器（例如 Crawl 使用 `CrawlTargetModel`）可保留有语义的模型别名，不为满足 `Model` 别名约定强行改名。
 - 列表附加统计和 `list` 一起返回。Crawl 当前 `stats` 为 `main_server/crawler_2` 各含 `g2g/eld`，统计所有当前管理员可见、未删除且启用的目标，不受当前页分页影响；它表示启用目标数，不能当作爬虫进程存活数。
-- Crawl 列表同时返回 `crawl_type` 和虚拟 `crawl_type_name`，默认表头在爬虫服务器后显示爬虫类型；类型搜索绑定真实字段并复用 `CrawlTarget::getCrawlTypeList()`；新增/编辑沿用原接口和归属检查。`Column/get` 的表头缓存可能保留旧列，发布后需通过 `Column/refresh` 清理对应表头缓存；已有保存列配置会将新列追加到末尾，可在列配置中调整顺序。
+- Crawl 列表同时返回 `crawl_type` 和虚拟 `crawl_type_name`，默认表头在爬虫服务器后显示爬虫类型；类型搜索绑定真实字段并复用 `CrawlTarget::getCrawlTypeList()`；新增/编辑沿用原接口和归属检查。`Column/get` 缓存键包含当前表头定义的指纹，表头或枚举变化自动使用新缓存；保存配置未包含的新列按默认定义插入相邻前列之后，已有列的自定义顺序保留。
 - 聚合表达式使用 `fieldRaw('..., COUNT(*) AS total')` 等原始字段接口，普通 `field()` 用于普通字段选择。
 - 专用状态/服务器切换接口应验证 ID 归属、允许值并具有权限注解；前端成功后刷新列表和统计。
 - 修改响应结构、查询范围或特殊动作后同步此 skill；前端事件和页面约定同步 routing skill。

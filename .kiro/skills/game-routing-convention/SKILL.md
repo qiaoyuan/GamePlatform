@@ -53,7 +53,7 @@ admin_permission 表（url / parent_id / level / is_menu ...）
 参考 `admin/src/components/w/components/w-table/index.vue`、`w-tabs-table/index.vue` 和 `admin/src/views/crawl/index.vue`。
 
 - 表格取数完成的 `getList` 事件携带响应 `data`，附加统计使用 `@getList="updateStats"` 从同一次响应读取；不要把 `afterRefresh` 当成携带响应数据的事件。调整封装组件时检查事件是否继续透传。
-- Crawl 的统计展示按服务器和平台划分，使用接口 `stats`。兼容旧接口时，仅在无筛选且拿到全部行时做本地计数；分页或过滤后的当前页不能冒充全量统计。
+- Crawl 的统计标签显示“启用任务”，按服务器和平台划分，使用接口 `stats`；前端兼容服务器统计为数字的旧响应（包括 0）和含 g2g/eld 的对象响应，异常计数显示 --，不直接插值对象。兼容旧接口时，仅在无筛选且拿到全部行时做本地计数；分页或过滤后的当前页不能冒充全量统计。
 - Crawl 新增/编辑弹窗包含 `crawl_type` 下拉：`0` 默认爬虫、`1` Top3爬虫。新增或旧行缺少字段时默认 0，编辑时保留已选类型；沿用 crawl/add、crawl/edit 权限与路由。
 - `#status`、`#crawl_server` 等行插槽可承载开关/选择器，提交过程按行防止重复操作；失败时还原或重新取数，成功后刷新接口列表使统计同步。
 - 权限同步只在注解或菜单变化时执行。它会写数据库，修改文档、UI 样式或未改变权限的业务逻辑不需要运行；受环境限制未执行时说明待执行的具体命令。

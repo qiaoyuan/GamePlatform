@@ -11,10 +11,10 @@
       <template #headerOperate>
         <div class="crawl-server-stats">
           <el-tag type="success" effect="plain">
-            主服务器　G2G {{ statsLoaded ? stats.main_server.g2g : '--' }}　ELD {{ statsLoaded ? stats.main_server.eld : '--' }}
+            主服务器启用任务：{{ statsLoaded ? formatServerStats(stats.main_server) : '--' }}
           </el-tag>
           <el-tag type="warning" effect="plain">
-            爬虫2　G2G {{ statsLoaded ? stats.crawler_2.g2g : '--' }}　ELD {{ statsLoaded ? stats.crawler_2.eld : '--' }}
+            爬虫2启用任务：{{ statsLoaded ? formatServerStats(stats.crawler_2) : '--' }}
           </el-tag>
         </div>
       </template>
@@ -92,12 +92,23 @@ export default {
     }
   },
   methods: {
+    formatServerStats(value) {
+      const count = raw => {
+        if ((typeof raw !== 'number' && typeof raw !== 'string') || raw === '') return '--'
+        const n = Number(raw)
+        return Number.isSafeInteger(n) && n >= 0 ? n : '--'
+      }
+      if (value && typeof value === 'object') {
+        return `G2G ${count(value.g2g)}　ELD ${count(value.eld)}`
+      }
+      return `${count(value)} 个`
+    },
     getList() {
       this.$store.dispatch('cleanColumnOptions', this.module)
       this.$refs.wTable.getList()
     },
     updateStats(data) {
-      if (data?.stats?.main_server && data?.stats?.crawler_2) {
+      if (data?.stats?.main_server != null && data?.stats?.crawler_2 != null) {
         this.stats = data.stats
         this.statsLoaded = true
         return
