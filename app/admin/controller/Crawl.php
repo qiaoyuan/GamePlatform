@@ -23,6 +23,7 @@ class Crawl extends BaseController
             ['v' => 'id',            'label' => 'ID',         'width' => 80,  'searchType' => 'number',    'sort' => 'id'],
             ['v' => 'crawl_server_name', 'label' => '爬虫服务器', 'width' => 110, 'search' => 'crawl_server', 'searchType' => 'multiple', 'searchList' => CrawlTargetModel::getCrawlServerList(), 'sort' => 'crawl_server'],
             ['v' => 'crawl_type_name', 'label' => '爬虫类型', 'width' => 120, 'search' => 'crawl_type', 'searchType' => 'multiple', 'searchList' => CrawlTargetModel::getCrawlTypeList(), 'sort' => 'crawl_type'],
+            ['v' => 'enhance_stores', 'label' => '加强店铺', 'width' => 220, 'searchType' => 'like'],
             ['v' => 'name',           'label' => '任务名称',   'width' => 150, 'searchType' => 'like',      'sort' => 'name'],
             [
                 'v'          => 'game_product_name',
@@ -170,6 +171,29 @@ class Crawl extends BaseController
     public function status(): void
     {
         $this->assertOwnedData('crawl_target', input('id'));
+
+        $data = $this->request->post();
+        if (array_key_exists('enhance_stores', $data)) {
+            $stores = $data['enhance_stores'];
+            if (!is_string($stores) || mb_strlen($stores) > 2048) {
+                $this->error('加强店铺必须为字符串，且不超过2048字符');
+            }
+            $target = CrawlTargetModel::update(['enhance_stores' => $stores], ['id' => input('id')]);
+            $this->success('保存成功', ['enhance_stores' => $target->enhance_stores]);
+        }
+
+        $crawlType = input('crawl_type');
+        if ($crawlType !== null) {
+            if (!in_array($crawlType, [0, 1, '0', '1'], true)) {
+                $this->error('请选择有效的爬取类型');
+            }
+            $crawlType = (int) $crawlType;
+            CrawlTargetModel::update(['crawl_type' => $crawlType], ['id' => input('id')]);
+            $this->success('切换成功', [
+                'crawl_type' => $crawlType,
+                'crawl_type_name' => CrawlTargetModel::$CRAWL_TYPE_MAP[$crawlType],
+            ]);
+        }
 
         $crawlServer = input('crawl_server');
         if ($crawlServer !== null && $crawlServer !== '') {

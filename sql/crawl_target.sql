@@ -7,6 +7,7 @@ CREATE TABLE `crawl_target` (
   `url` varchar(1024) NOT NULL DEFAULT '' COMMENT '目标链接',
   `category` varchar(64) NOT NULL DEFAULT '' COMMENT '产品分类',
   `crawl_type` tinyint unsigned NOT NULL DEFAULT 0 COMMENT '爬虫类型 0-默认 1-按策略过滤后最低三条',
+  `enhance_stores` varchar(2048) NOT NULL DEFAULT '' COMMENT '加强店铺名，多行或逗号分隔，仅crawl_type=1生效',
   `crawl_server` tinyint unsigned NOT NULL DEFAULT 1 COMMENT '爬虫服务器 1-主服务器 2-爬虫1',
   `status` tinyint NOT NULL DEFAULT 1 COMMENT '状态 0-停用 1-启用',
   `last_crawl_at` datetime DEFAULT NULL COMMENT '最后爬取时间',

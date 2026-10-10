@@ -60,7 +60,7 @@ description: 游戏数据平台 Model 开发规范。当新增/修改 app/common
 
 - 上方账号表是基础示例，不是完整现行 schema。以 `GameAccount::$field/$type` 和 `sql/` 为准；现有账号还含 `admin_id`、`account_name`、`client_id`、`client_secret`、`status`。`user_id` 及令牌/平台标识保持字符串。
 - `GameProduct.product_id` 是远端 offer 标识，可能在 Eldorado 重建时变化或在旧 offer 不存在时为空；数据库 `id` 才是内部关联键。`offer_data` 用 `array` 转换，保留重建需要的完整载荷。
-- `CrawlTarget` 包含 `game_product_id`、`version`、`crawl_server`、`crawl_interval`、`crawl_type` 等字段；服务器值为 1/2。`crawl_type` 为 tinyint 数字枚举 `0/1`（0 默认、1 Top3），历史目标默认 0，枚举复用 `CRAWL_TYPE_MAP/getCrawlTypeList()`。Top3 的 Python 生产者按关联启用策略筛选后保存最低三条，多策略/币种取去重合集。当前分类为 `物品`、`游戏币`、`ELD物品`、`ELD游戏币`，修改分类要同步验证器、统计和爬虫平台判断。
+- CrawlTarget 包含 game_product_id、version、crawl_server、crawl_interval、crawl_type、enhance_stores 等字段。服务器1/2，类型0默认、1店铺加强，历史目标默认0；枚举复用 CRAWL_TYPE_MAP/getCrawlTypeList()，CRAWL_TYPE_TOP3 为历史别名。enhance_stores 是 varchar(2048) 字符串，默认空，输入多个名字支持英文/中文逗号及换行，Model 写入修改器去除首尾空白、空项和完全重复名字，统一保存为英文逗号分隔（保留名字大小写和内部空格）；仅类型1对前10条中的名单内竞品刷新详情，全部列表候选入库。分类仍为物品、游戏币、ELD物品、ELD游戏币，修改分类要同步验证器、统计和爬虫平台判断。
 - `CrawlData` 以 `target_id + version` 对应一批竞品快照；通知中的版本用于锁定消费快照，不用目标最新版本覆盖历史通知。
 - 通知队列表 `CrawlNotify` 会更新状态、重试和租约，不属于只增不改的纯日志例外。现有历史表按实际 schema 处理，不因三时间字段约定直接补列。
 - 字段增删/类型变化要同步 SQL 迁移、`$field`、`$type`、PHPDoc、验证器和接口；关联字段变化同时检查管理员归属链。

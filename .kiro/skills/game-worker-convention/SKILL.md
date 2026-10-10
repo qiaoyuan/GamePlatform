@@ -26,19 +26,18 @@ description: 游戏数据平台常驻 Worker 与数据库通知队列规范。�
 
 Python 生产通知时必须同时写入本次已完整保存的 `crawl_target_id`、`version` 和 `crawled_count`。PHP 必须按通知的 `version` 查询不可变的 `crawl_data` 快照，不得改为读取目标的最新版本。旧通知缺少版本的回退逻辑只用于迁移兼容，不应成为新生产者的默认行为。
 
-### Top3 入库筛选
+### 列表候选与绑定店铺加强
 
-后台 `crawl_target.crawl_type` 为 `tinyint unsigned`：0 默认、1 Top3，Model 和接口使用整数，新增默认 0。独立 g2g 项目的 Python 生产者支持整数 0/1 和数字字符串 "0"/"1"，迁移期间兼容旧 default/top3 字符串；缺失或空值按 0 处理，其他值报错，不回退默认。默认类型保持现有入库行为，不查询改价策略。生产者实现位于独立 g2g 项目的 `g2g/crawl_filter.py`、`g2g/db.py::get_crawl_strategies()` 和 `tools/crawl_from_db.py::run()`；后台 `CrawlService` 是写 `competitor_product` 的旧手工路径，不能当作写 `crawl_data` 的生产者。
+后台 `crawl_target.crawl_type` 为 `tinyint unsigned`：0 默认、1 店铺加强。Model 和接口使用整数，新增默认 0；历史常量名 `CRAWL_TYPE_TOP3` 保留为 1 的别名，但不再表示仅保存三条。独立 g2g 项目的 Python 生产者兼容整数及数字字符串 0/1、历史 default/top3；缺失或空值按 0，其他值报错。
 
-- 关联为 `crawl_target.id=price_strategy.crawl_target_id`，只读取启用且未删除策略，通过 `price_strategy_product` 取得未删除绑定产品的币种；未设置币种按 USD 处理。不根据目标自身产品币种替代各策略绑定产品币种。
-- 与 PHP 实际改价的首维度规则对齐：只支持 `dimensions[0].type=lowest`（未设置时默认 lowest），兼容旧的顶层维度和 JSON 字符串维度，不把后续维度当作独立策略。
-- 候选价格必须为有效正数且与绑定产品同币种。店铺同时匹配 `seller_id/seller_name`，统一大小写、HTML 实体和空白；黑名单优先，白名单只跳过库存/好评率，不能绕过价格门槛。
-- 库存解析支持 K/M/G/B；库存或好评率缺失、非法且对应阈值启用时剔除。最低价要求候选价格严格大于门槛，字段优先级为 `filter_price → price → minimum_price → floor_price`，按首个非 null 值读取。`amplitude/bid_mode/round_precision` 是出价设置，不参与竞品过滤。
-- 每策略/币种先过滤再取最低三条，价格相同时按原始抓取顺序选择。多策略取同一原始记录的去重合集，总条数可以超过三条；不按店铺合并报价，合并结果保留原始抓取顺序入库。
-- 无绑定有效产品的启用策略时跳过目标；配置 JSON 无效或首维度类型不支持时报错。两者均发生在版本递增前，不更新版本、最后爬取时间或发送通知，不回退全量入库。
-- 筛选成功后零条仍完成该版本，发送 `crawled_count=0` 的通知；其余通知条数必须等于实际保存条数。快照反映抓取时的配置，后续放宽条件需等新一轮抓取。
+- G2G 金币/游戏币页面默认提取当前展示顺序前 10 条竞品，`CRAWL_OFFER_LIMIT` 是正整数上限，默认 10。达到上限停止滚动等待；不足上限沿用数量稳定后结束的加载逻辑。不向上限之外补齐，也不限制 crawl_target 任务领取数量。其他分类保持既有抓取路径。
+- 两种类型均保存提取到的全部候选，不按改价策略、黑白名单、库存、好评率或价格门槛裁剪入库，不查询 price_strategy 来决定候选。下游 PHP 策略在完整快照上自行过滤。
+- `crawl_target.enhance_stores` 为 `varchar(2048) NOT NULL DEFAULT ''`，存多个加强店铺名，前端支持换行或英文/中文逗号，后台写入时统一保存英文逗号分隔并去除空项/完全重复名字。Python 将其拆成名单，兼容数组和 JSON 数组，归一化大小写、HTML 实体及空白，对 seller_name/seller_id 做完整匹配，不能按子串命中。
+- 仅类型 1 且前 10 条中命中绑定名的 G2G 金币/游戏币竞品点击“查看/View”，确认 #pcMain 店铺身份及详情价格刷新后，读取 .vue-portal-target .pricing-container 内“单价/Unit Price”的价格和币种，更新 price/unit_price/currency，保留精度并标记 unit_price_source=offer_detail。其他竞品保留列表价格和原始顺序。类型 0 即使绑定名字也不读取详情；空名单或未匹配时不读取详情，但仍保存全部列表候选。
+- 名单中的店铺不在前 10 条时不向后搜索。详情不能用列表最低/from 或订单总价替代。绑定店铺详情单价不能确认时目标报错，不保存该轮、不更新最后爬取时间、不发完成通知；抓取前的版本递增仍可能已发生。
+- 完整保存后通知条数等于实际保存条数，零条成功抓取也可发送 crawled_count=0。日志记录候选总数、需要加强的店铺数及详情刷新耗时，不承诺固定速度。
 
-部署此字段时，未添加字段的库执行 `sql/alter_crawl_target_add_crawl_type.sql`；已有 varchar 字段的库暂停相关写入后执行 `sql/alter_crawl_target_crawl_type_to_tinyint.sql`，将 default/top3 转为 0/1，再修改列类型。两种迁移按现有 schema 二选一，不重复执行。后台、前端和每台 Python 生产者需统一数字枚举后再恢复爬虫，最后按需将目标切换为 1（Top3）。创建迁移文件不代表已执行迁移。验证覆盖 Python `tests/test_crawl_filter.py` 的过滤/查询/通知流程、PHP CrawlTarget 校验和前端 `test/frontend/crawlType.test.cjs`；此路径当前只减少写库量，不提前停止页面抓取。
+生产者位于独立 g2g 项目的 tools/crawl_from_db.py；后台 CrawlService 是写 competitor_product 的旧手工路径，不可当作本生产者。部署先执行 sql/alter_crawl_target_add_enhance_stores.sql，再发布后台和两台 Python 生产者；已有 crawl_type=1 的目标也全部保存列表候选，需显式配置 enhance_stores 才加强。迁移文件存在不代表已执行。crawl_type 字段尚不存在或仍是 varchar 时，按现有 schema 选择既有数字类型迁移，不重复执行。验证覆盖 Python tests/test_other_offer_prices.py 的单价切换/名字匹配/前10条完整保留、tests/test_crawl_filter.py 的生产通知流程，以及后台表单与行内类型切换测试。
 
 ## 防止重复消费的硬性约束
 

@@ -28,7 +28,7 @@ export default {
     open(row) {
       this.setForm(row)
     },
-    setForm({ id, name, url, category, crawl_type, crawl_server, crawl_interval, status, game_product_id, game_product_name, version }) {
+    setForm({ id, name, url, category, crawl_type, enhance_stores, crawl_server, crawl_interval, status, game_product_id, game_product_name, version }) {
       this.form = {
         name: { label: '任务名称', value: name, rules: [{ required: true, message: '请输入任务名称', trigger: 'blur' }] },
         version: {
@@ -68,11 +68,19 @@ export default {
           formType: 'select',
           options: [
             { label: '默认爬虫', value: 0 },
-            { label: 'Top3爬虫', value: 1 },
+            { label: '店铺加强', value: 1 },
           ],
           attrs: { clearable: false },
-          tip: 'Top3：按启用改价策略过滤后，只保存最低的3条竞品；多个策略取去重合集',
+          tip: 'G2G游戏币均保存列表前10条；店铺加强只更新绑定店铺的详情单价',
           rules: [{ required: true, message: '请选择爬虫类型', trigger: 'change' }],
+        },
+        enhance_stores: {
+          label: '加强店铺',
+          value: enhance_stores || '',
+          formType: 'textarea',
+          rows: 3,
+          attrs: { maxlength: 2048, placeholder: 'Player\nJIANONE' },
+          tip: '可填写多个店铺名，换行或逗号分隔，保存时统一为英文逗号分隔。仅爬取类型为店铺加强时生效；留空不加强',
         },
         crawl_server: {
           label: '爬虫服务器',

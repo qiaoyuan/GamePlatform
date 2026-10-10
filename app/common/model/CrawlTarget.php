@@ -14,7 +14,8 @@ use think\model\relation\BelongsTo;
  * @property string $name     任务名称
  * @property string $url      目标链接
  * @property string $category 产品分类
- * @property int    $crawl_type 爬虫类型 0-默认 1-策略过滤后最低三条
+ * @property int    $crawl_type 爬虫类型 0-默认 1-绑定店铺详情加强
+ * @property string $enhance_stores 加强店铺名，保存为英文逗号分隔
  * @property int    $crawl_server 爬虫服务器 1-主服务器 2-爬虫2
  * @property int    $crawl_interval 基础 30 秒之外追加的爬取间隔（秒），0=不追加
  * @property int    $status   状态 0-停用 1-启用
@@ -29,7 +30,7 @@ class CrawlTarget extends Base
     protected $pk    = 'id';
 
     /** @var string[] */
-    protected $field = ['id', 'game_product_id', 'version', 'name', 'url', 'category', 'crawl_type', 'crawl_server', 'crawl_interval', 'status', 'last_crawl_at', 'created_at', 'updated_at', 'deleted_at'];
+    protected $field = ['id', 'game_product_id', 'version', 'name', 'url', 'category', 'crawl_type', 'enhance_stores', 'crawl_server', 'crawl_interval', 'status', 'last_crawl_at', 'created_at', 'updated_at', 'deleted_at'];
 
     /** @var array<string, string> */
     protected $type = [
@@ -40,6 +41,7 @@ class CrawlTarget extends Base
         'url'           => 'string',
         'category'      => 'string',
         'crawl_type'    => 'int',
+        'enhance_stores' => 'string',
         'crawl_server'  => 'int',
         'crawl_interval' => 'int',
         'status'        => 'int',
@@ -79,18 +81,20 @@ class CrawlTarget extends Base
     }
 
     const CRAWL_TYPE_DEFAULT = 0;
-    const CRAWL_TYPE_TOP3 = 1;
+    const CRAWL_TYPE_ENHANCED = 1;
+    // 保留历史常量名；值 1 现表示绑定店铺加强，不再裁剪为三条。
+    const CRAWL_TYPE_TOP3 = self::CRAWL_TYPE_ENHANCED;
 
     public static $CRAWL_TYPE_MAP = [
         self::CRAWL_TYPE_DEFAULT => '默认爬虫',
-        self::CRAWL_TYPE_TOP3 => 'Top3爬虫',
+        self::CRAWL_TYPE_ENHANCED => '店铺加强',
     ];
 
     public static function getCrawlTypeList(): array
     {
         return [
             ['value' => self::CRAWL_TYPE_DEFAULT, 'label' => '默认爬虫'],
-            ['value' => self::CRAWL_TYPE_TOP3, 'label' => 'Top3爬虫'],
+            ['value' => self::CRAWL_TYPE_ENHANCED, 'label' => '店铺加强'],
         ];
     }
 
@@ -134,6 +138,14 @@ class CrawlTarget extends Base
             ['value' => self::STATUS_OFF, 'label' => '停用'],
             ['value' => self::STATUS_ON,  'label' => '启用'],
         ];
+    }
+
+    public function setEnhanceStoresAttr($value): string
+    {
+        $stores = preg_split('/[\r\n,，]+/u', (string) $value) ?: [];
+        $stores = array_map(static fn (string $store): string => preg_replace('/^\s+|\s+$/u', '', $store), $stores);
+        $stores = array_filter($stores, static fn (string $store): bool => $store !== '');
+        return implode(',', array_unique($stores));
     }
 
     public function gameProduct(): BelongsTo
