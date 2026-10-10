@@ -30,14 +30,19 @@ Python 生产通知时必须同时写入本次已完整保存的 `crawl_target_i
 
 后台 `crawl_target.crawl_type` 为 `tinyint unsigned`：0 默认、1 店铺加强。Model 和接口使用整数，新增默认 0；历史常量名 `CRAWL_TYPE_TOP3` 保留为 1 的别名，但不再表示仅保存三条。独立 g2g 项目的 Python 生产者兼容整数及数字字符串 0/1、历史 default/top3；缺失或空值按 0，其他值报错。
 
-- G2G 金币/游戏币页面默认提取当前展示顺序前 10 条竞品，`CRAWL_OFFER_LIMIT` 是正整数上限，默认 10。达到上限停止滚动等待；不足上限沿用数量稳定后结束的加载逻辑。不向上限之外补齐，也不限制 crawl_target 任务领取数量。其他分类保持既有抓取路径。
-- 两种类型均保存提取到的全部候选，不按改价策略、黑白名单、库存、好评率或价格门槛裁剪入库，不查询 price_strategy 来决定候选。下游 PHP 策略在完整快照上自行过滤。
+- Python G2G页面各分类默认提取当前展示顺序前 10 条竞品，环境变量 `CRAWL_OFFER_LIMIT` 是 G2G 专用正整数上限，默认 10。达到上限停止滚动等待；不足上限沿用数量稳定后结束的加载逻辑。不向上限之外补齐，也不限制 crawl_target 任务领取数量。Python ELD游戏币只取第一页，环境变量 `ELD_OFFER_PAGE_SIZE` 独立控制正整数上限，默认 8：API pageIndex=1/pageSize=该上限，商品属性与排序保留，URL中的分页参数不得覆盖；响应超过上限仍截前 N 条。DOM兜底使用同一 ELD 上限，不滚动触发更多加载。G2G物品等通用卡片抓取也应用 G2G 上限；后台旧手工 CrawlService 不属于这些 Python 路径。生产环境配置写入 .env.prod，本地使用 .env；两个平台的上限互不影响。
+- 两种类型均保存提取到的全部候选，不按改价策略、黑白名单、库存、好评率或价格门槛裁剪入库，下游 PHP 策略在完整快照上自行过滤；空加强名单时只查询策略用于决定详情加强对象，不裁剪入库候选。
 - `crawl_target.enhance_stores` 为 `varchar(2048) NOT NULL DEFAULT ''`，存多个加强店铺名，前端支持换行或英文/中文逗号，后台写入时统一保存英文逗号分隔并去除空项/完全重复名字。Python 将其拆成名单，兼容数组和 JSON 数组，归一化大小写、HTML 实体及空白，对 seller_name/seller_id 做完整匹配，不能按子串命中。
-- 仅类型 1 且前 10 条中命中绑定名的 G2G 金币/游戏币竞品点击“查看/View”，确认 #pcMain 店铺身份及详情价格刷新后，读取 .vue-portal-target .pricing-container 内“单价/Unit Price”的价格和币种，更新 price/unit_price/currency，保留精度并标记 unit_price_source=offer_detail。其他竞品保留列表价格和原始顺序。类型 0 即使绑定名字也不读取详情；空名单或未匹配时不读取详情，但仍保存全部列表候选。
-- 名单中的店铺不在前 10 条时不向后搜索。详情不能用列表最低/from 或订单总价替代。绑定店铺详情单价不能确认时目标报错，不保存该轮、不更新最后爬取时间、不发完成通知；抓取前的版本递增仍可能已发生。
-- 完整保存后通知条数等于实际保存条数，零条成功抓取也可发送 crawled_count=0。日志记录候选总数、需要加强的店铺数及详情刷新耗时，不承诺固定速度。
+- 仅类型 1 且本轮列表候选中命中绑定名的 G2G 金币/游戏币竞品点击“查看/View”，确认 #pcMain 店铺身份及详情价格刷新后，读取 .vue-portal-target .pricing-container 内“单价/Unit Price”的价格和币种，更新 price/unit_price/currency，保留精度并标记 unit_price_source=offer_detail。其他竞品保留列表价格和原始顺序。类型 0 即使绑定名字也不读取详情；非空名单未匹配时不读取详情，也不回退自动 Top3。空名单按下述策略规则选择加强对象，仍保存全部列表候选。
+- 类型1且名单为空（归一化后无名字）时，读取 crawl_target.id=price_strategy.crawl_target_id 的启用未删除策略，通过 price_strategy_product 及未删除 game_product 获取绑定币种。在本轮列表报价中按每策略/币种选最低3条，多策略取同一原始记录的去重合集后读取详情。按 dimensions[0]（默认 lowest）过滤，黑名单优先，白名单仅跳过库存/好评率，价格为同币种有效正数且严格大于门槛；门槛优先级 filter_price→price→minimum_price→floor_price。加强对象在详情读取前确定，刷新后不反复补抓。无有效策略或无合格候选时不读取详情，仍全部入库；无效 JSON/不支持的首维度在版本递增前报错，不回退全量加强。
+- 名单中的店铺不在本轮列表候选中时不向后搜索。详情不能用列表最低/from 替代。G2G 数量为 1 时可能不渲染单价：仅在当前详情可见的 pricing-container 唯一、数量输入唯一且明确为 1、金额标注为总金额/总价/Total amount、币种可确认，并通过同样的店铺身份与金额节点刷新校验后，将一件详情金额作为单价，标记 unit_price_source=offer_detail_single_unit；多件总金额不得替代单价。绑定店铺详情单价不能确认时目标报错，不保存该轮、不更新最后爬取时间、不发完成通知；抓取前的版本递增仍可能已发生。
+- 完整保存后通知条数等于实际保存条数，零条成功抓取也可发送 crawled_count=0。每家加强店铺的定位、点击、详情等待及句柄清理统一受默认 15 秒期限约束；点击不等待导航完成，随后单独确认详情刷新。失败日志标明店铺及所在阶段，继续由目标异常处理进入后续目标。日志记录候选总数、需要加强的店铺数、每家执行阶段及详情刷新耗时，不承诺固定速度。
 
-生产者位于独立 g2g 项目的 tools/crawl_from_db.py；后台 CrawlService 是写 competitor_product 的旧手工路径，不可当作本生产者。部署先执行 sql/alter_crawl_target_add_enhance_stores.sql，再发布后台和两台 Python 生产者；已有 crawl_type=1 的目标也全部保存列表候选，需显式配置 enhance_stores 才加强。迁移文件存在不代表已执行。crawl_type 字段尚不存在或仍是 varchar 时，按现有 schema 选择既有数字类型迁移，不重复执行。验证覆盖 Python tests/test_other_offer_prices.py 的单价切换/名字匹配/前10条完整保留、tests/test_crawl_filter.py 的生产通知流程，以及后台表单与行内类型切换测试。
+生产者位于独立 g2g 项目的 tools/crawl_from_db.py；后台 CrawlService 是写 competitor_product 的旧手工路径，不可当作本生产者。部署先执行 sql/alter_crawl_target_add_enhance_stores.sql，再发布后台和两台 Python 生产者；已有 crawl_type=1 的目标也全部保存列表候选，有名单按名字加强，空名单按策略Top3加强。迁移文件存在不代表已执行。crawl_type 字段尚不存在或仍是 varchar 时，按现有 schema 选择既有数字类型迁移，不重复执行。验证覆盖 Python tests/test_other_offer_prices.py 的单价切换/名字匹配/配置条数完整保留、tests/test_crawl_filter.py 的生产通知流程，以及后台表单与行内类型切换测试。
+
+## 最低价门槛过滤全部候选时的改价
+
+`PriceStrategyService::handleProduct()` 在带价格门槛的筛选无结果时，仅移除 `filter_price` 重新筛选一次，保留币种、黑白名单、库存和好评率规则。有候选且门槛为有限正数时，直接按配置最低价出价，不应用 `bid_mode/amplitude`，也不按 `round_precision` 额外取整。现价与该值相同（浮点误差容差 1e-12）即 skip，不调用平台。无竞品、币种不符或其他条件全过滤仍 skip；有高于门槛的候选仍沿用正常幅度/上限/取整流程。回退最低价高于 ceiling_price 时配置冲突，skip 而不出更低价格。日志参考价为配置门槛、竞品 ID 为 null，说明明确回退与忽略偏移；共享产品锁、通知租约及失败重试规则不变。回归见 `test/service/PriceStrategyMinimumFallbackTest.php`。
 
 ## 防止重复消费的硬性约束
 
@@ -66,7 +71,7 @@ MySQL 默认返回实际发生变化的行数。同一秒内刷新相同的 `hea
 ## 常驻命令与 Supervisor
 
 - 正式环境由 Supervisor 直接运行 `php think price:strategy:consume`，不再用计划任务启动 PHP 消费者。
-- Python 爬虫调度仍可使用计划任务。
+- Python 爬虫调度仍可使用计划任务。独立 g2g 的 run_crawl_and_consume.sh 默认 CRAWL_WORKER_COUNT=1，可由环境变量改为正整数；使用 flock 对本轮整体加非阻塞锁，上一轮未结束则跳过本次触发。Xvfb 使用 -a -n 自动选择空闲显示号（从 90+worker_index 开始），不固定占用 90/91。
 - 保持 `autorestart=true`、`stopasgroup=true`、`killasgroup=true`，并让 Worker 支持 SIGTERM/SIGINT 优雅退出。
 - 低配服务器从 `numprocs=1`、`--sleep=2` 开始；通过 `max-jobs` 或 `max-runtime` 定期主动退出，由 Supervisor 重启以释放长期积累的内存。
 - `scripts/price_strategy_execute.php --once` 只用于手工诊断，不得同时与常驻 Worker 周期运行。

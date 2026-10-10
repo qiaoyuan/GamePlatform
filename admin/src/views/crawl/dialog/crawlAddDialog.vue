@@ -71,7 +71,7 @@ export default {
             { label: '店铺加强', value: 1 },
           ],
           attrs: { clearable: false },
-          tip: 'G2G游戏币均保存列表前10条；店铺加强只更新绑定店铺的详情单价',
+          tip: 'G2G游戏币按爬虫配置保存列表候选（默认10条）；店铺加强只更新绑定店铺的详情单价',
           rules: [{ required: true, message: '请选择爬虫类型', trigger: 'change' }],
         },
         enhance_stores: {
@@ -80,7 +80,7 @@ export default {
           formType: 'textarea',
           rows: 3,
           attrs: { maxlength: 2048, placeholder: 'Player\nJIANONE' },
-          tip: '可填写多个店铺名，换行或逗号分隔，保存时统一为英文逗号分隔。仅爬取类型为店铺加强时生效；留空不加强',
+          tip: '多个店铺名用换行或逗号分隔。仅店铺加强类型生效；留空按改价策略选择符合条件的Top3加强，本轮列表候选仍全部入库',
         },
         crawl_server: {
           label: '爬虫服务器',

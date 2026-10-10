@@ -86,7 +86,7 @@
         :disabled="enhanceStoresDialog.saving"
         placeholder="每行一个店铺名，或用逗号分隔"
       />
-      <p>保存时统一用英文逗号分隔；仅店铺加强类型生效。清空后保存可移除名单。</p>
+      <p>仅店铺加强类型生效。有名单按名字加强；清空后按改价策略选择符合条件的Top3加强，本轮列表候选仍全部入库。</p>
       <template #footer>
         <el-button :disabled="enhanceStoresDialog.saving" @click="enhanceStoresDialog.visible = false">取消</el-button>
         <el-button type="primary" :loading="enhanceStoresDialog.saving" @click="saveEnhanceStores">保存</el-button>

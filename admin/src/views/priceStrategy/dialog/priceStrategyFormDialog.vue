@@ -46,7 +46,7 @@
       <el-divider content-position="left">二、最低价</el-divider>
       <el-form-item label="最低价">
         <el-input-number v-model="form.filter_price" :min="0" :precision="6" :step="0.0001" placeholder="不填=不限" />
-        <span class="tip">价格小于等于此值的竞品不参与最低价计算；不填表示不限</span>
+        <span class="tip">价格小于等于此值的竞品不参与最低价计算；若因此过滤所有合格店铺，直接按此价出价，忽略偏移，现价相同则跳过；不填表示不限</span>
       </el-form-item>
 
       <el-divider content-position="left">三、竞价幅度</el-divider>

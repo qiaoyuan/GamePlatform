@@ -77,3 +77,37 @@ test('unchanged and pending type changes do not submit', async () => {
   await s.changeCrawlType({ crawl_type: 0 }, 0)
   await s.changeCrawlType({ crawl_type: 0, _crawlTypeSaving: true }, 1)
 })
+
+
+test('list store settings use normalized server response and allow clearing', async () => {
+  const row = { id: 9, enhance_stores: 'Old', status: 1, crawl_type: 1 }
+  const s = editableState(async (url, payload) => {
+    assert.equal(url, 'crawl/status')
+    assert.equal(Object.keys(payload).length, 2)
+    return { data: { enhance_stores: payload.enhance_stores ? 'Player,JIANONE' : '' } }
+  })
+  s.enhanceStoresDialog = { saving: false }
+  s.openEnhanceStores(row)
+  s.enhanceStoresDialog.value = 'Player\nJIANONE'
+  await s.saveEnhanceStores()
+  assert.equal(row.enhance_stores, 'Player,JIANONE')
+  assert.equal(row.status, 1)
+  assert.equal(s.enhanceStoresDialog.visible, false)
+  s.openEnhanceStores(row)
+  s.enhanceStoresDialog.value = ''
+  await s.saveEnhanceStores()
+  assert.equal(row.enhance_stores, '')
+})
+
+test('failed store save preserves draft and original row', async () => {
+  const row = { id: 9, enhance_stores: 'Old' }
+  const s = editableState(async () => { throw new Error('failed') })
+  s.enhanceStoresDialog = { saving: false }
+  s.openEnhanceStores(row)
+  s.enhanceStoresDialog.value = 'New'
+  await s.saveEnhanceStores()
+  assert.equal(row.enhance_stores, 'Old')
+  assert.equal(s.enhanceStoresDialog.value, 'New')
+  assert.equal(s.enhanceStoresDialog.visible, true)
+  assert.equal(s.enhanceStoresDialog.saving, false)
+})

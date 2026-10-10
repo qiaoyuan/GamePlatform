@@ -39,6 +39,7 @@ description: 游戏数据平台后台（ThinkPHP admin）的开发总览。当�
 - 平台枚举统一复用 `GameAccount`：G2G=1、Eldorado=2；`PLATFORM_FACEBOOK` 仅为旧兼容别名。
 - 产品平台写操作由 `GameProductPriceService`、`GameProductStockService`、`GameProductPushService`、`GameProductOfferSyncService` 等共享服务承载；控制器和 Worker 不各写一套逻辑。
 - `sql/` 保存建表和增量迁移；`scripts/crawl_g2g.mjs` 是仓库内爬虫脚本。生产 Python 爬虫位于独立 g2g 项目，修改生产者契约时核对该项目的 `tools/crawl_from_db.py`、`g2g/db.py`、`g2g/crawl_filter.py`，分别报告两个项目的验证范围，不能仅凭后台改动声称生产者已同步。
-- 爬虫任务支持 crawl_type=0/1（0 默认、1 绑定店铺加强），G2G 游戏币默认前10条全部入库；enhance_stores 存多个店铺名，仅类型1对名单内竞品读取详情单价，不在生产者执行改价策略过滤。字段与通知契约、迁移顺序见 [Worker skill](../game-worker-convention/SKILL.md#列表候选与绑定店铺加强)。
+- 爬虫任务支持 crawl_type=0/1（0 默认、1 绑定店铺加强），Python G2G 默认前10条全部入库（CRAWL_OFFER_LIMIT），ELD游戏币仅取第一页默认8条（ELD_OFFER_PAGE_SIZE，API和DOM兜底统一），两个环境变量分别控制各平台条数；enhance_stores 存多个店铺名，仅类型1对名单内竞品读取详情单价，空名单则按策略选符合条件的Top3加强；全部候选入库，策略过滤仅选择加强对象。字段与通知契约、迁移顺序见 [Worker skill](../game-worker-convention/SKILL.md#列表候选与绑定店铺加强)。
+- 策略价格门槛过滤全部合格竞品时，按配置最低价出价并忽略偏移；现价相同跳过，其他无候选情况保持跳过，具体边界见 Worker skill。
 - 修改模块后按 `AGENTS.md` 的路径映射同步相关 skill。只写经过源码和 diff 核实的稳定约定，替换过时规则，不追加流水账；跨模块规则变化时同步更新此总览。
 - 验证按改动范围选择 PHP 语法检查、已有 `test/service/` 测试、`test/frontend/` Node 测试或前端构建；会改数据库的权限同步、迁移和会调用真实平台的操作应明确目标环境后执行。

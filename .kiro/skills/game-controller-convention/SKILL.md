@@ -98,7 +98,7 @@ description: 游戏数据平台 Controller 开发规范。当新增/修改 app/a
 - 复杂控制器（例如 Crawl 使用 `CrawlTargetModel`）可保留有语义的模型别名，不为满足 `Model` 别名约定强行改名。
 - 列表附加统计和 `list` 一起返回。Crawl 当前 `stats` 为 `main_server/crawler_2` 各含 `g2g/eld`，统计所有当前管理员可见、未删除且启用的目标，不受当前页分页影响；它表示启用目标数，不能当作爬虫进程存活数。
 - Crawl 列表同时返回 `crawl_type` 和虚拟 `crawl_type_name`，默认表头在爬虫服务器后显示爬虫类型与 enhance_stores 加强店铺；类型搜索绑定真实字段并复用 `CrawlTarget::getCrawlTypeList()`；新增/编辑沿用原接口和归属检查，列表通过 `crawl/status` 携带 `crawl_type=0/1` 切换类型，允许整数及字符串 0/1，拒绝其他值，保持状态/服务器不变并返回类型与显示名。`Column/get` 缓存键包含当前表头定义的指纹，表头或枚举变化自动使用新缓存；保存配置未包含的新列按默认定义插入相邻前列之后，已有列的自定义顺序保留。
-- Crawl 列表在爬取类型后展示 `enhance_stores` 加强店铺字段，支持模糊搜索；新增/编辑经 Model 修改器统一保存英文逗号分隔名字。
+- Crawl 列表在爬取类型后展示 `enhance_stores` 加强店铺字段，支持模糊搜索；新增/编辑和列表设置经 Model 修改器统一保存英文逗号分隔名字。列表设置复用 `crawl/status`，仅提交 id/enhance_stores，检查归属、字符串和2048字符上限，允许空串清空并返回规范化后的值，不改状态/服务器/类型。
 - 聚合表达式使用 `fieldRaw('..., COUNT(*) AS total')` 等原始字段接口，普通 `field()` 用于普通字段选择。
 - 专用状态/服务器切换接口应验证 ID 归属、允许值并具有权限注解；前端成功后刷新列表和统计。
 - 修改响应结构、查询范围或特殊动作后同步此 skill；前端事件和页面约定同步 routing skill。

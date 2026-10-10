@@ -33,7 +33,7 @@ use think\facade\Log;
  *       // 一、目标店铺过滤
  *       "blacklist_stores": [],   // 黑名单：命中 seller_id/seller_name 即剔除(永不竞价)
  *       "whitelist_stores": [],   // 白名单：命中则强制纳入(跳过库存/好评率过滤)
- *       "filter_price": null,      // 最低价：价格小于等于此值的竞品不参与最低价计算（仅过滤，不影响出价）
+ *       "filter_price": null,      // 最低价：过滤价格≤此值；若因此过滤全部合格竞品，直接按此值出价，不应用偏移
  *       "min_stock": 0,           // 策略库存阈值：填写无单位非负整数；竞品原始 stock 支持 K/M/G，0=不限
  *       "min_rating": 0,          // 好评率过滤：低于此好评率的店铺不竞价，0=不限
  *       "ceiling_price": null,    // 价格上限(可选，超过则封顶)
@@ -584,7 +584,7 @@ class PriceStrategyService
 
     /**
      * 处理单个产品：算目标价 -> 竞价幅度 -> 上限夹逼 -> 应用改价。
-     * 「最低价」只在筛选竞品阶段生效（过滤价格≤该值的竞品），不参与出价计算。
+     * 最低价过滤全部合格竞品时，直接使用配置最低价，忽略幅度；其他无候选情况仍跳过。
      *
      * @param CrawlData[]|\think\Collection $competitors
      * @param callable|null $beforePriceChange 仅在实际调用平台改价前执行的限速回调
@@ -596,6 +596,19 @@ class PriceStrategyService
 
         // 1. 计算目标价（过滤后竞品最低价）
         $lowestInfo = $this->calcLowest($product, $competitors, $dimension);
+        $filterPrice = $this->numOrNull($dimension['filter_price'] ?? null);
+        $minimumFallback = false;
+        if ($lowestInfo === null && $filterPrice !== null && is_finite($filterPrice) && $filterPrice > 0) {
+            // 只撤销价格门槛，仍遵守币种、黑白名单、库存和好评率要求。
+            $withoutPriceGate = $dimension;
+            $withoutPriceGate['filter_price'] = null;
+            $eligible = $this->calcLowest($product, $competitors, $withoutPriceGate);
+            if ($eligible !== null) {
+                $minimumFallback = true;
+                $lowestInfo = $eligible;
+                $lowestInfo['price'] = $filterPrice;
+            }
+        }
         if ($lowestInfo === null) {
             // 区分“真没竞品”和“币种不匹配”，给更友好的原因
             $currencies = [];
@@ -626,8 +639,10 @@ class PriceStrategyService
         }
 
         $lowest = (float) $lowestInfo['price'];
-        $competitorId = (int) $lowestInfo['id'];
-        $competitorContext = sprintf(
+        $competitorId = $minimumFallback ? null : (int) $lowestInfo['id'];
+        $competitorContext = $minimumFallback
+            ? '最低价门槛已过滤全部合格竞品，直接按配置最低价=' . $filterPrice . '出价，忽略偏移值'
+            : sprintf(
             '参考竞品ID=%d，seller_id=%s，seller_name=%s，库存=%s，好评率=%s',
             $competitorId,
             $lowestInfo['seller_id'] !== '' ? $lowestInfo['seller_id'] : '--',
@@ -648,25 +663,30 @@ class PriceStrategyService
             $competitorContext .= '，最低价=' . $filterPrice . '（已排除价格≤此值的竞品）';
         }
 
-        // 2. 竞价幅度：算出我们的出价（过滤价不参与出价计算）
-        $bid = $this->applyBid($lowest, $dimension);
+        // 2. 门槛回退不应用偏移；有合格竞品时沿用正常竞价。
+        $bid = $minimumFallback ? $lowest : $this->applyBid($lowest, $dimension);
 
         // 3. 价格上限（可选）
         $ceiling = $this->numOrNull($dimension['ceiling_price'] ?? null);
         if ($ceiling !== null && $bid > $ceiling) {
+            if ($minimumFallback) {
+                return [PriceStrategyLog::STATUS_SKIP, $current, $lowest, '最低价高于价格上限，配置冲突，已跳过；' . $competitorContext, null];
+            }
             $bid = $ceiling;
         }
 
         // 4. 取整
         $precision = (int) ($dimension['round_precision'] ?? 4);
-        $bid = round($bid, $precision);
+        if (!$minimumFallback) {
+            $bid = round($bid, $precision);
+        }
 
         if ($bid <= 0) {
             return [PriceStrategyLog::STATUS_SKIP, $current, $lowest, '出价非正数，已跳过；' . $competitorContext, $competitorId];
         }
         // 与现价一致则不改。阈值按取整精度取「半个最小单位」，
         // 否则像 0.000479 vs 0.00048 这类 6 位小数的真实差异会被误判为相同而跳过。
-        $epsilon = 0.5 * pow(10, -$precision);
+        $epsilon = $minimumFallback ? 1e-12 : 0.5 * pow(10, -$precision);
         if (abs($bid - $current) < $epsilon) {
             return [PriceStrategyLog::STATUS_SKIP, $current, $lowest, '出价与现价一致，无需改价；' . $competitorContext, $competitorId];
         }
@@ -1025,7 +1045,7 @@ class PriceStrategyService
             'round_precision'  => 4,
         ], $dimension);
         $dimension['filter_price'] = $filterPrice;
-        // 最低价只做竞品过滤，不再作为出价下限。
+        // 正常竞价不设最低出价下限；价格门槛过滤全部合格竞品时由 handleProduct 回退。
         unset($dimension['price'], $dimension['minimum_price'], $dimension['floor_price']);
         $dimension['blacklist_stores'] = $this->normalizeStoreIdentifiers($dimension['blacklist_stores']);
         $dimension['whitelist_stores'] = $this->normalizeStoreIdentifiers($dimension['whitelist_stores']);
